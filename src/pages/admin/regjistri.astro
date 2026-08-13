@@ -1,0 +1,97 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { Icon } from '@/components/ui/icon';
+import { formatDate } from '@/lib/utils';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const [feedResult, pendingResult] = await Promise.all([
+  supabase.rpc('admin_audit_feed', { p_limit: 200 }),
+  supabase.rpc('admin_payments', { p_status: 'pending', p_limit: 1, p_offset: 0 }),
+]);
+
+const rows = (feedResult.data ?? []) as {
+  id: string;
+  action: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+  actor_name: string | null;
+  target_name: string | null;
+}[];
+const pendingCount = (pendingResult.data as { total?: number })?.total ?? 0;
+
+const ACTION: Record<string, { label: string; icon: string; tone: string }> = {
+  'pro.grant': { label: 'Dha Pro', icon: 'sparkles', tone: 'text-primary' },
+  'pro.revoke': { label: 'Hoqi Pro', icon: 'circle-slash', tone: 'text-destructive' },
+  'admin.grant': { label: 'Bëri admin', icon: 'shield-check', tone: 'text-primary' },
+  'admin.revoke': { label: 'Hoqi adminin', icon: 'shield-off', tone: 'text-destructive' },
+  'payment.approve': { label: 'Konfirmoi pagesën', icon: 'badge-check', tone: 'text-success' },
+  'payment.reject': { label: 'Refuzoi pagesën', icon: 'ban', tone: 'text-destructive' },
+};
+
+const time = (iso: string) => {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+---
+
+<AdminLayout
+  title="Regjistri — Admin Fatura.co"
+  heading="Regjistri i veprimeve"
+  subheading="Çdo veprim shkrimi i një admini, i pandryshueshëm."
+  active="audit"
+  pendingCount={pendingCount}
+>
+  <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+    {
+      rows.length === 0 ? (
+        <div class="px-6 py-16 text-center">
+          <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
+            <Icon name="scroll-text" class="text-muted-foreground size-5" />
+          </div>
+          <h2 class="mt-4 text-sm font-semibold">Asnjë veprim ende</h2>
+          <p class="text-muted-foreground mt-1 text-sm">
+            Dhënia e Pro-s, ndryshimi i adminëve dhe vendimet për pagesat shfaqen këtu.
+          </p>
+        </div>
+      ) : (
+        <ul class="divide-y">
+          {rows.map((r) => {
+            const meta = ACTION[r.action] ?? {
+              label: r.action,
+              icon: 'scroll-text',
+              tone: 'text-muted-foreground',
+            };
+            return (
+              <li class="flex items-start gap-3 px-5 py-3.5">
+                <span class="bg-muted mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
+                  <Icon name={meta.icon} class={`size-4 ${meta.tone}`} />
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm">
+                    <span class="font-medium">{r.actor_name ?? 'Admin'}</span>
+                    <span class="text-muted-foreground"> — {meta.label} </span>
+                    {r.target_name && <span class="font-medium">{r.target_name}</span>}
+                  </p>
+                  {r.detail && Object.keys(r.detail).length > 0 && (
+                    <p class="text-muted-foreground mt-0.5 font-mono text-xs">
+                      {Object.entries(r.detail)
+                        .filter(([k]) => k !== 'until')
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join(' · ')}
+                    </p>
+                  )}
+                </div>
+                <p class="text-muted-foreground shrink-0 text-xs">
+                  {formatDate(r.created_at)} {time(r.created_at)}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )
+    }
+  </section>
+</AdminLayout>

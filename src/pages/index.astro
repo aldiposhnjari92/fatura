@@ -1,0 +1,187 @@
+---
+import MarketingLayout from '@/layouts/MarketingLayout.astro';
+import Hero1 from '@/components/blocks/hero-1.astro';
+import FeaturesSection from '@/components/sections/FeaturesSection.astro';
+import Pricing2 from '@/components/blocks/pricing-2.astro';
+import Faqs1 from '@/components/blocks/faqs-1.astro';
+import Cta1 from '@/components/blocks/cta-1.astro';
+import ProblemSection from '@/components/sections/ProblemSection.astro';
+import StepsSection from '@/components/sections/StepsSection.astro';
+import WaitlistSection from '@/components/sections/WaitlistSection.astro';
+import heroImage from '@/assets/hero-invoice.png';
+
+// Fully static: no session lookup, no JS shipped, cached at the edge.
+export const prerender = true;
+
+const plans = [
+  {
+    name: 'Falas',
+    description: 'Për të filluar sot.',
+    price: 0,
+    currency: 'ALL',
+    unit: 'muaj',
+    features: [
+      '5 fatura në muaj',
+      'Klientë të palimituar',
+      'PDF me logon tënde',
+      'Fatura shqip dhe anglisht',
+    ],
+    note: 'Pa kartë krediti',
+    button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
+  },
+  {
+    name: 'Pro',
+    description: 'Për biznese që faturojnë çdo javë.',
+    price: 990,
+    currency: 'ALL',
+    unit: 'muaj',
+    features: [
+      'Fatura të palimituara',
+      'Gjithçka nga plani falas',
+      'Mbështetje me përparësi në WhatsApp',
+      'Veçoritë e reja të parët',
+    ],
+    featured: true,
+    badge: 'Më i zgjedhuri',
+    note: 'Anulo kur të duash',
+    button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
+  },
+];
+
+const faqs = [
+  {
+    id: 'falas',
+    question: 'A është vërtet falas?',
+    answer:
+      'Po. Plani falas të lejon 5 fatura në muaj, klientë të palimituar dhe PDF me logon tënde. Plani Pro (990 Lekë/muaj) heq limitin dhe shton fatura të palimituara.',
+  },
+  {
+    id: 'nipt',
+    question: 'A i plotëson faturat kërkesat për NIPT?',
+    answer:
+      'Fatura përmban NIPT-in tënd, NIPT-in e klientit, datën, numrin unik të faturës, artikujt, TVSH-në dhe totalin — të dhënat standarde të një fature tregtare. Për fiskalizim në kohë reale me sistemin e DPT-së, Fatura.co ende nuk lidhet automatikisht; është mjet për faturim dhe dokumentim.',
+  },
+  {
+    id: 'kompjuter',
+    question: 'A më duhet kompjuter?',
+    answer:
+      'Jo. Fatura.co punon plotësisht në shfletuesin e telefonit. PDF-ja gjenerohet direkt në pajisjen tënde.',
+  },
+  {
+    id: 'te-dhenat',
+    question: 'Ku ruhen të dhënat e mia?',
+    answer:
+      'Të dhënat ruhen të enkriptuara në Supabase (serverë në Bashkimin Evropian). Vetëm ti ke akses te faturat dhe klientët e tu.',
+  },
+  {
+    id: 'numri',
+    question: 'A mund ta ndryshoj numrin e faturës?',
+    answer:
+      'Po. Ne propozojmë formatin FAT-2025-001 dhe e rrisim vetë numrin, por ti mund ta shkruash si të duash.',
+  },
+  {
+    id: 'freelancer',
+    question: 'A punon për profesionistë të lirë (freelancers)?',
+    answer:
+      'Po, dhe është ndërtuar pikërisht për ta. Fatura në anglisht me valutë Lekë dhe të dhënat e plota të biznesit janë të gatshme që në ditën e parë.',
+  },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.question,
+    acceptedAnswer: { '@type': 'Answer', text: f.answer },
+  })),
+};
+
+const appJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Fatura.co',
+  url: 'https://fatura.co',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description:
+    'Krijo fatura profesionale me NIPT dhe logo në 2 minuta, nga telefoni. Për bizneset e vogla dhe të vetëpunësuarit në Shqipëri.',
+  inLanguage: 'sq',
+  offers: plans.map((plan) => ({
+    '@type': 'Offer',
+    name: plan.name,
+    price: String(plan.price),
+    priceCurrency: 'ALL',
+    description: plan.features.join(', '),
+  })),
+};
+---
+
+<MarketingLayout
+  title="Fatura.co — Fatura profesionale me NIPT dhe logo, në 2 minuta"
+  description="Bizneset e vogla në Shqipëri humbin 2 orë në javë duke bërë fatura në Word. Fatura.co i bën në 2 minuta nga telefoni: PDF me NIPT, logo dhe TVSH. Falas."
+>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <Hero1
+    badge={{ label: 'Bërë në Fier, për gjithë Shqipërinë', href: '#si-funksionon' }}
+    title="Fatura profesionale në 2 minuta, jo 2 orë"
+    description="Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e gatshme për t'u dërguar në WhatsApp, në sekonda."
+    buttons={[
+      {
+        label: 'Fillo falas — pa kartë krediti',
+        href: '/regjistrohu',
+        'data-auth-show': 'anon',
+      },
+      {
+        label: 'Shko te paneli',
+        href: '/app',
+        variant: 'default',
+        'data-auth-show': 'user',
+      },
+      { label: 'Shiko si funksionon', href: '#si-funksionon', variant: 'outline' },
+    ]}
+    image={{ src: heroImage, alt: 'Faturë e krijuar me Fatura.co, me NIPT, TVSH dhe logo' }}
+  />
+
+  <ProblemSection />
+
+  <FeaturesSection class="scroll-mt-16" />
+
+  <StepsSection />
+
+  <Pricing2
+    title="Çmime të thjeshta"
+    description="Fillo falas. Paguaj vetëm kur biznesi rritet."
+    plans={plans}
+  />
+
+  <WaitlistSection />
+
+  <div id="faq" class="scroll-mt-16">
+  <Faqs1
+    class="bg-muted/40"
+    title="Pyetje të shpeshta"
+    description="Çfarë pyesin më shpesh bizneset që sapo fillojnë."
+    faqs={faqs}
+  />
+  </div>
+
+  <Cta1
+    class="dark bg-ink"
+    title="Fatura jote e ardhshme, në 2 minuta"
+    description="Krijo llogarinë falas dhe shkarko faturën e parë sot. Pa kartë krediti, pa kontratë."
+    buttons={[
+      { label: 'Fillo falas', href: '/regjistrohu', 'data-auth-show': 'anon' },
+      {
+        label: 'Shko te paneli',
+        href: '/app',
+        variant: 'default',
+        'data-auth-show': 'user',
+      },
+    ]}
+  />
+</MarketingLayout>

@@ -1,0 +1,154 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PaymentQueue from '@/components/react/PaymentQueue';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { formatALL, formatDate } from '@/lib/utils';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const params = Astro.url.searchParams;
+
+const STATUSES = ['all', 'pending', 'confirmed', 'rejected'] as const;
+type Status = (typeof STATUSES)[number];
+const raw = params.get('statusi');
+const status: Status = STATUSES.includes(raw as Status) ? (raw as Status) : 'all';
+
+const [allResult, pendingResult, statsResult] = await Promise.all([
+  supabase.rpc('admin_payments', { p_status: status, p_limit: 100, p_offset: 0 }),
+  supabase.rpc('admin_pending_payments'),
+  supabase.rpc('admin_stats'),
+]);
+
+const payload = (allResult.data ?? { rows: [], total: 0 }) as { rows: any[]; total: number };
+const rows = payload.rows ?? [];
+const pending = (pendingResult.data ?? []) as any[];
+const s = (statsResult.data ?? {}) as Record<string, number>;
+
+const LABELS: Record<Status, string> = {
+  all: 'Të gjitha',
+  pending: 'Në pritje',
+  confirmed: 'Konfirmuar',
+  rejected: 'Refuzuar',
+};
+const METHOD: Record<string, string> = {
+  bank_transfer: 'Transfertë',
+  card: 'Kartë',
+  paypal: 'PayPal',
+};
+const BADGE: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200',
+  confirmed: 'bg-teal-100 text-teal-900 dark:bg-brand/20 dark:text-brand',
+  rejected: 'bg-red-100 text-red-900 dark:bg-red-400/15 dark:text-red-200',
+  refunded: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200',
+};
+
+const kpis = [
+  { label: 'Arkëtuar gjithsej', value: formatALL(Number(s.revenue_confirmed ?? 0)) },
+  { label: 'Arkëtuar (30 ditë)', value: formatALL(Number(s.revenue_30d ?? 0)) },
+  { label: 'Në pritje', value: String(pending.length) },
+  { label: 'Abonentë aktivë', value: String(s.pro_users ?? 0) },
+];
+---
+
+<AdminLayout
+  title="Pagesat — Admin Fatura.co"
+  heading="Pagesat"
+  subheading="Konfirmo transfertat dhe ndiq të ardhurat."
+  active="payments"
+  pendingCount={pending.length}
+>
+  <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {
+      kpis.map((k) => (
+        <div class="bg-card ring-border rounded-xl p-5 ring-1">
+          <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {k.label}
+          </p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{k.value}</p>
+        </div>
+      ))
+    }
+  </div>
+
+  {
+    pending.length > 0 && (
+      <section class="bg-card ring-border mb-6 overflow-hidden rounded-xl ring-1">
+        <div class="flex items-center justify-between border-b px-5 py-4">
+          <h2 class="text-sm font-semibold">Kërkojnë veprim</h2>
+          <span class="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-[11px] font-bold">
+            {pending.length}
+          </span>
+        </div>
+        <PaymentQueue initial={pending} client:load />
+      </section>
+    )
+  }
+
+  <div class="bg-card ring-border mb-4 flex flex-wrap gap-1.5 rounded-xl p-3 ring-1">
+    {
+      STATUSES.map((st) => (
+        <Button
+          as="a"
+          href={st === 'all' ? '/admin/pagesat' : `/admin/pagesat?statusi=${st}`}
+          size="sm"
+          variant={status === st ? 'default' : 'ghost'}
+        >
+          {LABELS[st]}
+        </Button>
+      ))
+    }
+  </div>
+
+  <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+    <h2 class="border-b px-5 py-4 text-sm font-semibold">
+      Historiku ({payload.total ?? 0})
+    </h2>
+
+    {
+      rows.length === 0 ? (
+        <p class="text-muted-foreground px-5 py-14 text-center text-sm">
+          Asnjë pagesë në këtë filtër.
+        </p>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-muted/40 border-b">
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Referenca</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Biznesi</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">Mënyra</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Shuma</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Statusi</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell">Data</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              {rows.map((r) => (
+                <tr class="hover:bg-muted/40 transition-colors">
+                  <td class="px-5 py-3.5 font-mono text-xs">{r.reference}</td>
+                  <td class="max-w-[14rem] truncate px-5 py-3.5">{r.business_name ?? '—'}</td>
+                  <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
+                    {METHOD[r.method] ?? r.method} · {r.months} muaj
+                  </td>
+                  <td class="px-5 py-3.5 text-right font-medium tabular-nums">
+                    {formatALL(r.amount)}
+                  </td>
+                  <td class="px-5 py-3.5 text-right">
+                    <span class={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[r.status] ?? ''}`}>
+                      {LABELS[r.status as Status] ?? r.status}
+                    </span>
+                  </td>
+                  <td class="text-muted-foreground hidden px-5 py-3.5 text-right md:table-cell">
+                    {formatDate(r.decided_at ?? r.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+</AdminLayout>

@@ -1,0 +1,131 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import ProfileSettings from '@/components/react/ProfileSettings';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { FREE_INVOICE_LIMIT } from '@/lib/types';
+
+export const prerender = false;
+
+// Every value here already came from app_bootstrap() in the middleware.
+const { user, profile, invoicesThisMonth } = Astro.locals;
+const welcome = Astro.url.searchParams.get('welcome') === '1';
+const isPro = profile?.is_pro ?? false;
+const remaining = Math.max(FREE_INVOICE_LIMIT - invoicesThisMonth, 0);
+const usedPct = Math.min((invoicesThisMonth / FREE_INVOICE_LIMIT) * 100, 100);
+
+const createdAt = profile?.created_at ? new Date(profile.created_at) : null;
+const memberSince = createdAt
+  ? `${String(createdAt.getDate()).padStart(2, '0')}.${String(createdAt.getMonth() + 1).padStart(2, '0')}.${createdAt.getFullYear()}`
+  : '—';
+---
+
+<AppLayout title="Cilësimet — Fatura.co" active="settings">
+  <div class="mb-6">
+    <p class="text-muted-foreground text-sm font-medium">Cilësimet</p>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+      {welcome ? 'Mirë se erdhe në Fatura.co' : 'Profili i biznesit'}
+    </h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {
+        welcome
+          ? 'Plotëso një herë të dhënat e biznesit — pastaj dalin vetë në çdo faturë.'
+          : 'Këto të dhëna printohen në krye të çdo fature që lëshon.'
+      }
+    </p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <ProfileSettings
+      profile={profile}
+      userId={user!.id}
+      email={user!.email ?? ''}
+      welcome={welcome}
+      client:load
+    />
+
+    <!-- Side rail -->
+    <aside class="flex flex-col gap-6">
+      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold">Plani</h2>
+          <span
+            class:list={[
+              'rounded-full px-2 py-0.5 text-[11px] font-bold',
+              isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
+            ]}
+          >
+            {isPro ? 'PRO' : 'FALAS'}
+          </span>
+        </div>
+
+        {
+          isPro ? (
+            <p class="text-muted-foreground mt-3 text-sm">
+              Fatura të palimituara. Faleminderit që na mbështet.
+            </p>
+          ) : (
+            <>
+              <div class="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
+                <div
+                  class:list={[
+                    'h-full rounded-full transition-all',
+                    remaining === 0 ? 'bg-warning' : 'bg-primary',
+                  ]}
+                  style={`width:${usedPct}%`}
+                />
+              </div>
+              <p class="text-muted-foreground mt-2 text-sm">
+                <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
+                {FREE_INVOICE_LIMIT} fatura këtë muaj
+              </p>
+              <Button as="a" href="/cmimet" size="sm" class="mt-4 w-full">
+                Kalo në Pro
+              </Button>
+            </>
+          )
+        }
+      </section>
+
+      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+        <h2 class="text-sm font-semibold">Llogaria</h2>
+        <dl class="mt-4 flex flex-col gap-3 text-sm">
+          <div>
+            <dt class="text-muted-foreground text-xs">Email</dt>
+            <dd class="mt-0.5 truncate font-medium">{user!.email}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground text-xs">Klient që nga</dt>
+            <dd class="mt-0.5 font-medium">{memberSince}</dd>
+          </div>
+        </dl>
+
+        <form method="POST" action="/auth/signout" class="mt-5">
+          <Button type="submit" variant="outline" size="sm" class="w-full">
+            <Icon name="log-out" /> Dil nga llogaria
+          </Button>
+        </form>
+      </section>
+
+      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+        <div class="flex items-start gap-2.5">
+          <Icon name="shield-check" class="text-primary mt-0.5 size-4 shrink-0" />
+          <div>
+            <h2 class="text-sm font-semibold">Të dhënat e tua</h2>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              Faturat dhe klientët janë të aksesueshëm vetëm nga llogaria jote — të
+              mbrojtura me Row Level Security në bazën e të dhënave. PDF-të krijohen në
+              pajisjen tënde dhe nuk kalojnë kurrë nga serverët tanë.
+            </p>
+            <a
+              href="/privatesia"
+              class="text-primary mt-2 inline-block text-xs font-medium hover:underline"
+            >
+              Politika e privatësisë
+            </a>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</AppLayout>

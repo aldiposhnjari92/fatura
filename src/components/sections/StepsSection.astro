@@ -1,0 +1,72 @@
+---
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+
+const steps = [
+  {
+    n: '01',
+    title: 'Krijo llogarinë',
+    body: 'Email dhe fjalëkalim. Pastaj plotëso një herë emrin e biznesit, NIPT-in dhe ngarko logon.',
+  },
+  {
+    n: '02',
+    title: 'Shto faturën',
+    body: 'Zgjidh klientin, shkruaj artikujt me sasi dhe çmim. Nëntotali, TVSH-ja dhe totali dalin vetë.',
+  },
+  {
+    n: '03',
+    title: 'Shkarko PDF-në',
+    body: 'Një klik dhe fatura e markuar me logon tënde shkarkohet. Dërgoje me WhatsApp ose email.',
+  },
+];
+---
+
+<Section id="si-funksionon">
+  <SectionContainer class="items-center gap-6 text-center">
+    <div class="flex max-w-2xl flex-col items-center gap-4">
+      <h2
+        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+      >
+        Tri hapa. Kaq.
+      </h2>
+      <p class="text-muted-foreground max-w-2xl text-lg leading-relaxed text-balance">
+        Nga regjistrimi te fatura e parë e shkarkuar — më pak se 5 minuta.
+      </p>
+    </div>
+  </SectionContainer>
+
+  <SectionContainer class="max-w-5xl">
+    <ol class="grid gap-6 md:grid-cols-3">
+      {
+        steps.map((step) => (
+          <li>
+            <Card class="relative h-full overflow-hidden">
+              <span
+                class="text-muted pointer-events-none absolute -top-4 -right-2 text-[5rem] leading-none font-bold"
+                aria-hidden="true"
+              >
+                {step.n}
+              </span>
+              <CardHeader>
+                <span class="bg-primary text-primary-foreground relative flex size-11 items-center justify-center rounded-xl text-sm font-bold">
+                  {step.n}
+                </span>
+                <CardTitle class="relative mt-4 text-lg">{step.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p class="text-muted-foreground relative text-sm leading-relaxed">
+                  {step.body}
+                </p>
+              </CardContent>
+            </Card>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="flex justify-center">
+      <Button as="a" href="/regjistrohu" size="lg">Provo tani — falas</Button>
+    </div>
+  </SectionContainer>
+</Section>

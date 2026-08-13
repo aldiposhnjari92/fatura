@@ -1,0 +1,123 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+/*
+  Fulldev ships this component with
+
+    import.meta.glob([...lucide..., ...simple-icons...], { eager: true })
+
+  which pulls **5,478 SVG modules** into the graph for any page that renders a
+  single icon — 2,025 lucide + 3,453 simple-icons. In dev that put every page
+  (the header and footer use icons, so that is every page) at ~11s to render.
+
+  Two changes:
+    • lazy instead of eager — Vite emits import thunks and only ever transforms
+      the handful of icons actually asked for;
+    • `?raw`, so an icon is a string rather than a compiled component module.
+
+  The public API is unchanged: <Icon name="download" /> / <Icon href="…" />.
+*/
+
+type Props = Omit<HTMLAttributes<'svg'>, 'name' | 'href'> & {
+  href?: HTMLAttributes<'a'>['href'];
+  name?: string | number | null;
+};
+
+const { name, href, class: className, ...props } = Astro.props;
+
+const hrefMap = {
+  'x.com': 'x',
+  twitter: 'twitter',
+  facebook: 'facebook',
+  instagram: 'instagram',
+  pinterest: 'pinterest',
+  youtube: 'youtube',
+  tiktok: 'tiktok',
+  snapchat: 'snapchat',
+  reddit: 'reddit',
+  tumblr: 'tumblr',
+  'wa.me': 'whatsapp',
+  telegram: 'telegram',
+  discord: 'discord',
+  vimeo: 'vimeo',
+  flickr: 'flickr',
+  yelp: 'yelp',
+  spotify: 'spotify',
+  behance: 'behance',
+  dribbble: 'dribbble',
+  soundcloud: 'soundcloud',
+  github: 'github',
+  twitch: 'twitch',
+  'tel:': 'phone',
+  'mailto:': 'mail',
+  'maps.app.goo.gl': 'map-pin',
+  linkedin: 'linkedin',
+} as const;
+
+const lucide = import.meta.glob('/node_modules/lucide-static/icons/*.svg', {
+  query: '?raw',
+  import: 'default',
+});
+const simple = import.meta.glob('/node_modules/simple-icons/icons/*.svg', {
+  query: '?raw',
+  import: 'default',
+});
+
+/** Icon names are file paths — never interpolate an unvalidated value. */
+const SAFE_NAME = /^[a-z0-9][a-z0-9-]*$/;
+
+function resolve(): { load: () => Promise<unknown>; brand: boolean } | null {
+  let key: string | undefined;
+  let preferBrand = false;
+
+  if (name === 'x.com') {
+    key = 'x';
+    preferBrand = true;
+  } else if (name !== null && name !== undefined && name !== '') {
+    key = String(name);
+  } else if (href) {
+    const match = Object.keys(hrefMap).find((k) => href.toString().includes(k));
+    if (!match) return null;
+    key = hrefMap[match as keyof typeof hrefMap];
+    preferBrand = !['phone', 'mail', 'map-pin'].includes(key);
+  }
+
+  if (!key || !SAFE_NAME.test(key)) return null;
+
+  const lucidePath = `/node_modules/lucide-static/icons/${key}.svg`;
+  const simplePath = `/node_modules/simple-icons/icons/${key}.svg`;
+
+  if (preferBrand && simple[simplePath]) return { load: simple[simplePath], brand: true };
+  if (lucide[lucidePath]) return { load: lucide[lucidePath], brand: false };
+  if (simple[simplePath]) return { load: simple[simplePath], brand: true };
+  return null;
+}
+
+const resolved = resolve();
+const raw = resolved ? ((await resolved.load()) as string) : null;
+
+// Keep only what goes between <svg …> and </svg>; we supply our own attributes.
+const inner = raw?.replace(/^[\s\S]*?<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '') ?? '';
+const viewBox = raw?.match(/viewBox="([^"]+)"/i)?.[1] ?? '0 0 24 24';
+const brand = resolved?.brand ?? false;
+---
+
+{
+  raw && (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={viewBox}
+      width="24"
+      height="24"
+      fill={brand ? 'currentColor' : 'none'}
+      stroke={brand ? undefined : 'currentColor'}
+      stroke-width={brand ? undefined : 2}
+      stroke-linecap={brand ? undefined : 'round'}
+      stroke-linejoin={brand ? undefined : 'round'}
+      aria-hidden="true"
+      class={`size-[1em] text-base ${className ?? ''}`}
+      {...props}
+      set:html={inner}
+    />
+  )
+}

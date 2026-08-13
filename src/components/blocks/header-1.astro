@@ -1,0 +1,130 @@
+---
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Header, HeaderContainer, HeaderGroup } from "@/components/ui/header"
+import { Icon } from "@/components/ui/icon"
+import { Logo, LogoImage, LogoText } from "@/components/ui/logo"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+
+type Props = {
+  class?: string
+  logo: {
+    label: string
+    href: string
+    src?: any
+    srcLight?: any
+    srcDark?: any
+    alt?: string
+  }
+  navigation: {
+    label: string
+    href: string
+    active?: boolean
+    links?: {
+      label: string
+      href: string
+    }[]
+  }[]
+  buttons: {
+    label: string
+    href: string
+    icon?: string
+    variant?: "default" | "outline" | "secondary" | "ghost"
+    /** Show this button only to signed-out ('anon') or signed-in ('user') visitors. */
+    'data-auth-show'?: 'anon' | 'user'
+  }[]
+}
+
+const { class: className, logo, navigation, buttons } = Astro.props
+---
+
+<Header class={cn("", className)}>
+  <HeaderContainer class="items-center justify-between gap-4">
+    <HeaderGroup>
+      <Logo href={logo.href}>
+        <LogoImage
+          src={logo.src}
+          srcLight={logo.srcLight}
+          srcDark={logo.srcDark}
+          alt={logo.alt}
+        />
+        {logo.label && <LogoText>{logo.label}</LogoText>}
+      </Logo>
+    </HeaderGroup>
+    <NavigationMenu class="hidden flex-none justify-start lg:flex">
+      <NavigationMenuList class="justify-start">
+        {
+          navigation.map((item, index) => (
+            <NavigationMenuItem value={`nav-${index}`}>
+              <NavigationMenuLink href={item.href} active={item.active}>
+                {item.label}
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+          ))
+        }
+      </NavigationMenuList>
+    </NavigationMenu>
+    <HeaderGroup class="ml-auto hidden flex-1 justify-end lg:flex">
+      <slot />
+      {
+        buttons.map(({ label, icon, ...button }) => (
+          <Button
+            as="a"
+            size={icon && !label ? "icon-sm" : "sm"}
+            aria-label={label}
+            target={button.href.startsWith("http") ? "_blank" : undefined}
+            rel={button.href.startsWith("http") ? "noreferrer" : undefined}
+            {...button}
+          >
+            {icon && <Icon name={icon} />}
+            {label}
+          </Button>
+        ))
+      }
+    </HeaderGroup>
+    <Sheet class="lg:hidden">
+      <SheetTrigger
+        variant="ghost"
+        size="icon-sm"
+        class="ml-auto"
+        aria-label="Open menu"
+      >
+        <Icon name="menu" />
+      </SheetTrigger>
+      <SheetContent side="right" class="p-0">
+        <SheetHeader class="sr-only">
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>Site navigation and actions.</SheetDescription>
+        </SheetHeader>
+        <div class="flex h-full flex-col gap-6 px-4 py-12">
+          <nav aria-label="Main navigation" class="flex flex-col gap-1">
+            {
+              navigation.map((item) => (
+                <SheetClose variant="ghost" class="justify-start">
+                  {item.label}
+                </SheetClose>
+              ))
+            }
+          </nav>
+          <div class="mt-auto flex flex-col gap-2">
+            <slot />
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  </HeaderContainer>
+</Header>

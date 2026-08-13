@@ -1,0 +1,97 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header1 from '@/components/blocks/header-1.astro';
+import Footer1 from '@/components/blocks/footer-1.astro';
+import logoMark from '@/assets/logo-mark.svg';
+
+export interface Props {
+  title: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const { title, description, noindex } = Astro.props;
+const year = new Date().getFullYear();
+const path = Astro.url.pathname;
+---
+
+<BaseLayout title={title} description={description} noindex={noindex}>
+  <slot name="head" slot="head" />
+
+  <!-- Sentinel: while this is on screen the header is at rest. -->
+  <div id="header-sentinel" aria-hidden="true" class="h-px w-full"></div>
+
+  <Header1
+    class="sticky top-0 z-50"
+    logo={{ label: 'Fatura.co', href: '/', src: logoMark, alt: 'Fatura.co' }}
+    navigation={[
+      { label: 'Si funksionon', href: '/#si-funksionon' },
+      { label: 'Veçoritë', href: '/#vecorite' },
+      { label: 'Çmimet', href: '/cmimet', active: path === '/cmimet' },
+    ]}
+    buttons={[
+      // Both sets ship; CSS + the <head> script show exactly one. See globals.css.
+      { label: 'Hyr', href: '/login', variant: 'ghost', 'data-auth-show': 'anon' },
+      { label: 'Fillo falas', href: '/regjistrohu', 'data-auth-show': 'anon' },
+      { label: 'Shko te paneli', href: '/app', 'data-auth-show': 'user' },
+    ]}
+  />
+
+  <main>
+    <slot />
+  </main>
+
+  <Footer1
+    class="dark bg-ink"
+    brandName="Fatura.co"
+    brandHref="/"
+    description="Fatura profesionale me NIPT dhe logo, në 2 minuta, direkt nga telefoni. Ndërtuar në Fier, për bizneset e vogla në të gjithë Shqipërinë."
+    socials={[{ label: 'Email', href: 'mailto:pershendetje@fatura.co', icon: 'mail' }]}
+    columns={[
+      {
+        title: 'Produkti',
+        links: [
+          { label: 'Si funksionon', href: '/#si-funksionon' },
+          { label: 'Veçoritë', href: '/#vecorite' },
+          { label: 'Çmimet', href: '/cmimet' },
+          { label: 'Pyetje të shpeshta', href: '/#faq' },
+        ],
+      },
+      {
+        title: 'Llogaria',
+        links: [
+          { label: 'Krijo llogari', href: '/regjistrohu' },
+          { label: 'Hyr', href: '/login' },
+        ],
+      },
+      {
+        title: 'Ligjore',
+        links: [
+          { label: 'Kushtet e përdorimit', href: '/kushtet' },
+          { label: 'Privatësia', href: '/privatesia' },
+          { label: 'pershendetje@fatura.co', href: 'mailto:pershendetje@fatura.co' },
+        ],
+      },
+    ]}
+    copyright={`© ${year} Fatura.co — Të gjitha të drejtat e rezervuara. Bërë në Fier, Shqipëri.`}
+  />
+
+  <script is:inline>
+    (function () {
+      var sentinel = document.getElementById('header-sentinel');
+      var header = document.querySelector('[data-slot="header"]');
+      if (!sentinel || !header) return;
+
+      // No IntersectionObserver (very old browsers): leave the header in its
+      // resting style rather than attaching a scroll listener.
+      if (!('IntersectionObserver' in window)) return;
+
+      new IntersectionObserver(
+        function (entries) {
+          header.setAttribute('data-stuck', entries[0].isIntersecting ? 'false' : 'true');
+        },
+        { threshold: 0 }
+      ).observe(sentinel);
+    })();
+  </script>
+</BaseLayout>

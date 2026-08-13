@@ -1,0 +1,34 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+import { Icon } from "@/components/ui/icon"
+
+type Props = HTMLAttributes<"button">
+
+const { class: className, type = "button", ...props } = Astro.props
+---
+
+<button
+  data-slot="accordion-trigger"
+  type={type}
+  class={cn(
+    "group/accordion-trigger focus-visible:border-ring focus-visible:ring-ring/50 relative flex w-full flex-1 items-center justify-between gap-4 rounded-md border border-transparent bg-transparent py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-3 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+    className
+  )}
+  {...props}
+>
+  <slot />
+  <Icon
+    name="chevron-down"
+    data-slot="accordion-trigger-icon"
+    aria-hidden="true"
+    class="text-muted-foreground pointer-events-none ml-auto size-4 shrink-0 group-aria-expanded/accordion-trigger:hidden"
+  />
+  <Icon
+    name="chevron-up"
+    data-slot="accordion-trigger-icon"
+    aria-hidden="true"
+    class="text-muted-foreground pointer-events-none ml-auto hidden size-4 shrink-0 group-aria-expanded/accordion-trigger:inline"
+  />
+</button>

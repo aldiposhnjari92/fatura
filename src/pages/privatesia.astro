@@ -1,0 +1,71 @@
+---
+import MarketingLayout from '@/layouts/MarketingLayout.astro';
+import LegalPage from '@/components/sections/LegalPage.astro';
+
+export const prerender = true;
+const updated = '13 gusht 2026';
+---
+
+<MarketingLayout
+  title="Politika e privatësisë — Fatura.co"
+  description="Si i mbledhim, ruajmë dhe mbrojmë të dhënat e tua në Fatura.co."
+>
+  <LegalPage heading="Politika e privatësisë" updated={updated}>
+
+      <h2>Çfarë mbledhim</h2>
+      <ul>
+        <li><strong>Të dhëna llogarie:</strong> email dhe fjalëkalim i enkriptuar.</li>
+        <li>
+          <strong>Të dhëna biznesi:</strong> emri i biznesit, NIPT, adresa, qyteti,
+          telefoni dhe logoja që ngarkon.
+        </li>
+        <li><strong>Të dhëna klientësh:</strong> emrat, NIPT-et, adresat dhe emailet që fut ti.</li>
+        <li><strong>Fatura:</strong> artikujt, vlerat, datat dhe statuset.</li>
+        <li>
+          <strong>Lista e pritjes:</strong> nëse plotëson formularin në ballinë — emri i
+          biznesit, numri i WhatsApp-it dhe qyteti.
+        </li>
+      </ul>
+
+      <h2>Si i përdorim</h2>
+      <p>
+        Vetëm për të ofruar Shërbimin: për të shfaqur faturat e tua, për të gjeneruar
+        PDF-të dhe për të të kontaktuar kur ti e kërkon. Nuk i shesim dhe nuk i ndajmë me
+        palë të treta për marketing.
+      </p>
+
+      <h2>Ku ruhen</h2>
+      <p>
+        Të dhënat ruhen te Supabase, në serverë brenda Bashkimit Evropian. Aksesi
+        kontrollohet me Row Level Security: çdo përdorues sheh vetëm rreshtat e vet.
+        Logot ruhen në një bucket publik, pra URL-ja e logos suaj është e aksesueshme nga
+        kushdo që e ka lidhjen.
+      </p>
+
+      <h2>Gjenerimi i PDF-ve</h2>
+      <p>
+        PDF-të e faturave krijohen <strong>plotësisht në pajisjen tënde</strong>. Përmbajtja
+        e faturës nuk dërgohet te ne apo te ndonjë shërbim i tretë gjatë gjenerimit.
+      </p>
+
+      <h2>Cookies</h2>
+      <p>
+        Përdorim vetëm cookie teknike për të mbajtur sesionin e identifikimit. Nuk kemi
+        cookie reklamash dhe nuk përdorim gjurmues të palëve të treta.
+      </p>
+
+      <h2>Të drejtat e tua</h2>
+      <p>
+        Mund të kërkosh akses, korrigjim ose fshirje të plotë të të dhënave të tua në çdo
+        moment duke shkruar në
+        <a href="mailto:pershendetje@fatura.co">pershendetje@fatura.co</a>. Fshirja e
+        llogarisë fshin faturat, klientët dhe logon e ngarkuar.
+      </p>
+
+      <h2>Kontakti</h2>
+      <p>
+        Për çdo pyetje mbi privatësinë:
+        <a href="mailto:pershendetje@fatura.co">pershendetje@fatura.co</a>
+      </p>
+  </LegalPage>
+</MarketingLayout>

@@ -1,0 +1,258 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import StatusBadge from '@/components/StatusBadge.astro';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+import { formatALL, formatDate } from '@/lib/utils';
+import type { InvoiceStatus, InvoiceWithClient } from '@/lib/types';
+
+export const prerender = false;
+
+const { supabase, user } = Astro.locals;
+const params = Astro.url.searchParams;
+
+const VALID_STATUSES: InvoiceStatus[] = ['draft', 'unpaid', 'paid', 'overdue'];
+const rawStatus = params.get('statusi');
+const status = VALID_STATUSES.includes(rawStatus as InvoiceStatus)
+  ? (rawStatus as InvoiceStatus)
+  : null;
+const search = (params.get('kerko') ?? '').trim().slice(0, 60);
+
+const PAGE_SIZE = 25;
+const page = Math.max(1, Number.parseInt(params.get('faqe') ?? '1', 10) || 1);
+const from = (page - 1) * PAGE_SIZE;
+
+/*
+  Paged and column-scoped. This previously pulled 200 rows with `select('*')`,
+  dragging the whole `items` JSONB of every invoice across the wire to render a
+  table that never displays it.
+*/
+let query = supabase
+  .from('invoices')
+  .select('id, invoice_number, issue_date, due_date, total, status, clients(name)', {
+    count: 'exact',
+  })
+  .eq('owner_id', user!.id)
+  .order('issue_date', { ascending: false })
+  .order('created_at', { ascending: false })
+  .range(from, from + PAGE_SIZE - 1);
+
+if (status) query = query.eq('status', status);
+// postgrest-js sends this as a bound value, not concatenated SQL.
+if (search) query = query.ilike('invoice_number', `%${search}%`);
+
+const { data, error, count } = await query;
+const invoices = (data ?? []) as unknown as InvoiceWithClient[];
+const total = count ?? 0;
+const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+const filters: { label: string; value: InvoiceStatus | null }[] = [
+  { label: 'Të gjitha', value: null },
+  { label: 'Draft', value: 'draft' },
+  { label: 'Të papaguara', value: 'unpaid' },
+  { label: 'Të paguara', value: 'paid' },
+  { label: 'Të vonuara', value: 'overdue' },
+];
+
+const buildHref = (next: Partial<{ statusi: string; kerko: string; faqe: number }>) => {
+  const qs = new URLSearchParams();
+  const s = next.statusi !== undefined ? next.statusi : (status ?? '');
+  const k = next.kerko !== undefined ? next.kerko : search;
+  const f = next.faqe !== undefined ? next.faqe : page;
+  if (s) qs.set('statusi', s);
+  if (k) qs.set('kerko', k);
+  if (f > 1) qs.set('faqe', String(f));
+  const str = qs.toString();
+  return str ? `/app/faturat?${str}` : '/app/faturat';
+};
+
+const pageTotal = invoices.reduce((sum, invoice) => sum + (invoice.total ?? 0), 0);
+const hasFilter = Boolean(status || search);
+---
+
+<AppLayout title="Faturat — Fatura.co" active="invoices">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-muted-foreground text-sm font-medium">Faturat</p>
+      <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+        {total} {total === 1 ? 'faturë' : 'fatura'}
+      </h1>
+      {
+        invoices.length > 0 && (
+          <p class="text-muted-foreground mt-1 text-sm">
+            {formatALL(pageTotal)} në këtë faqe
+          </p>
+        )
+      }
+    </div>
+
+    <Button as="a" href="/app/faturat/e-re">
+      <Icon name="plus" /> Faturë e re
+    </Button>
+  </div>
+
+  <!-- Toolbar -->
+  <div
+    class="bg-card ring-border mb-4 flex flex-col gap-3 rounded-xl p-3 ring-1 lg:flex-row lg:items-center lg:justify-between"
+  >
+    <div class="flex flex-wrap gap-1.5">
+      {
+        filters.map((filter) => (
+          <Button
+            as="a"
+            href={buildHref({ statusi: filter.value ?? '', faqe: 1 })}
+            size="sm"
+            variant={status === filter.value ? 'default' : 'ghost'}
+          >
+            {filter.label}
+          </Button>
+        ))
+      }
+    </div>
+
+    <form method="GET" action="/app/faturat" class="flex gap-2">
+      {status && <input type="hidden" name="statusi" value={status} />}
+      <div class="relative flex-1 lg:w-64">
+        <Icon
+          name="search"
+          class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+        />
+        <Input
+          type="search"
+          name="kerko"
+          value={search}
+          placeholder="Kërko numrin e faturës…"
+          class="pl-8"
+        />
+      </div>
+      <Button type="submit" variant="outline" class="shrink-0">Kërko</Button>
+      {
+        hasFilter && (
+          <Button as="a" href="/app/faturat" variant="ghost" class="shrink-0">
+            Pastro
+          </Button>
+        )
+      }
+    </form>
+  </div>
+
+  {
+    error && (
+      <p class="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-4 py-3 text-sm">
+        Nuk u ngarkuan faturat: {error.message}
+      </p>
+    )
+  }
+
+  {
+    invoices.length === 0 ? (
+      <div class="bg-card ring-border rounded-xl px-6 py-16 text-center ring-1">
+        <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
+          <Icon name="file-text" class="text-muted-foreground size-5" />
+        </div>
+        <h2 class="mt-4 text-sm font-semibold">
+          {hasFilter ? 'Asnjë faturë nuk përputhet' : 'Ende asnjë faturë'}
+        </h2>
+        <p class="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">
+          {hasFilter
+            ? 'Provo një filtër tjetër ose pastro kërkimin.'
+            : 'Krijo faturën e parë — të merr më pak se 2 minuta.'}
+        </p>
+        <Button as="a" href={hasFilter ? '/app/faturat' : '/app/faturat/e-re'} class="mt-5">
+          {hasFilter ? 'Pastro filtrat' : 'Krijo faturën e parë'}
+        </Button>
+      </div>
+    ) : (
+      <div class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-muted/40 border-b">
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
+                  Numri
+                </th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
+                  Klienti
+                </th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">
+                  Lëshuar
+                </th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium md:table-cell">
+                  Afati
+                </th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">
+                  Totali
+                </th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">
+                  Statusi
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              {invoices.map((invoice) => (
+                <tr class="hover:bg-muted/40 transition-colors">
+                  <td class="px-5 py-3.5">
+                    <a
+                      href={`/app/faturat/${invoice.id}`}
+                      class="text-primary font-medium hover:underline"
+                    >
+                      {invoice.invoice_number}
+                    </a>
+                  </td>
+                  <td class="max-w-[18rem] truncate px-5 py-3.5">
+                    {invoice.clients?.name ?? '—'}
+                  </td>
+                  <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
+                    {formatDate(invoice.issue_date)}
+                  </td>
+                  <td class="text-muted-foreground hidden px-5 py-3.5 md:table-cell">
+                    {formatDate(invoice.due_date)}
+                  </td>
+                  <td class="px-5 py-3.5 text-right font-medium tabular-nums">
+                    {formatALL(invoice.total)}
+                  </td>
+                  <td class="px-5 py-3.5 text-right">
+                    <StatusBadge status={invoice.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {
+          pageCount > 1 && (
+            <div class="flex items-center justify-between border-t px-5 py-3">
+              <p class="text-muted-foreground text-sm">
+                Faqja {page} nga {pageCount}
+              </p>
+              <div class="flex gap-2">
+                <Button
+                  as="a"
+                  href={buildHref({ faqe: page - 1 })}
+                  size="sm"
+                  variant="outline"
+                  aria-disabled={page <= 1}
+                  class={page <= 1 ? 'pointer-events-none opacity-50' : ''}
+                >
+                  <Icon name="chevron-left" /> Para
+                </Button>
+                <Button
+                  as="a"
+                  href={buildHref({ faqe: page + 1 })}
+                  size="sm"
+                  variant="outline"
+                  aria-disabled={page >= pageCount}
+                  class={page >= pageCount ? 'pointer-events-none opacity-50' : ''}
+                >
+                  Pas <Icon name="chevron-right" />
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      </div>
+    )
+  }
+</AppLayout>

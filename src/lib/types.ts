@@ -1,0 +1,123 @@
+export type InvoiceStatus = 'draft' | 'paid' | 'unpaid' | 'overdue';
+export type InvoiceLanguage = 'en' | 'sq';
+
+export interface Profile {
+  id: string;
+  business_name: string | null;
+  nipt: string | null;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+  logo_url: string | null;
+  is_pro: boolean;
+  is_admin?: boolean;
+  /** When the Pro subscription lapses; null means no expiry set. */
+  pro_until?: string | null;
+  created_at: string;
+}
+
+export interface Client {
+  id: string;
+  owner_id: string;
+  name: string;
+  email: string | null;
+  nipt: string | null;
+  address: string | null;
+  created_at: string;
+}
+
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Invoice {
+  id: string;
+  owner_id: string;
+  client_id: string | null;
+  invoice_number: string;
+  issue_date: string;
+  due_date: string | null;
+  items: InvoiceItem[];
+  subtotal: number;
+  vat_percent: number;
+  discount: number;
+  total: number;
+  status: InvoiceStatus;
+  notes: string | null;
+  language: InvoiceLanguage;
+  created_at: string;
+}
+
+/** An invoice joined with its client row, as the list and detail pages read it. */
+export interface InvoiceWithClient extends Invoice {
+  clients: Pick<Client, 'id' | 'name' | 'email' | 'nipt' | 'address'> | null;
+}
+
+export interface Totals {
+  subtotal: number;
+  discount: number;
+  vatAmount: number;
+  total: number;
+}
+
+/**
+ * The single source of truth for invoice arithmetic — used by the editor, the
+ * PDF and the server. Discount applies to the subtotal, VAT applies after it.
+ */
+export function computeTotals(
+  items: InvoiceItem[],
+  vatPercent: number,
+  discount: number
+): Totals {
+  const subtotal = items.reduce((sum, item) => {
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.price) || 0;
+    return sum + Math.round(qty * price);
+  }, 0);
+
+  const safeDiscount = Math.min(Math.max(Math.round(Number(discount) || 0), 0), subtotal);
+  const net = subtotal - safeDiscount;
+  const vatAmount = Math.round((net * (Number(vatPercent) || 0)) / 100);
+
+  return {
+    subtotal,
+    discount: safeDiscount,
+    vatAmount,
+    total: net + vatAmount,
+  };
+}
+
+/**
+ * Status chips. Tinted surfaces with a matching ring, defined per theme so they
+ * stay legible on both the light mist ground and the dark ink one.
+ */
+export const STATUS_META: Record<
+  InvoiceStatus,
+  { label: string; className: string }
+> = {
+  draft: {
+    label: 'Draft',
+    className:
+      'bg-slate-200/70 text-slate-700 ring-slate-300/60 dark:bg-white/10 dark:text-slate-200 dark:ring-white/15',
+  },
+  unpaid: {
+    label: 'E papaguar',
+    className:
+      'bg-amber-100 text-amber-900 ring-amber-300/70 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/30',
+  },
+  paid: {
+    label: 'E paguar',
+    className:
+      'bg-teal-100 text-teal-900 ring-teal-300/70 dark:bg-brand/20 dark:text-brand dark:ring-brand/40',
+  },
+  overdue: {
+    label: 'E vonuar',
+    className:
+      'bg-red-100 text-red-900 ring-red-300/70 dark:bg-red-400/15 dark:text-red-200 dark:ring-red-400/30',
+  },
+};
+
+/** Free plan ceiling. Pro lifts it entirely. */
+export const FREE_INVOICE_LIMIT = 5;

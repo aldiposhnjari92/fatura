@@ -1,0 +1,164 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import AdminUserTable, { type AdminUserRow } from '@/components/react/AdminUserTable';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+
+export const prerender = false;
+
+const { supabase, user } = Astro.locals;
+const params = Astro.url.searchParams;
+
+const FILTERS = ['all', 'pro', 'free', 'admin', 'inactive'] as const;
+type Filter = (typeof FILTERS)[number];
+
+const rawFilter = params.get('filtri');
+const filter: Filter = FILTERS.includes(rawFilter as Filter)
+  ? (rawFilter as Filter)
+  : 'all';
+const search = (params.get('kerko') ?? '').trim().slice(0, 80);
+
+const PAGE_SIZE = 25;
+const page = Math.max(1, Number.parseInt(params.get('faqe') ?? '1', 10) || 1);
+
+const [usersResult, pendingResult] = await Promise.all([
+  supabase.rpc('admin_users', {
+    p_search: search || null,
+    p_filter: filter,
+    p_limit: PAGE_SIZE,
+    p_offset: (page - 1) * PAGE_SIZE,
+  }),
+  supabase.rpc('admin_payments', { p_status: 'pending', p_limit: 1, p_offset: 0 }),
+]);
+
+const payload = (usersResult.data ?? { rows: [], total: 0 }) as {
+  rows: AdminUserRow[];
+  total: number;
+};
+const rows = payload.rows ?? [];
+const total = payload.total ?? 0;
+const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+const pendingCount = (pendingResult.data as { total?: number })?.total ?? 0;
+
+const LABELS: Record<Filter, string> = {
+  all: 'Të gjitha',
+  pro: 'Pro',
+  free: 'Falas',
+  admin: 'Adminë',
+  inactive: 'Joaktivë 30d',
+};
+
+const hrefFor = (next: Partial<{ filtri: string; kerko: string; faqe: number }>) => {
+  const qs = new URLSearchParams();
+  const f = next.filtri !== undefined ? next.filtri : filter;
+  const k = next.kerko !== undefined ? next.kerko : search;
+  const p = next.faqe !== undefined ? next.faqe : page;
+  if (f && f !== 'all') qs.set('filtri', f);
+  if (k) qs.set('kerko', k);
+  if (p > 1) qs.set('faqe', String(p));
+  const str = qs.toString();
+  return str ? `/admin/perdoruesit?${str}` : '/admin/perdoruesit';
+};
+---
+
+<AdminLayout
+  title="Bizneset — Admin Fatura.co"
+  heading="Bizneset"
+  subheading={`${total} ${total === 1 ? 'biznes i regjistruar' : 'biznese të regjistruara'}`}
+  active="users"
+  pendingCount={pendingCount}
+>
+  {
+    usersResult.error && (
+      <p class="border-destructive/30 bg-destructive/10 text-destructive mb-4 rounded-lg border px-4 py-3 text-sm">
+        {usersResult.error.message}
+      </p>
+    )
+  }
+
+  <div
+    class="bg-card ring-border mb-4 flex flex-col gap-3 rounded-xl p-3 ring-1 xl:flex-row xl:items-center xl:justify-between"
+  >
+    <div class="flex flex-wrap gap-1.5">
+      {
+        FILTERS.map((f) => (
+          <Button
+            as="a"
+            href={hrefFor({ filtri: f, faqe: 1 })}
+            size="sm"
+            variant={filter === f ? 'default' : 'ghost'}
+          >
+            {LABELS[f]}
+          </Button>
+        ))
+      }
+    </div>
+
+    <form method="GET" action="/admin/perdoruesit" class="flex gap-2">
+      {filter !== 'all' && <input type="hidden" name="filtri" value={filter} />}
+      <div class="relative flex-1 xl:w-72">
+        <Icon
+          name="search"
+          class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+        />
+        <Input
+          type="search"
+          name="kerko"
+          value={search}
+          placeholder="Emër biznesi, email ose NIPT…"
+          class="pl-8"
+        />
+      </div>
+      <Button type="submit" variant="outline" class="shrink-0">Kërko</Button>
+      {
+        (search || filter !== 'all') && (
+          <Button as="a" href="/admin/perdoruesit" variant="ghost" class="shrink-0">
+            Pastro
+          </Button>
+        )
+      }
+    </form>
+  </div>
+
+  <div class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+    <AdminUserTable rows={rows} currentAdminId={user!.id} client:load />
+
+    {
+      pageCount > 1 && (
+        <div class="flex items-center justify-between border-t px-5 py-3">
+          <p class="text-muted-foreground text-sm">
+            Faqja {page} nga {pageCount}
+          </p>
+          <div class="flex gap-2">
+            <Button
+              as="a"
+              href={hrefFor({ faqe: page - 1 })}
+              size="sm"
+              variant="outline"
+              class={page <= 1 ? 'pointer-events-none opacity-50' : ''}
+            >
+              <Icon name="chevron-left" /> Para
+            </Button>
+            <Button
+              as="a"
+              href={hrefFor({ faqe: page + 1 })}
+              size="sm"
+              variant="outline"
+              class={page >= pageCount ? 'pointer-events-none opacity-50' : ''}
+            >
+              Pas <Icon name="chevron-right" />
+            </Button>
+          </div>
+        </div>
+      )
+    }
+  </div>
+
+  <p class="text-muted-foreground mt-4 flex items-start gap-2 text-xs leading-relaxed">
+    <Icon name="shield-check" class="text-primary mt-0.5 size-3.5 shrink-0" />
+    Konsola tregon metadata dhe shifra të përmbledhura. Përmbajtja e faturave dhe listat e
+    klientëve të çdo biznesi mbeten të palexueshme — RLS nuk hiqet për adminët. Çdo veprim
+    shkrimi regjistrohet te Regjistri.
+  </p>
+</AdminLayout>

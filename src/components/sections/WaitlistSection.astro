@@ -1,0 +1,89 @@
+---
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+// A plain HTML form posting to /api/waitlist — deliberately not a React island,
+// so this section still ships zero JavaScript.
+---
+
+<Section id="lista" class="bg-muted/40">
+  <SectionContainer class="max-w-2xl items-center gap-6 text-center">
+    <div class="flex flex-col gap-4">
+      <h2
+        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+      >
+        Do ndihmë për të filluar?
+      </h2>
+      <p class="text-muted-foreground text-lg leading-relaxed text-balance">
+        Lër numrin e WhatsApp-it dhe të kontaktojmë ne për ta ngritur bashkë llogarinë —
+        pa pagesë.
+      </p>
+    </div>
+  </SectionContainer>
+
+  <SectionContainer class="max-w-2xl">
+    <Card>
+      <CardContent class="pt-6">
+        <form
+          method="POST"
+          action="/api/waitlist"
+          class="grid gap-5 text-left sm:grid-cols-2"
+        >
+          <div class="flex flex-col gap-2 sm:col-span-2">
+            <Label for="business_name">Emri i biznesit</Label>
+            <Input
+              id="business_name"
+              name="business_name"
+              type="text"
+              required
+              maxlength="120"
+              placeholder="p.sh. Bar Kafe Vlora"
+              class="h-11"
+            />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <Label for="whatsapp">WhatsApp</Label>
+            <Input
+              id="whatsapp"
+              name="whatsapp"
+              type="tel"
+              required
+              maxlength="30"
+              placeholder="+355 6X XXX XXXX"
+              class="h-11"
+            />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <Label for="city">Qyteti</Label>
+            <Input id="city" name="city" type="text" maxlength="60" value="Fier" class="h-11" />
+          </div>
+
+          <!-- Honeypot: bots fill it, humans never see it. -->
+          <Input
+            type="text"
+            name="company_website"
+            tabindex="-1"
+            autocomplete="off"
+            class="hidden"
+            aria-hidden="true"
+          />
+
+          <div class="sm:col-span-2">
+            <Button type="submit" size="lg" class="w-full">
+              Më kontaktoni në WhatsApp
+            </Button>
+          </div>
+
+          <p class="text-muted-foreground text-center text-xs sm:col-span-2">
+            Nuk dërgojmë spam. Vetëm një mesazh për të të ndihmuar me faturën e parë.
+          </p>
+        </form>
+      </CardContent>
+    </Card>
+  </SectionContainer>
+</Section>

@@ -1,0 +1,85 @@
+---
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+
+// No Fulldev block does a before/after comparison, so this is built on their
+// Section + Card primitives to stay consistent with the rest of the page.
+const before = [
+  'Word ose Excel në kompjuter, kurrë në telefon',
+  'Numra faturash të përsëritur ose të humbur',
+  'TVSH e llogaritur me makinë llogaritëse',
+  'Fatura pa logo, që duken jo-profesionale',
+  '“Ku e kisha faturën e muajit të kaluar?”',
+];
+
+const after = [
+  'Nga telefoni, kudo ku je',
+  'Numërim automatik FAT-2025-001',
+  'TVSH dhe zbritje të llogaritura vetë',
+  'Logo dhe NIPT në çdo faturë',
+  'Të gjitha faturat në një listë të kërkueshme',
+];
+---
+
+<Section>
+  <SectionContainer class="items-center gap-6 text-center">
+    <div class="flex max-w-2xl flex-col items-center gap-4">
+      <h2
+        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+      >
+        2 orë në javë, të humbura në Word
+      </h2>
+      <p class="text-muted-foreground max-w-2xl text-lg leading-relaxed text-balance">
+        Kopjo faturën e vjetër. Ndrysho datën. Ndrysho numrin. Rillogarit TVSH-në.
+        Shpeto si PDF. Gabo diku. Nis nga e para.
+      </p>
+    </div>
+  </SectionContainer>
+
+  <SectionContainer class="max-w-4xl">
+    <div class="grid gap-5 md:grid-cols-2">
+      <Card class="bg-muted/50">
+        <CardHeader>
+          <CardTitle
+            class="text-muted-foreground text-xs font-bold tracking-wider uppercase"
+          >
+            Pa Fatura.co
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul class="flex flex-col gap-3.5 text-sm">
+            {
+              before.map((item) => (
+                <li class="text-muted-foreground flex items-start gap-2.5">
+                  <Icon name="x" class="text-destructive mt-0.5 shrink-0" />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card class="border-primary/25 bg-accent/40 border-2">
+        <CardHeader>
+          <CardTitle class="text-primary text-xs font-bold tracking-wider uppercase">
+            Me Fatura.co
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul class="flex flex-col gap-3.5 text-sm">
+            {
+              after.map((item) => (
+                <li class="text-foreground/85 flex items-start gap-2.5">
+                  <Icon name="check" class="text-primary mt-0.5 shrink-0" />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  </SectionContainer>
+</Section>

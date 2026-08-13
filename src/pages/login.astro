@@ -1,0 +1,31 @@
+---
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import AuthForm from '@/components/react/AuthForm';
+
+export const prerender = false;
+
+const rawNext = Astro.url.searchParams.get('next') ?? '/app';
+// Only ever redirect within this site.
+const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
+const linkFailed = Astro.url.searchParams.get('gabim') === 'lidhja';
+---
+
+<AuthLayout
+  title="Hyr — Fatura.co"
+  description="Hyr në llogarinë tënde Fatura.co."
+  heading="Mirë se u ktheve"
+  subheading="Hyr për të parë faturat dhe klientët e tu."
+>
+  {
+    linkFailed && (
+      <p
+        role="alert"
+        class="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+      >
+        Lidhja e konfirmimit nuk është e vlefshme ose ka skaduar. Provo të hysh sërish.
+      </p>
+    )
+  }
+
+  <AuthForm mode="login" next={next} client:load />
+</AuthLayout>

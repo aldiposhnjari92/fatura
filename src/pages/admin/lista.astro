@@ -1,0 +1,100 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { Icon } from '@/components/ui/icon';
+import { formatDate } from '@/lib/utils';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const [listResult, pendingResult] = await Promise.all([
+  supabase.rpc('admin_waitlist', { p_limit: 300 }),
+  supabase.rpc('admin_payments', { p_status: 'pending', p_limit: 1, p_offset: 0 }),
+]);
+
+const rows = (listResult.data ?? []) as {
+  id: string;
+  business_name: string | null;
+  whatsapp: string | null;
+  city: string | null;
+  created_at: string;
+}[];
+const pendingCount = (pendingResult.data as { total?: number })?.total ?? 0;
+
+/** wa.me needs digits only, with the country code. */
+const waLink = (raw: string | null) => {
+  if (!raw) return null;
+  let digits = raw.replace(/[^\d+]/g, '');
+  if (digits.startsWith('+')) digits = digits.slice(1);
+  if (digits.startsWith('0')) digits = `355${digits.slice(1)}`;
+  return digits.length >= 8 ? `https://wa.me/${digits}` : null;
+};
+---
+
+<AdminLayout
+  title="Lista e pritjes — Admin Fatura.co"
+  heading="Lista e pritjes"
+  subheading={`${rows.length} kërkesa nga formulari i ballinës`}
+  active="waitlist"
+  pendingCount={pendingCount}
+>
+  <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+    {
+      rows.length === 0 ? (
+        <div class="px-6 py-16 text-center">
+          <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
+            <Icon name="clipboard-list" class="text-muted-foreground size-5" />
+          </div>
+          <h2 class="mt-4 text-sm font-semibold">Ende asnjë kërkesë</h2>
+          <p class="text-muted-foreground mt-1 text-sm">
+            Kërkesat nga seksioni “Do ndihmë për të filluar?” shfaqen këtu.
+          </p>
+        </div>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-muted/40 border-b">
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Biznesi</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">WhatsApp</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">Qyteti</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Data</th>
+                <th class="w-32 px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              {rows.map((r) => {
+                const link = waLink(r.whatsapp);
+                return (
+                  <tr class="hover:bg-muted/40 transition-colors">
+                    <td class="max-w-[16rem] truncate px-5 py-3.5 font-medium">
+                      {r.business_name ?? '—'}
+                    </td>
+                    <td class="px-5 py-3.5 font-mono text-xs">{r.whatsapp ?? '—'}</td>
+                    <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
+                      {r.city ?? '—'}
+                    </td>
+                    <td class="text-muted-foreground px-5 py-3.5 text-right">
+                      {formatDate(r.created_at)}
+                    </td>
+                    <td class="px-5 py-3.5 text-right">
+                      {link && (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          class="text-primary inline-flex items-center gap-1.5 text-xs font-medium hover:underline"
+                        >
+                          <Icon name="message-circle" class="size-3.5" /> Shkruaj
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+</AdminLayout>

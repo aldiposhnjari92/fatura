@@ -1,0 +1,208 @@
+---
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Price, PriceUnit, PriceValue } from '@/components/ui/price';
+import { Section, SectionContainer } from '@/components/ui/section';
+
+/*
+  Fulldev's stock pricing-2 renders every plan as a flat `border-none
+  shadow-none` card, which reads as a spec sheet rather than an offer. This
+  version keeps the same props (plus `featured`, `badge`, `note`) but gives the
+  recommended plan real weight: ink surface, teal accents, a glow and a lift.
+
+  Colour rule from the design system holds — on the dark card the exact #00ADB5
+  is used (5.40:1 on ink); on light cards the deepened teal carries text.
+*/
+
+type Props = {
+  class?: string;
+  /** BCP-47 tag for price formatting. sq-AL renders `currency: "ALL"` as "990 Lekë". */
+  locale?: string;
+  title: string;
+  description: string;
+  plans: {
+    name: string;
+    description: string;
+    price: number;
+    compareAt?: number;
+    currency: string;
+    unit: string;
+    features: string[];
+    /** Renders the plan on ink with teal accents and lifts it above the rest. */
+    featured?: boolean;
+    /** Ribbon above the plan name, e.g. "Më i zgjedhuri". */
+    badge?: string;
+    /** Small reassurance under the button, e.g. "Pa kartë krediti". */
+    note?: string;
+    button: {
+      label: string;
+      href: string;
+      variant?: 'default' | 'outline' | 'secondary' | 'ghost';
+    };
+  }[];
+};
+
+const {
+  class: className,
+  title,
+  description,
+  plans,
+  locale = 'sq-AL',
+} = Astro.props;
+
+const hasFeatured = plans.some((plan) => plan.featured);
+---
+
+<Section class={cn('', className)}>
+  <SectionContainer class="gap-10">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2
+        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+      >
+        {title}
+      </h2>
+      <p class="text-muted-foreground mt-4 text-lg leading-relaxed text-balance">
+        {description}
+      </p>
+    </div>
+
+    <div
+      class={cn(
+        'mx-auto grid w-full max-w-4xl items-stretch gap-6 md:grid-cols-2',
+        // Room for the featured card to lift without clipping its glow.
+        hasFeatured && 'lg:gap-8 lg:py-4'
+      )}
+    >
+      {
+        plans.map((plan) => (
+          <div
+            class={cn(
+              'relative flex flex-col rounded-2xl p-8 transition-transform duration-300',
+              // `dark` flips the tokens inside, so nested Fulldev primitives
+              // (PriceValue writes text-foreground on an inner span) read light
+              // on the ink surface instead of dark-on-dark.
+              plan.featured
+                ? 'dark bg-ink text-mist shadow-2xl ring-1 ring-white/10 lg:-my-4 lg:scale-[1.03]'
+                : 'bg-card ring-border ring-1'
+            )}
+          >
+            {plan.featured && (
+              <div
+                class="pointer-events-none absolute -top-px right-10 left-10 h-px bg-gradient-to-r from-transparent via-[#00ADB5] to-transparent"
+                aria-hidden="true"
+              />
+            )}
+
+            {plan.badge && (
+              <span
+                class={cn(
+                  'absolute -top-3 left-8 rounded-full px-3 py-1 text-xs font-semibold',
+                  plan.featured
+                    ? 'bg-brand text-ink shadow-lg'
+                    : 'bg-secondary text-secondary-foreground'
+                )}
+              >
+                {plan.badge}
+              </span>
+            )}
+
+            <div class="flex flex-col gap-1.5">
+              <h3
+                class={cn(
+                  'text-xs font-bold tracking-[0.14em] uppercase',
+                  plan.featured ? 'text-brand' : 'text-muted-foreground'
+                )}
+              >
+                {plan.name}
+              </h3>
+              <p
+                class={cn(
+                  'text-sm',
+                  plan.featured ? 'text-mist/60' : 'text-muted-foreground'
+                )}
+              >
+                {plan.description}
+              </p>
+            </div>
+
+            <Price class="mt-6 items-baseline">
+              <PriceValue
+                price={plan.price}
+                compareAt={plan.compareAt}
+                currency={plan.currency}
+                locale={locale}
+                class={cn(
+                  'text-4xl font-bold tracking-tight tabular-nums sm:text-[2.75rem]',
+                  plan.featured ? 'text-mist' : 'text-foreground'
+                )}
+              />
+              <PriceUnit
+                class={cn(
+                  'text-sm font-medium',
+                  plan.featured ? 'text-mist/50' : 'text-muted-foreground'
+                )}
+              >
+                {/* PriceUnit already renders the leading slash. */}
+                {plan.unit}
+              </PriceUnit>
+            </Price>
+
+            <div
+              class={cn(
+                'my-7 h-px w-full',
+                plan.featured ? 'bg-white/10' : 'bg-border'
+              )}
+              aria-hidden="true"
+            />
+
+            <ul class="flex flex-1 flex-col gap-4">
+              {plan.features.map((feature) => (
+                <li class="flex items-start gap-3 text-sm">
+                  <span
+                    class={cn(
+                      'mt-px flex size-5 shrink-0 items-center justify-center rounded-full',
+                      plan.featured ? 'bg-brand/20 text-brand' : 'bg-accent text-primary'
+                    )}
+                  >
+                    <Icon name="check" class="size-3.5" />
+                  </span>
+                  <span class={plan.featured ? 'text-mist/85' : 'text-foreground/85'}>
+                    {feature}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div class="mt-8 flex flex-col gap-3">
+              <Button
+                as="a"
+                href={plan.button.href}
+                size="lg"
+                variant={plan.button.variant ?? (plan.featured ? 'default' : 'outline')}
+                class={cn(
+                  'w-full',
+                  plan.featured &&
+                    'bg-brand text-ink hover:bg-brand/90 border-transparent shadow-lg'
+                )}
+              >
+                {plan.button.label}
+              </Button>
+
+              {plan.note && (
+                <p
+                  class={cn(
+                    'text-center text-xs',
+                    plan.featured ? 'text-mist/45' : 'text-muted-foreground'
+                  )}
+                >
+                  {plan.note}
+                </p>
+              )}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </SectionContainer>
+</Section>

@@ -1,0 +1,61 @@
+---
+import MarketingLayout from '@/layouts/MarketingLayout.astro';
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+
+export const prerender = false;
+
+const failed = Astro.url.searchParams.get('gabim') === '1';
+---
+
+<MarketingLayout
+  title={failed ? 'Diçka shkoi keq — Fatura.co' : 'Faleminderit! — Fatura.co'}
+  description="Faleminderit që u regjistrove në listën e Fatura.co."
+  noindex={true}
+>
+  <Section class="min-h-[70vh] justify-center">
+    <SectionContainer class="items-center gap-6 text-center">
+      <span
+        class:list={[
+          'flex size-16 items-center justify-center rounded-full',
+          failed ? 'bg-destructive/10 text-destructive' : 'bg-accent text-primary',
+        ]}
+      >
+        <Icon name={failed ? 'triangle-alert' : 'check'} class="size-7" />
+      </span>
+
+      <div class="flex max-w-lg flex-col gap-3">
+        <h1 class="text-foreground text-3xl font-semibold tracking-tight">
+          {failed ? 'Diçka shkoi keq' : 'Faleminderit!'}
+        </h1>
+        <p class="text-muted-foreground leading-relaxed">
+          {
+            failed
+              ? 'Nuk arritëm ta ruajmë kërkesën tënde. Provo sërish, ose na shkruaj direkt në pershendetje@fatura.co.'
+              : 'E morëm kërkesën tënde. Të shkruajmë në WhatsApp brenda 24 orëve për ta ngritur bashkë llogarinë — pa pagesë.'
+          }
+        </p>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-3">
+        {
+          failed ? (
+            <Button as="a" href="/#lista" size="lg">
+              Provo sërish
+            </Button>
+          ) : (
+            <>
+              <Button as="a" href="/regjistrohu" size="lg">
+                Krijo llogari falas
+              </Button>
+              <Button as="a" href="/" size="lg" variant="outline">
+                Kthehu në ballinë
+              </Button>
+            </>
+          )
+        }
+      </div>
+    </SectionContainer>
+  </Section>
+</MarketingLayout>

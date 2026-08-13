@@ -1,0 +1,53 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import ClientsManager from '@/components/react/ClientsManager';
+import type { Client } from '@/lib/types';
+
+export const prerender = false;
+
+const { supabase, user } = Astro.locals;
+
+// Two bounded queries in parallel: the page of clients, and how many invoices
+// each one has (aggregated in Postgres rather than N+1 from the client).
+const [clientsResult, usageResult] = await Promise.all([
+  supabase
+    .from('clients')
+    .select('id, owner_id, name, email, nipt, address, created_at')
+    .eq('owner_id', user!.id)
+    .order('name')
+    .limit(500),
+  supabase
+    .from('invoices')
+    .select('client_id, total')
+    .eq('owner_id', user!.id)
+    .not('client_id', 'is', null)
+    .limit(2000),
+]);
+
+const clients = (clientsResult.data ?? []) as Client[];
+
+// Fold the invoice rows into per-client totals once, server-side.
+const usage = new Map<string, { count: number; total: number }>();
+for (const row of (usageResult.data ?? []) as { client_id: string; total: number }[]) {
+  const current = usage.get(row.client_id) ?? { count: 0, total: 0 };
+  current.count += 1;
+  current.total += row.total ?? 0;
+  usage.set(row.client_id, current);
+}
+
+const clientStats = Object.fromEntries(usage);
+---
+
+<AppLayout title="Klientët — Fatura.co" active="clients">
+  <div class="mb-6">
+    <p class="text-muted-foreground text-sm font-medium">Klientët</p>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+      {clients.length} {clients.length === 1 ? 'klient' : 'klientë'}
+    </h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      Ruaj NIPT-in dhe adresën një herë — pastaj zgjidhi nga lista në çdo faturë.
+    </p>
+  </div>
+
+  <ClientsManager clients={clients} stats={clientStats} client:load />
+</AppLayout>

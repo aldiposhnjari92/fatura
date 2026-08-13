@@ -1,0 +1,162 @@
+---
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Icon } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+
+/*
+  Replaces Fulldev's features-2, which is a flat 3-column grid of centred icons —
+  every item weighted identically, so nothing leads. This is a bento: the two
+  things that actually sell the product (the branded PDF, and that it is
+  generated on-device) get the large tiles, the rest fill in around them.
+*/
+
+export interface Props {
+  class?: string;
+}
+const { class: className = '' } = Astro.props;
+
+const supporting = [
+  {
+    icon: 'calculator',
+    title: 'TVSH dhe zbritje',
+    body: 'TVSH 20%, 6% ose 0% dhe zbritje në vlerë — totalet llogariten vetë.',
+  },
+  {
+    icon: 'languages',
+    title: 'Shqip ose anglisht',
+    body: 'Fatura vendase në shqip, klientët e huaj në anglisht. Një klik.',
+  },
+  {
+    icon: 'users',
+    title: 'Klientët e ruajtur',
+    body: 'Ruaj NIPT-in dhe adresën një herë, zgjidh nga lista më pas.',
+  },
+  {
+    icon: 'share-2',
+    title: 'Dërgo në WhatsApp',
+    body: 'Shkarko ose ndaje direkt nga telefoni — WhatsApp, Viber, email.',
+  },
+];
+---
+
+<Section id="vecorite" class={`bg-muted/40 ${className}`}>
+  <SectionContainer class="items-center gap-4 text-center">
+    <span
+      class="border-primary/20 bg-background text-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+    >
+      <Icon name="sparkles" class="size-3.5" /> Veçoritë
+    </span>
+    <div class="flex max-w-2xl flex-col gap-4">
+      <h2
+        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+      >
+        Gjithçka që i duhet një biznesi të vogël
+      </h2>
+      <p class="text-muted-foreground text-lg leading-relaxed text-balance">
+        Asgjë më shumë. Pa module kontabiliteti që nuk i hap kurrë.
+      </p>
+    </div>
+  </SectionContainer>
+
+  <SectionContainer class="max-w-6xl">
+    <div class="grid gap-4 md:grid-cols-6 md:grid-rows-3">
+      <!-- Lead tile: the branded PDF -->
+      <article
+        class="bg-card ring-border group relative overflow-hidden rounded-2xl p-7 ring-1 md:col-span-4 md:row-span-1"
+      >
+        <div class="relative flex flex-col gap-4 md:flex-row md:items-start md:gap-7">
+          <div class="flex-1">
+            <div
+              class="bg-ink flex size-11 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
+            >
+              <Icon name="badge-check" class="text-brand size-5" />
+            </div>
+            <h3 class="mt-5 text-lg font-semibold tracking-tight">
+              NIPT-i dhe logo, gjithmonë aty
+            </h3>
+            <p class="text-muted-foreground mt-2 text-sm leading-relaxed">
+              Vendos një herë të dhënat e biznesit — NIPT, adresë, telefon, logo — dhe
+              dalin automatikisht në krye të çdo fature.
+            </p>
+          </div>
+
+          <!-- Miniature of the printed header -->
+          <div
+            class="ring-border w-full shrink-0 rounded-xl bg-white p-3 ring-1 md:w-52"
+            aria-hidden="true"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <div
+                  class="bg-ink text-brand flex size-6 items-center justify-center rounded text-[9px] font-bold"
+                >
+                  BK
+                </div>
+                <p class="text-ink mt-1.5 text-[9px] font-bold">Bar Kafe Vlora</p>
+                <p class="text-[8px] text-slate/60">NIPT: L72119451K</p>
+              </div>
+              <p class="text-primary text-[11px] font-extrabold">FATURË</p>
+            </div>
+            <div class="bg-brand mt-2 h-0.5 w-8 rounded-full"></div>
+            <div class="mt-2 space-y-1">
+              <div class="bg-muted h-1.5 w-full rounded-full"></div>
+              <div class="bg-muted h-1.5 w-4/5 rounded-full"></div>
+              <div class="bg-muted h-1.5 w-3/5 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Lead tile: on-device generation, dark for emphasis -->
+      <article
+        class="bg-ink text-mist group relative overflow-hidden rounded-2xl p-7 md:col-span-2 md:row-span-3"
+      >
+        <div
+          class="bg-brand/20 pointer-events-none absolute -top-24 -right-24 size-56 rounded-full blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+
+        <!-- Centred: without the stat row the copy would sit against the top of
+             a three-row tile with a large void beneath it. -->
+        <div class="relative flex h-full flex-col justify-center">
+          <div
+            class="bg-brand/15 flex size-11 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
+          >
+            <Icon name="download" class="text-brand size-5" />
+          </div>
+
+          <h3 class="mt-5 text-lg font-semibold tracking-tight">PDF në 2 minuta</h3>
+          <p class="text-mist/70 mt-2 text-sm leading-relaxed">
+            Zgjidh klientin, shto artikujt, shtyp Shkarko. Fatura gjenerohet në telefonin
+            tënd — pa pritje, pa server.
+          </p>
+        </div>
+      </article>
+
+      <!-- Supporting tiles -->
+      {
+        supporting.map((feature) => (
+          <article class="bg-card ring-border group rounded-2xl p-6 ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md md:col-span-2">
+            <div class="bg-accent flex size-10 items-center justify-center rounded-lg transition-transform group-hover:scale-105">
+              <Icon name={feature.icon} class="text-primary size-[1.1rem]" />
+            </div>
+            <h3 class="mt-4 font-semibold tracking-tight">{feature.title}</h3>
+            <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+              {feature.body}
+            </p>
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="flex justify-center">
+      <Button as="a" href="/regjistrohu" size="lg" data-auth-show="anon">
+        Fillo falas
+      </Button>
+      <Button as="a" href="/app" size="lg" data-auth-show="user">
+        Shko te paneli
+      </Button>
+    </div>
+  </SectionContainer>
+</Section>

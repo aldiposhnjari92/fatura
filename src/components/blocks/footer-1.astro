@@ -1,0 +1,94 @@
+---
+import { cn } from "@/lib/utils"
+import { Icon } from "@/components/ui/icon"
+import { Logo, LogoText } from "@/components/ui/logo"
+import { Section, SectionContainer } from "@/components/ui/section"
+import { Separator } from "@/components/ui/separator"
+
+type Props = {
+  class?: string
+  brandName: string
+  brandHref: string
+  description: string
+  socials?: {
+    label: string
+    href: string
+    icon: string
+  }[]
+  columns: {
+    title: string
+    links: {
+      label: string
+      href: string
+    }[]
+  }[]
+  copyright: string
+}
+
+const {
+  class: className,
+  brandName,
+  brandHref,
+  description,
+  socials,
+  columns,
+  copyright,
+} = Astro.props
+---
+
+<footer class={cn("", className)}>
+  <Section class="py-16 lg:py-20">
+    <SectionContainer>
+      <div class="grid gap-10 lg:grid-cols-[1fr_2fr]">
+        <div class="flex flex-col gap-5">
+          <Logo href={brandHref}>
+            <LogoText>{brandName}</LogoText>
+          </Logo>
+          <p class="text-muted-foreground max-w-xs text-sm leading-relaxed">
+            {description}
+          </p>
+          {
+            socials && socials.length > 0 && (
+              <div class="flex items-center gap-3">
+                {socials.map((social) => (
+                  <a
+                    href={social.href}
+                    class="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={social.label}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Icon name={social.icon} class="size-4" />
+                  </a>
+                ))}
+              </div>
+            )
+          }
+        </div>
+        <div class="grid gap-8 sm:grid-cols-3">
+          {
+            columns.map((column) => (
+              <div class="flex flex-col gap-3">
+                <p class="text-sm font-medium">{column.title}</p>
+                <ul class="flex flex-col gap-2.5">
+                  {column.links.map((link) => (
+                    <li>
+                      <a
+                        href={link.href}
+                        class="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+      <Separator />
+      <p class="text-muted-foreground text-sm">{copyright}</p>
+    </SectionContainer>
+  </Section>
+</footer>

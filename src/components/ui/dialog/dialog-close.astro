@@ -1,0 +1,17 @@
+---
+import type { ComponentProps } from "astro/types"
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icon"
+
+type Props = ComponentProps<typeof Button>
+
+const { class: className, ...props } = Astro.props
+---
+
+<Button class={cn(className)} data-slot="dialog-close" {...props}>
+  <slot>
+    <Icon name="x" />
+  </slot>
+</Button>

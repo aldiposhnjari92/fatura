@@ -1,0 +1,125 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Logo from '@/components/Logo.astro';
+import { Icon } from '@/components/ui/icon';
+import { initials } from '@/lib/utils';
+
+export interface Props {
+  title: string;
+  heading: string;
+  subheading?: string;
+  active: 'overview' | 'users' | 'payments' | 'waitlist' | 'audit';
+  /** Pending-payment count, rendered as a badge on the Payments item. */
+  pendingCount?: number;
+}
+
+const { title, heading, subheading, active, pendingCount = 0 } = Astro.props;
+const { profile, user } = Astro.locals;
+
+/*
+  A separate shell from /app on purpose. The client dashboard and the operator
+  console have different jobs, and rendering the admin tools inside the customer
+  chrome makes it far too easy to ship a control to the wrong audience. Dark
+  chrome so it is never mistaken for the customer view.
+*/
+const nav = [
+  { key: 'overview', href: '/admin', label: 'Përmbledhje', icon: 'layout-dashboard' },
+  { key: 'users', href: '/admin/perdoruesit', label: 'Bizneset', icon: 'users' },
+  { key: 'payments', href: '/admin/pagesat', label: 'Pagesat', icon: 'credit-card' },
+  { key: 'waitlist', href: '/admin/lista', label: 'Lista e pritjes', icon: 'clipboard-list' },
+  { key: 'audit', href: '/admin/regjistri', label: 'Regjistri', icon: 'scroll-text' },
+] as const;
+---
+
+<BaseLayout title={title} noindex={true}>
+  <div class="flex min-h-screen flex-col lg:flex-row">
+    <!-- Sidebar -->
+    <aside
+      class="bg-ink text-mist flex shrink-0 flex-col lg:sticky lg:top-0 lg:h-screen lg:w-64"
+    >
+      <div class="flex items-center justify-between gap-3 px-5 py-5">
+        <a href="/admin" class="flex items-center gap-2.5" aria-label="Konsola e adminit">
+          <Logo invert />
+        </a>
+        <span
+          class="bg-brand/15 text-brand rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
+        >
+          ADMIN
+        </span>
+      </div>
+
+      <nav class="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible">
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={active === item.key ? 'page' : undefined}
+              class:list={[
+                'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+                active === item.key
+                  ? 'bg-brand/15 text-brand'
+                  : 'text-mist/65 hover:bg-white/5 hover:text-mist',
+              ]}
+            >
+              <Icon name={item.icon} class="size-4 shrink-0" />
+              <span>{item.label}</span>
+              {item.key === 'payments' && pendingCount > 0 && (
+                <span class="bg-brand text-ink ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                  {pendingCount}
+                </span>
+              )}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="mt-auto hidden border-t border-white/10 p-3 lg:block">
+        <a
+          href="/app?klient=1"
+          class="text-mist/65 hover:text-mist flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+        >
+          <Icon name="arrow-left" class="size-4" />
+          Kthehu te aplikacioni
+        </a>
+
+        <div class="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5">
+          <span
+            class="bg-brand/15 text-brand flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+          >
+            {initials(profile?.business_name ?? user?.email)}
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs font-medium">{profile?.business_name}</p>
+            <p class="text-mist/45 truncate text-[11px]">{user?.email}</p>
+          </div>
+        </div>
+
+        <form method="POST" action="/auth/signout">
+          <button
+            type="submit"
+            class="text-mist/65 hover:text-mist flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+          >
+            <Icon name="log-out" class="size-4" /> Dil
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="bg-muted/40 flex min-w-0 flex-1 flex-col">
+      <header class="bg-background/85 sticky top-0 z-30 border-b backdrop-blur-md">
+        <div class="flex flex-wrap items-end justify-between gap-3 px-6 py-5">
+          <div>
+            <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{heading}</h1>
+            {subheading && <p class="text-muted-foreground mt-1 text-sm">{subheading}</p>}
+          </div>
+          <slot name="actions" />
+        </div>
+      </header>
+
+      <main class="flex-1 px-6 py-6">
+        <slot />
+      </main>
+    </div>
+  </div>
+</BaseLayout>

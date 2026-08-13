@@ -1,0 +1,64 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import InvoiceEditor from '@/components/react/InvoiceEditor';
+import DeleteInvoiceButton from '@/components/react/DeleteInvoiceButton';
+import { suggestInvoiceNumber } from '@/lib/invoice-number';
+import type { Client, Invoice } from '@/lib/types';
+
+export const prerender = false;
+
+const { supabase, user, profile } = Astro.locals;
+const { id } = Astro.params;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!id || !UUID_RE.test(id)) {
+  return Astro.redirect('/app/faturat', 302);
+}
+
+// RLS already scopes this to the owner; the explicit filter keeps it obvious.
+const { data: invoiceRow } = await supabase
+  .from('invoices')
+  .select('*')
+  .eq('id', id)
+  .eq('owner_id', user!.id)
+  .maybeSingle();
+
+if (!invoiceRow) {
+  return Astro.redirect('/app/faturat?gabim=nuk-u-gjet', 302);
+}
+
+const invoice = invoiceRow as Invoice;
+
+const [{ data: clientsData }, suggestedNumber] = await Promise.all([
+  supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
+  suggestInvoiceNumber(supabase, user!.id),
+]);
+
+const clients = (clientsData ?? []) as Client[];
+---
+
+<AppLayout title={`${invoice.invoice_number} — Fatura.co`} active="invoices">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <a
+      href="/app/faturat"
+      class="text-sm font-medium text-muted-foreground hover:text-foreground">← Faturat</a
+    >
+    <DeleteInvoiceButton
+      invoiceId={invoice.id}
+      invoiceNumber={invoice.invoice_number}
+      client:load
+    />
+  </div>
+
+  <h1 class="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">
+    {invoice.invoice_number}
+  </h1>
+
+  <InvoiceEditor
+    profile={profile}
+    clients={clients}
+    invoice={invoice}
+    suggestedNumber={suggestedNumber}
+    client:load
+  />
+</AppLayout>

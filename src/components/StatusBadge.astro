@@ -1,0 +1,17 @@
+---
+import { STATUS_META, type InvoiceStatus } from '@/lib/types';
+
+export interface Props {
+  status: InvoiceStatus;
+  class?: string;
+}
+
+const { status, class: className = '' } = Astro.props;
+const meta = STATUS_META[status] ?? STATUS_META.draft;
+---
+
+<span
+  class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${meta.className} ${className}`}
+>
+  {meta.label}
+</span>

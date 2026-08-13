@@ -1,0 +1,47 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import InvoiceEditor from '@/components/react/InvoiceEditor';
+import { suggestInvoiceNumber } from '@/lib/invoice-number';
+import { FREE_INVOICE_LIMIT, type Client } from '@/lib/types';
+
+export const prerender = false;
+
+const { supabase, user, profile } = Astro.locals;
+
+const now = new Date();
+const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+const [clientsResult, monthResult, suggestedNumber] = await Promise.all([
+  supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
+  supabase
+    .from('invoices')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', user!.id)
+    .gte('created_at', monthStart),
+  suggestInvoiceNumber(supabase, user!.id),
+]);
+
+const clients = (clientsResult.data ?? []) as Client[];
+const invoicesThisMonth = monthResult.count ?? 0;
+const limitReached = !(profile?.is_pro ?? false) && invoicesThisMonth >= FREE_INVOICE_LIMIT;
+---
+
+<AppLayout title="Faturë e re — Fatura.co" active="invoices">
+  <div class="mb-6 flex items-center gap-3">
+    <a
+      href="/app/faturat"
+      class="text-sm font-medium text-muted-foreground hover:text-foreground"
+      >← Faturat</a
+    >
+  </div>
+
+  <h1 class="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">Faturë e re</h1>
+
+  <InvoiceEditor
+    profile={profile}
+    clients={clients}
+    suggestedNumber={suggestedNumber}
+    limitReached={limitReached}
+    client:load
+  />
+</AppLayout>

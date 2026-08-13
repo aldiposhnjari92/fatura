@@ -1,0 +1,75 @@
+---
+import MarketingLayout from '@/layouts/MarketingLayout.astro';
+import LegalPage from '@/components/sections/LegalPage.astro';
+
+export const prerender = true;
+const updated = '13 gusht 2026';
+---
+
+<MarketingLayout
+  title="Kushtet e përdorimit — Fatura.co"
+  description="Kushtet e përdorimit të shërbimit Fatura.co."
+>
+  <LegalPage heading="Kushtet e përdorimit" updated={updated}>
+
+      <h2>1. Shërbimi</h2>
+      <p>
+        Fatura.co ("Shërbimi") është një mjet online për krijimin dhe menaxhimin e
+        faturave, i ofruar përmes fatura.co. Duke krijuar një llogari, ti pranon këto
+        kushte.
+      </p>
+
+      <h2>2. Llogaria jote</h2>
+      <p>
+        Je përgjegjës për ruajtjen e fjalëkalimit dhe për çdo veprim që kryhet nga
+        llogaria jote. Të dhënat që fut duhet të jenë të sakta dhe të plota.
+      </p>
+
+      <h2>3. Përmbajtja dhe të dhënat</h2>
+      <p>
+        Të gjitha të dhënat që fut — biznesi, klientët, faturat — mbeten pronë e jotja.
+        Ne nuk i shesim, nuk i ndajmë dhe nuk i përdorim për qëllime të tjera përveç
+        ofrimit të Shërbimit.
+      </p>
+
+      <h2>4. Përgjegjësia tatimore</h2>
+      <p>
+        Fatura.co është mjet dokumentimi. Përgjegjësia për saktësinë e faturave, për
+        deklarimin tatimor dhe për përputhshmërinë me legjislacionin shqiptar — përfshirë
+        fiskalizimin — mbetet plotësisht e jotja. Shërbimi nuk lidhet aktualisht
+        automatikisht me sistemin e fiskalizimit të Drejtorisë së Përgjithshme të
+        Tatimeve.
+      </p>
+
+      <h2>5. Planet dhe pagesat</h2>
+      <p>
+        Plani falas lejon deri në 5 fatura në muaj. Plani Pro ofron fatura të palimituara
+        kundrejt tarifës mujore të publikuar në faqen e çmimeve. Mund ta anulosh në çdo
+        moment.
+      </p>
+
+      <h2>6. Disponueshmëria</h2>
+      <p>
+        Përpiqemi ta mbajmë Shërbimin gjithmonë të disponueshëm, por nuk garantojmë
+        funksionim pa ndërprerje. Shërbimi ofrohet "siç është", pa garanci të shprehura.
+      </p>
+
+      <h2>7. Kufizimi i përgjegjësisë</h2>
+      <p>
+        Në masën maksimale të lejuar nga ligji, Fatura.co nuk mban përgjegjësi për humbje
+        fitimi, humbje të dhënash apo dëme indirekte që rrjedhin nga përdorimi i
+        Shërbimit.
+      </p>
+
+      <h2>8. Ndryshimet</h2>
+      <p>
+        Mund t'i përditësojmë këto kushte. Ndryshimet thelbësore do të njoftohen me email
+        ose brenda aplikacionit.
+      </p>
+
+      <h2>9. Kontakti</h2>
+      <p>
+        Për çdo pyetje: <a href="mailto:pershendetje@fatura.co">pershendetje@fatura.co</a>
+      </p>
+  </LegalPage>
+</MarketingLayout>

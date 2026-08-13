@@ -1,0 +1,6 @@
+---
+// The admin panel moved to its own console at /admin, with a separate shell.
+// Kept as a redirect so old links and bookmarks still land somewhere useful.
+export const prerender = false;
+return Astro.redirect('/admin', 301);
+---

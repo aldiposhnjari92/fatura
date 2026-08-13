@@ -1,0 +1,294 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Fatura.co palette
+  ─────────────────
+  #222831  ink    hsl(216 18% 16%)   surfaces, headings, dark chrome
+  #393E46  slate  hsl(217 10% 25%)   secondary text, elevated dark surfaces
+  #00ADB5  teal   hsl(183 100% 35%)  the signature accent
+  #EEEEEE  mist   hsl(0 0% 93%)      page ground, alternating sections
+
+  Teal at #00ADB5 measures 2.75:1 on white — below the 3.0 large-text floor —
+  so it never carries text on a light surface. On light backgrounds the
+  interactive teal is deepened to hsl(183 100% 25%) (5.40:1 on white,
+  4.66:1 on mist). Raw #00ADB5 stays exact wherever it sits on ink (5.40:1):
+  dark sections, the logo mark, and the whole dark theme.
+
+  Token names and shape follow shadcn/Fulldev v4 conventions (complete colour
+  values, not bare channel triplets) so registry components drop in unchanged.
+*/
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(216 18% 16%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(216 18% 16%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(216 18% 16%);
+
+  /* Interactive teal — deepened so it passes AA as text and as a fill. */
+  --primary: hsl(183 100% 25%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* The exact brand teal. Decorative fills, and anything sitting on ink. */
+  --brand: hsl(183 100% 35%);
+  --brand-foreground: hsl(216 18% 16%);
+
+  --secondary: hsl(0 0% 93%);
+  --secondary-foreground: hsl(216 18% 16%);
+
+  --muted: hsl(0 0% 93%);
+  --muted-foreground: hsl(217 10% 34%);
+
+  --accent: hsl(183 60% 94%);
+  --accent-foreground: hsl(183 100% 20%);
+
+  --destructive: hsl(0 72% 42%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  --success: hsl(168 84% 24%);
+  --warning: hsl(32 80% 34%);
+
+  --border: hsl(216 14% 88%);
+  --input: hsl(216 14% 84%);
+  --ring: hsl(183 100% 25%);
+
+  /* Fixed palette values — for sections that stay dark in both themes. */
+  --ink: #222831;
+  --slate: #393e46;
+  --mist: #eeeeee;
+
+  --radius: 0.75rem;
+
+  --shadow-2xs: 0 1px 3px 0px hsl(216 18% 16% / 0.04);
+  --shadow-xs: 0 1px 3px 0px hsl(216 18% 16% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 1px 2px -1px hsl(216 18% 16% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 1px 2px -1px hsl(216 18% 16% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 2px 4px -1px hsl(216 18% 16% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 4px 6px -1px hsl(216 18% 16% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 8px 10px -1px hsl(216 18% 16% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(216 18% 16% / 0.25);
+}
+
+.dark {
+  --background: hsl(216 18% 16%);
+  --foreground: hsl(0 0% 93%);
+
+  --card: hsl(217 12% 21%);
+  --card-foreground: hsl(0 0% 93%);
+
+  --popover: hsl(217 12% 21%);
+  --popover-foreground: hsl(0 0% 93%);
+
+  /* On ink, the exact brand teal is 5.40:1 — use it unmodified. */
+  --primary: hsl(183 100% 35%);
+  --primary-foreground: hsl(216 18% 16%);
+
+  --brand: hsl(183 100% 35%);
+  --brand-foreground: hsl(216 18% 16%);
+
+  --secondary: hsl(217 10% 25%);
+  --secondary-foreground: hsl(0 0% 93%);
+
+  --muted: hsl(217 10% 25%);
+  --muted-foreground: hsl(214 9% 70%);
+
+  --accent: hsl(217 10% 30%);
+  --accent-foreground: hsl(0 0% 93%);
+
+  --destructive: hsl(0 62% 48%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  --success: hsl(168 60% 45%);
+  --warning: hsl(32 85% 60%);
+
+  --border: hsl(217 10% 30%);
+  --input: hsl(217 10% 32%);
+  --ring: hsl(183 100% 35%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-mist: var(--mist);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* v4 has no `container` component by default — recreate the v3 behaviour. */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  width: 100%;
+  @variant 2xl {
+    max-width: 1200px;
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    /* v4's default border colour is currentColor; restore the token. */
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    background-color: --alpha(var(--brand) / 28%);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility text-pretty {
+  text-wrap: pretty;
+}
+
+/* Faint dotted ground, used behind the hero. */
+@utility bg-dots {
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Teal glow used on dark sections. */
+@utility glow-brand {
+  box-shadow:
+    0 0 0 1px --alpha(var(--brand) / 20%),
+    0 18px 60px -18px --alpha(var(--brand) / 45%);
+}
+
+/* Thin teal rule under a section eyebrow. */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  font-size: var(--text-xs);
+  line-height: var(--tw-leading, var(--text-xs--line-height));
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/*
+  Auth-aware CTAs on the *static* marketing pages.
+
+  Those pages are prerendered, so the server cannot know whether the visitor is
+  signed in. Both variants are rendered and one is hidden by CSS, switched by a
+  tiny synchronous script in <head> that stamps `data-auth` on <html>. Because
+  it runs before first paint there is no flash of the wrong button.
+
+  Default (no data-auth yet, or JS disabled) shows the anonymous version, which
+  is the correct fallback for the overwhelming majority of visitors.
+*/
+[data-auth-show='user'] {
+  display: none;
+}
+html[data-auth='user'] [data-auth-show='user'] {
+  display: inline-flex;
+}
+html[data-auth='user'] [data-auth-show='anon'] {
+  display: none;
+}
+
+/*
+  Sticky marketing header.
+
+  At the top of the page it sits flush and transparent; once the sentinel above
+  it scrolls out of view an IntersectionObserver flips `data-stuck`, and it
+  gains a translucent backdrop, a hairline and a soft shadow. Driven by an
+  observer rather than a scroll listener so it costs nothing per frame.
+*/
+[data-slot='header'] {
+  transition:
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid transparent;
+  background-color: transparent;
+}
+
+[data-slot='header'][data-stuck='true'] {
+  background-color: --alpha(var(--background) / 80%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  border-bottom-color: var(--color-border);
+  box-shadow: 0 1px 2px --alpha(var(--foreground) / 4%),
+    0 8px 24px -12px --alpha(var(--foreground) / 12%);
+  padding-block: calc(var(--spacing) * 1);
+}
+
+/* The logo tightens up a touch once the bar is condensed. */
+[data-slot='header'][data-stuck='true'] [data-slot='logo'] {
+  transform: scale(0.95);
+}
+[data-slot='logo'] {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='header'],
+  [data-slot='logo'] {
+    transition: none;
+  }
+}
+
+/* The browser-print fallback for an invoice preview. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

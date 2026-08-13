@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /login
+Disallow: /regjistrohu
+Disallow: /faleminderit
+
+Sitemap: https://fatura.co/sitemap-index.xml

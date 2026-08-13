@@ -1,0 +1,140 @@
+---
+import MarketingLayout from '@/layouts/MarketingLayout.astro';
+import Pricing2 from '@/components/blocks/pricing-2.astro';
+import Cta1 from '@/components/blocks/cta-1.astro';
+import { Section, SectionContainer } from '@/components/ui/section';
+import { Icon } from '@/components/ui/icon';
+
+export const prerender = true;
+
+const plans = [
+  {
+    name: 'Falas',
+    description: 'Përgjithmonë. Pa kartë krediti.',
+    price: 0,
+    currency: 'ALL',
+    unit: 'muaj',
+    features: [
+      '5 fatura në muaj',
+      'Klientë të palimituar',
+      'PDF me logo dhe NIPT',
+      'Fatura shqip dhe anglisht',
+    ],
+    note: 'Pa kartë krediti',
+    button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
+  },
+  {
+    name: 'Pro',
+    description: 'Anulo kur të duash.',
+    price: 990,
+    currency: 'ALL',
+    unit: 'muaj',
+    features: [
+      'Fatura të palimituara',
+      'Gjithçka nga plani falas',
+      'Mbështetje me përparësi në WhatsApp',
+      'Veçoritë e reja të parët',
+    ],
+    featured: true,
+    badge: 'Më i zgjedhuri',
+    note: 'Anulo kur të duash',
+    button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
+  },
+];
+
+const rows = [
+  { label: 'Fatura në muaj', free: '5', pro: 'Të palimituara' },
+  { label: 'Klientë të ruajtur', free: 'Të palimituar', pro: 'Të palimituar' },
+  { label: 'PDF me logon tënde', free: true, pro: true },
+  { label: 'NIPT në faturë', free: true, pro: true },
+  { label: 'TVSH dhe zbritje', free: true, pro: true },
+  { label: 'Fatura shqip / anglisht', free: true, pro: true },
+  { label: 'Numërim automatik i faturave', free: true, pro: true },
+  { label: 'Historik i plotë i faturave', free: true, pro: true },
+  { label: 'Mbështetje në WhatsApp', free: 'Standarde', pro: 'Me përparësi' },
+];
+---
+
+<MarketingLayout
+  title="Çmimet — Fatura.co"
+  description="Fillo falas me 5 fatura në muaj. Plani Pro me fatura të palimituara për 990 Lekë në muaj. Pa kontratë, anulo kur të duash."
+>
+  <Pricing2
+    title="Çmime pa surpriza"
+    description="Fillo falas sot. Kalo në Pro vetëm kur fatura e gjashtë e muajit të bëhet e nevojshme."
+    plans={plans}
+  />
+
+  <Section class="bg-muted/40">
+    <SectionContainer class="max-w-4xl gap-6">
+      <h2 class="text-foreground text-center text-2xl font-semibold tracking-tight">
+        Krahasimi i plotë
+      </h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[520px] border-collapse text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="py-3 text-left font-semibold">Veçoria</th>
+              <th class="w-32 py-3 text-center font-semibold">Falas</th>
+              <th class="text-primary w-32 py-3 text-center font-semibold">Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              rows.map((row) => (
+                <tr class="border-b">
+                  <td class="text-muted-foreground py-3 pr-4">{row.label}</td>
+                  <td class="py-3 text-center">
+                    {typeof row.free === 'boolean' ? (
+                      row.free ? (
+                        <Icon name="check" class="text-primary inline-block size-4" />
+                      ) : (
+                        <span class="text-muted-foreground">—</span>
+                      )
+                    ) : (
+                      row.free
+                    )}
+                  </td>
+                  <td class="py-3 text-center font-medium">
+                    {typeof row.pro === 'boolean' ? (
+                      row.pro ? (
+                        <Icon name="check" class="text-primary inline-block size-4" />
+                      ) : (
+                        <span class="text-muted-foreground">—</span>
+                      )
+                    ) : (
+                      row.pro
+                    )}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-muted-foreground text-center text-sm">
+        Pagesat për planin Pro aktivizohen së shpejti. Deri atëherë, shkruaj në
+        <a class="text-primary font-medium underline" href="mailto:pershendetje@fatura.co"
+          >pershendetje@fatura.co</a
+        > dhe të aktivizojmë Pro-n manualisht.
+      </p>
+    </SectionContainer>
+  </Section>
+
+  <Cta1
+    class="dark bg-ink"
+    title="Fillo sot, paguaj kur të rritesh"
+    description="Krijo llogarinë falas dhe shkarko faturën e parë brenda pak minutash."
+    buttons={[
+      { label: 'Krijo llogari falas', href: '/regjistrohu', 'data-auth-show': 'anon' },
+      {
+        label: 'Shko te paneli',
+        href: '/app',
+        variant: 'default',
+        'data-auth-show': 'user',
+      },
+    ]}
+  />
+</MarketingLayout>
