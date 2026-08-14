@@ -81,7 +81,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (isAuthRoute && user) {
-    return withHeaders(redirect('/app', 302));
+    /*
+      Someone already signed in has no use for /login or /regjistrohu — but do
+      not throw away why they came. The pricing cards link to
+      /regjistrohu?plan=pro&muaj=N, so an existing customer clicking "upgrade"
+      was being dumped on the dashboard with their choice discarded. Carry the
+      intent to the checkout instead.
+
+      This is the catch-all: it also covers bookmarks, cached marketing pages
+      and the back button, not just the links we control.
+    */
+    if (url.searchParams.get('plan') === 'pro') {
+      const requested = Number.parseInt(url.searchParams.get('muaj') ?? '', 10);
+      const months = [1, 6, 12].includes(requested) ? requested : 1;
+      return withHeaders(redirect(`/app/abonimi?muaj=${months}`, 302));
+    }
+
+    const rawNext = url.searchParams.get('next') ?? '';
+    const safeNext =
+      rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
+    return withHeaders(redirect(safeNext, 302));
   }
 
   if (user) {

@@ -40,6 +40,17 @@ type Props = {
       href: string;
       variant?: 'default' | 'outline' | 'secondary' | 'ghost';
     };
+    /**
+     * Shown instead of `button` to visitors who are already signed in. Without
+     * it an existing customer clicking "Fillo me Pro" hits /regjistrohu, which
+     * the middleware bounces away from — landing them on the dashboard with
+     * their plan choice discarded.
+     */
+    authedButton?: {
+      label: string;
+      href: string;
+      variant?: 'default' | 'outline' | 'secondary' | 'ghost';
+    };
   }[];
 };
 
@@ -180,6 +191,7 @@ const hasFeatured = plans.some((plan) => plan.featured);
                 href={plan.button.href}
                 size="lg"
                 variant={plan.button.variant ?? (plan.featured ? 'default' : 'outline')}
+                data-auth-show={plan.authedButton ? 'anon' : undefined}
                 class={cn(
                   'w-full',
                   plan.featured &&
@@ -188,6 +200,27 @@ const hasFeatured = plans.some((plan) => plan.featured);
               >
                 {plan.button.label}
               </Button>
+
+              {
+                plan.authedButton && (
+                  <Button
+                    as="a"
+                    href={plan.authedButton.href}
+                    size="lg"
+                    variant={
+                      plan.authedButton.variant ?? (plan.featured ? 'default' : 'outline')
+                    }
+                    data-auth-show="user"
+                    class={cn(
+                      'w-full',
+                      plan.featured &&
+                        'bg-brand text-ink hover:bg-brand/90 border-transparent shadow-lg'
+                    )}
+                  >
+                    {plan.authedButton.label}
+                  </Button>
+                )
+              }
 
               {plan.note && (
                 <p

@@ -28,6 +28,11 @@ const plans = [
     ],
     note: 'Pa kartë krediti',
     button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
+    authedButton: {
+      label: 'Shko te paneli',
+      href: '/app',
+      variant: 'outline' as const,
+    },
   },
   {
     name: 'Pro',
@@ -45,6 +50,7 @@ const plans = [
     badge: 'Më i zgjedhuri',
     note: 'Anulo kur të duash',
     button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
+    authedButton: { label: 'Kalo në Pro', href: '/app/abonimi?muaj=1' },
   },
 ];
 

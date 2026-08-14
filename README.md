@@ -295,6 +295,17 @@ signup landed on free.
 Because the intent lives in the URL, it also survives email confirmation —
 `{{ .ConfirmationURL }}` carries `next=/app/abonimi?muaj=N` back through the callback.
 
+**Already signed in?** `/regjistrohu` is an auth route, so the middleware redirects a
+logged-in visitor away from it. That used to send them to `/app`, silently discarding the
+plan they had just picked — an existing free user clicking "upgrade" landed on the
+dashboard instead of the checkout. The redirect now forwards `?plan=pro&muaj=N` to
+`/app/abonimi?muaj=N`, and honours `?next=` otherwise.
+
+That middleware rule is the catch-all — it also covers bookmarks, cached marketing pages
+and the back button. On top of it, the pricing cards take an `authedButton` and swap to
+"Kalo në Pro" → `/app/abonimi?muaj=N` for signed-in visitors, and every in-app upgrade
+button links straight to the checkout rather than bouncing through `/cmimet`.
+
 ### Bank transfer flow
 
 `create_payment()` issues a unique reference (`FAT-XXXXXXXX`) and **computes the amount
