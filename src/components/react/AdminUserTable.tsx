@@ -38,6 +38,7 @@ export interface AdminUserRow {
   nipt: string | null;
   is_pro: boolean;
   is_admin: boolean;
+  is_manager?: boolean;
   pro_until: string | null;
   created_at: string;
   invoice_count: number;
@@ -61,6 +62,7 @@ interface DeletePreview {
   business_name: string | null;
   email: string;
   is_admin: boolean;
+  is_manager?: boolean;
   is_self: boolean;
   pro_active: boolean;
   pro_until: string | null;
@@ -134,13 +136,14 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       'Pro u hoq.'
     );
 
-  const setAdmin = (row: AdminUserRow, value: boolean) =>
+  /* Staff are appointed as managers; the single admin is fixed. */
+  const setManager = (row: AdminUserRow, value: boolean) =>
     run(
       row.id,
-      'admin_set_admin',
-      { p_user: row.id, p_is_admin: value },
-      (r) => ({ ...r, is_admin: value }),
-      value ? 'U bë admin.' : 'Të drejtat e adminit u hoqën.'
+      'admin_set_manager',
+      { p_user: row.id, p_manager: value },
+      (r) => ({ ...r, is_manager: value }),
+      value ? 'U bë menaxher.' : 'Të drejtat e menaxherit u hoqën.'
     );
 
   async function openDelete(row: AdminUserRow) {
@@ -349,17 +352,25 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
 
                         <DropdownMenuSeparator />
 
+                        {/*
+                          There is exactly one admin, enforced in the database.
+                          Staff are appointed as managers instead, so the admin
+                          toggle is not offered for anyone else at all.
+                        */}
                         {row.is_admin ? (
+                          <DropdownMenuItem disabled>
+                            <ShieldCheck /> Admin
+                          </DropdownMenuItem>
+                        ) : row.is_manager ? (
                           <DropdownMenuItem
-                            disabled={row.id === currentAdminId}
                             className="text-destructive focus:text-destructive"
-                            onSelect={() => setAdmin(row, false)}
+                            onSelect={() => setManager(row, false)}
                           >
-                            <ShieldOff /> Hiq adminin
+                            <ShieldOff /> Hiq nga menaxher
                           </DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem onSelect={() => setAdmin(row, true)}>
-                            <ShieldCheck /> Bëje admin
+                          <DropdownMenuItem onSelect={() => setManager(row, true)}>
+                            <ShieldCheck /> Bëje menaxher
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

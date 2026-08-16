@@ -4,14 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { Label } from '@/components/ui/react/label';
+import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/react/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/react/select';
 import LogoCropper from '@/components/react/LogoCropper';
 import { isValidNipt } from '@/lib/utils';
 import type { Profile } from '@/lib/types';
@@ -276,18 +270,14 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
 
           <div className="space-y-1.5">
             <Label htmlFor="city">Qyteti</Label>
-            <Select value={city} onValueChange={setCity}>
-              <SelectTrigger id="city">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CITIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Long enough to be worth typing into rather than scrolling. */}
+            <SearchableSelect
+              id="city"
+              value={city}
+              onValueChange={setCity}
+              aria-label="Qyteti"
+              options={CITIES.map((c) => ({ value: c, label: c }))}
+            />
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">

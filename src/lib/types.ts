@@ -11,8 +11,12 @@ export interface Profile {
   logo_url: string | null;
   is_pro: boolean;
   is_admin?: boolean;
+  /** Read-mostly operator: sees invoice activity, changes nothing. */
+  is_manager?: boolean;
   /** When the Pro subscription lapses; null means no expiry set. */
   pro_until?: string | null;
+  /** Set when the customer asked not to renew; access still runs to pro_until. */
+  cancelled_at?: string | null;
   created_at: string;
 }
 
@@ -45,6 +49,8 @@ export interface Invoice {
   discount: number;
   total: number;
   status: InvoiceStatus;
+  /** Set only while status is 'paid'; maintained by a database trigger. */
+  paid_at?: string | null;
   notes: string | null;
   language: InvoiceLanguage;
   created_at: string;
@@ -118,6 +124,46 @@ export const STATUS_META: Record<
       'bg-red-100 text-red-900 ring-red-300/70 dark:bg-red-400/15 dark:text-red-200 dark:ring-red-400/30',
   },
 };
+
+/**
+ * Lateness is derived, never stored — the mirror of public.is_overdue() in
+ * SQL. Keep the two in step: an invoice is late when it has been issued, is
+ * still unpaid, and its due date has passed. Drafts are not late (they were
+ * never sent) and a paid invoice is never late however late it was settled.
+ */
+export function isOverdue(
+  status: InvoiceStatus,
+  dueDate: string | null | undefined
+): boolean {
+  if (status !== 'unpaid' || !dueDate) return false;
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  return due < today;
+}
+
+/** What the badge should say: the stored status, upgraded to overdue if late. */
+export function displayStatus(
+  status: InvoiceStatus,
+  dueDate: string | null | undefined
+): InvoiceStatus {
+  return isOverdue(status, dueDate) ? 'overdue' : status;
+}
+
+/** Whole days a payment is late. 0 when it is not. */
+export function daysOverdue(
+  status: InvoiceStatus,
+  dueDate: string | null | undefined
+): number {
+  if (!isOverdue(status, dueDate)) return 0;
+  const due = new Date(dueDate as string);
+  const today = new Date();
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today.getTime() - due.getTime()) / 86_400_000);
+}
 
 /** Free plan ceiling. Pro lifts it entirely. */
 export const FREE_INVOICE_LIMIT = 5;

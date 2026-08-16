@@ -2,6 +2,7 @@
 import { Section, SectionContainer } from '@/components/ui/section';
 import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
+import SectionHeading from '@/components/sections/SectionHeading.astro';
 
 /*
   Replaces Fulldev's features-2, which is a flat 3-column grid of centred icons —
@@ -22,47 +23,47 @@ const supporting = [
     body: 'TVSH 20%, 6% ose 0% dhe zbritje në vlerë — totalet llogariten vetë.',
   },
   {
-    icon: 'languages',
-    title: 'Shqip ose anglisht',
-    body: 'Fatura vendase në shqip, klientët e huaj në anglisht. Një klik.',
-  },
-  {
-    icon: 'users',
-    title: 'Klientët e ruajtur',
-    body: 'Ruaj NIPT-in dhe adresën një herë, zgjidh nga lista më pas.',
-  },
-  {
     icon: 'share-2',
     title: 'Dërgo në WhatsApp',
     body: 'Shkarko ose ndaje direkt nga telefoni — WhatsApp, Viber, email.',
   },
+  {
+    icon: 'crop',
+    title: 'Logo pa programe',
+    body: 'Ngarko, preje dhe qendrizo logon direkt në shfletues. Pa Photoshop.',
+  },
+  {
+    icon: 'lock',
+    title: 'Vetëm ti i sheh',
+    body: 'Çdo faturë e lidhur me llogarinë tënde, e ruajtur në serverë në BE.',
+  },
 ];
+
+/*
+  Placement, in DOM order, on the 6-column / 4-row grid:
+    row 1  lead (4 cols)  | ink (2 cols, rows 1-3)
+    row 2  TVSH           | WhatsApp
+    row 3  logo           | privatësia
+  Saved clients and the bilingual document used to sit here too, but the
+  showcase above now covers both in depth with real UI — repeating them made the
+  page say the same thing twice.
+*/
 ---
 
 <Section id="vecorite" class={`bg-muted/40 ${className}`}>
-  <SectionContainer class="items-center gap-4 text-center">
-    <span
-      class="border-primary/20 bg-background text-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
-    >
-      <Icon name="sparkles" class="size-3.5" /> Veçoritë
-    </span>
-    <div class="flex max-w-2xl flex-col gap-4">
-      <h2
-        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-      >
-        Gjithçka që i duhet një biznesi të vogël
-      </h2>
-      <p class="text-muted-foreground text-lg leading-relaxed text-balance">
-        Asgjë më shumë. Pa module kontabiliteti që nuk i hap kurrë.
-      </p>
-    </div>
+  <SectionContainer data-reveal>
+    <SectionHeading
+      eyebrow="Veçoritë"
+      title="Gjithçka që i duhet një biznesi të vogël"
+      description="Asgjë më shumë. Pa module kontabiliteti që nuk i hap kurrë."
+    />
   </SectionContainer>
 
   <SectionContainer class="max-w-6xl">
-    <div class="grid gap-4 md:grid-cols-6 md:grid-rows-3">
+    <div class="grid gap-4 md:grid-cols-6 md:grid-rows-3" data-stagger>
       <!-- Lead tile: the branded PDF -->
       <article
-        class="bg-card ring-border group relative overflow-hidden rounded-2xl p-7 ring-1 md:col-span-4 md:row-span-1"
+        class="bg-card ring-border/70 group relative overflow-hidden rounded-2xl p-7 ring-1 md:col-span-4 md:row-span-1"
       >
         <div class="relative flex flex-col gap-4 md:flex-row md:items-start md:gap-7">
           <div class="flex-1">
@@ -137,11 +138,11 @@ const supporting = [
       <!-- Supporting tiles -->
       {
         supporting.map((feature) => (
-          <article class="bg-card ring-border group rounded-2xl p-6 ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md md:col-span-2">
-            <div class="bg-accent flex size-10 items-center justify-center rounded-lg transition-transform group-hover:scale-105">
-              <Icon name={feature.icon} class="text-primary size-[1.1rem]" />
+          <article class="bg-card ring-border/70 group lift rounded-2xl p-6 ring-1 md:col-span-2">
+            <div class="bg-accent ring-primary/10 flex size-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105">
+              <Icon name={feature.icon} class="text-primary size-5" />
             </div>
-            <h3 class="mt-4 font-semibold tracking-tight">{feature.title}</h3>
+            <h3 class="mt-5 font-semibold tracking-tight">{feature.title}</h3>
             <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
               {feature.body}
             </p>

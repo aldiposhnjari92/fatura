@@ -1,6 +1,7 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import StatusBadge from '@/components/StatusBadge.astro';
+import { displayStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { formatALL, formatDate } from '@/lib/utils';
@@ -22,7 +23,7 @@ const [statsResult, recentResult] = await Promise.all([
   supabase.rpc('dashboard_stats'),
   supabase
     .from('invoices')
-    .select('id, invoice_number, issue_date, total, status, clients(name)')
+    .select('id, invoice_number, issue_date, due_date, total, status, clients(name)')
     .eq('owner_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(5),
@@ -182,7 +183,39 @@ const businessName = profile?.business_name?.trim() ?? '';
             </Button>
           </div>
         ) : (
-          <div class="overflow-x-auto">
+          <>
+            {/*
+              A four-column table cannot fit a 360px screen: the invoice number
+              broke across three lines and the status column fell off the right
+              edge. Below `sm` each invoice is one scannable row instead —
+              identity on the left, money on the right — and the table returns
+              once there is width for it.
+            */}
+            <ul class="divide-y sm:hidden">
+              {recent.map((invoice) => (
+                <a
+                  href={`/app/faturat/${invoice.id}`}
+                  class="hover:bg-muted/40 flex items-center justify-between gap-3 px-4 py-3 transition-colors"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="text-primary block truncate font-medium">
+                      {invoice.invoice_number}
+                    </span>
+                    <span class="text-muted-foreground block truncate text-xs">
+                      {invoice.clients?.name ?? '—'} · {formatDate(invoice.issue_date)}
+                    </span>
+                  </span>
+                  <span class="flex shrink-0 flex-col items-end gap-1">
+                    <span class="font-medium whitespace-nowrap tabular-nums">
+                      {formatALL(invoice.total)}
+                    </span>
+                    <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
+                  </span>
+                </a>
+              ))}
+            </ul>
+
+            <div class="hidden overflow-x-auto sm:block">
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b">
@@ -209,7 +242,7 @@ const businessName = profile?.business_name?.trim() ?? '';
                     <td class="px-5 py-3">
                       <a
                         href={`/app/faturat/${invoice.id}`}
-                        class="text-primary font-medium hover:underline"
+                        class="text-primary font-medium whitespace-nowrap hover:underline"
                       >
                         {invoice.invoice_number}
                       </a>
@@ -220,17 +253,18 @@ const businessName = profile?.business_name?.trim() ?? '';
                     <td class="text-muted-foreground hidden px-5 py-3 sm:table-cell">
                       {formatDate(invoice.issue_date)}
                     </td>
-                    <td class="px-5 py-3 text-right font-medium tabular-nums">
+                    <td class="px-5 py-3 text-right font-medium whitespace-nowrap tabular-nums">
                       {formatALL(invoice.total)}
                     </td>
                     <td class="px-5 py-3 text-right">
-                      <StatusBadge status={invoice.status} />
+                      <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )
       }
     </section>

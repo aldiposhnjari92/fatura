@@ -1,6 +1,6 @@
 ---
 import { Section, SectionContainer } from '@/components/ui/section';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Button } from '@/components/ui/button';
 
 const steps = [
@@ -23,50 +23,107 @@ const steps = [
 ---
 
 <Section id="si-funksionon">
-  <SectionContainer class="items-center gap-6 text-center">
-    <div class="flex max-w-2xl flex-col items-center gap-4">
-      <h2
-        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-      >
-        Tri hapa. Kaq.
-      </h2>
-      <p class="text-muted-foreground max-w-2xl text-lg leading-relaxed text-balance">
-        Nga regjistrimi te fatura e parë e shkarkuar — më pak se 5 minuta.
-      </p>
-    </div>
+  <SectionContainer data-reveal>
+    <SectionHeading
+      eyebrow="Si funksionon"
+      title="Tri hapa. Kaq."
+      description="Nga regjistrimi te fatura e parë e shkarkuar — më pak se 5 minuta."
+    />
   </SectionContainer>
 
-  <SectionContainer class="max-w-5xl">
-    <ol class="grid gap-6 md:grid-cols-3">
+  <SectionContainer class="max-w-6xl">
+    {/*
+      Each step carries the piece of interface it actually describes, the way
+      the showcase rows above do. A numbered rail with three paragraphs told the
+      reader what happens; showing the screen proves it.
+    */}
+    <ol class="grid gap-6 md:grid-cols-3" data-stagger>
       {
         steps.map((step) => (
-          <li>
-            <Card class="relative h-full overflow-hidden">
-              <span
-                class="text-muted pointer-events-none absolute -top-4 -right-2 text-[5rem] leading-none font-bold"
-                aria-hidden="true"
-              >
+          <li class="bg-card ring-border/70 lift flex flex-col rounded-2xl p-6 ring-1">
+            <div class="flex items-center gap-3">
+              <span class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg text-xs font-bold tabular-nums">
                 {step.n}
               </span>
-              <CardHeader>
-                <span class="bg-primary text-primary-foreground relative flex size-11 items-center justify-center rounded-xl text-sm font-bold">
-                  {step.n}
-                </span>
-                <CardTitle class="relative mt-4 text-lg">{step.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p class="text-muted-foreground relative text-sm leading-relaxed">
-                  {step.body}
-                </p>
-              </CardContent>
-            </Card>
+              <h3 class="text-base font-semibold tracking-tight">{step.title}</h3>
+            </div>
+
+            <p class="text-muted-foreground mt-3 text-sm leading-relaxed text-pretty">
+              {step.body}
+            </p>
+
+            <div class="bg-muted/40 mt-6 rounded-xl border p-3">
+              {step.n === '01' && (
+                <div class="flex flex-col gap-2">
+                  <span class="text-muted-foreground text-[10px] font-semibold uppercase">
+                    Email
+                  </span>
+                  <div class="bg-background flex h-8 items-center rounded-md border px-2.5 text-[11px]">
+                    biznesi@shembull.al
+                  </div>
+                  <span class="text-muted-foreground mt-1 text-[10px] font-semibold uppercase">
+                    Emri i biznesit
+                  </span>
+                  <div class="bg-background flex h-8 items-center rounded-md border px-2.5 text-[11px]">
+                    Bar Kafe Vlora
+                  </div>
+                </div>
+              )}
+
+              {step.n === '02' && (
+                <div class="flex flex-col gap-1.5">
+                  <div class="text-muted-foreground grid grid-cols-[1fr_auto_auto] gap-2 text-[9px] font-semibold uppercase">
+                    <span>Përshkrimi</span>
+                    <span class="w-6 text-right">Sasi</span>
+                    <span class="w-12 text-right">Vlera</span>
+                  </div>
+                  {[
+                    ['Punime instalimi', '12', '30 000'],
+                    ['Materiale', '1', '18 000'],
+                  ].map((row) => (
+                    <div class="bg-background grid grid-cols-[1fr_auto_auto] gap-2 rounded-md border px-2 py-1.5 text-[11px]">
+                      <span class="truncate">{row[0]}</span>
+                      <span class="text-muted-foreground w-6 text-right tabular-nums">
+                        {row[1]}
+                      </span>
+                      <span class="w-12 text-right font-medium tabular-nums">{row[2]}</span>
+                    </div>
+                  ))}
+                  <div class="mt-1 flex items-center justify-between border-t pt-1.5 text-[11px]">
+                    <span class="font-bold">TOTALI</span>
+                    <span class="text-primary font-extrabold tabular-nums">57 600 Lekë</span>
+                  </div>
+                </div>
+              )}
+
+              {step.n === '03' && (
+                <div class="flex items-center gap-3">
+                  <div class="bg-background ring-border relative flex h-16 w-12 shrink-0 flex-col gap-1 rounded-md p-1.5 shadow-sm ring-1">
+                    <div class="bg-brand h-0.5 w-4 rounded-full" />
+                    <div class="bg-muted h-1 w-full rounded-full" />
+                    <div class="bg-muted h-1 w-4/5 rounded-full" />
+                    <div class="bg-muted h-1 w-3/5 rounded-full" />
+                    <div class="bg-primary/70 mt-auto h-1 w-2/3 self-end rounded-full" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-semibold">FAT-2026-014.pdf</p>
+                    <p class="text-muted-foreground text-[10px]">Gati për WhatsApp</p>
+                    <span class="bg-accent text-primary mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold">
+                      U shkarkua
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </li>
         ))
       }
     </ol>
 
-    <div class="flex justify-center">
-      <Button as="a" href="/regjistrohu" size="lg">Provo tani — falas</Button>
+    <div class="mt-12 flex justify-center">
+      <Button as="a" href="/regjistrohu" size="lg" class="press">
+        Provo tani — falas
+      </Button>
     </div>
   </SectionContainer>
 </Section>

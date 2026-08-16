@@ -7,7 +7,17 @@ import { computeTotals, type Client, type Invoice, type Profile } from './types'
 import { groupThousands } from './utils';
 import { t } from './i18n';
 
+/*
+  Layout is tuned so the items table gets as much of the page as possible: the
+  header, party blocks, notes and footer are all kept deliberately tight. Row
+  padding matters most — every millimetre trimmed there is paid back on every
+  single line item, which is what decides how many products fit on page one.
+*/
 const MARGIN = 14;
+/** 40x40 points, expressed in mm — jsPDF is set up in mm here. */
+const LOGO_BOX = 40 * 0.3528;
+/** 1px in mm at 96dpi — for gaps that are easier to reason about in pixels. */
+const PX = 0.2646;
 const PAGE_W = 210; // A4 mm
 
 /*
@@ -173,8 +183,14 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
   let headerBottom = MARGIN;
 
   if (logo) {
-    const maxW = 38;
-    const maxH = 20;
+    /*
+      A square 40x40pt box (14.11mm). Previously the logo could run 38mm wide,
+      which pushed the whole document down and ate the room the items table
+      needs. Contain-fitted, so a wide logo simply gets shorter rather than
+      stretched.
+    */
+    const maxW = LOGO_BOX;
+    const maxH = LOGO_BOX;
     const ratio = Math.min(maxW / logo.width, maxH / logo.height);
     const w = logo.width * ratio;
     const h = logo.height * ratio;
@@ -189,62 +205,64 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
 
   if (!logo) {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
+    doc.setFontSize(14);
     doc.setTextColor(...INK);
-    doc.text(profile?.business_name || 'Fatura.co', MARGIN, MARGIN + 7);
-    headerBottom = MARGIN + 9;
+    doc.text(profile?.business_name || 'Fatura.co', MARGIN, MARGIN + 6);
+    headerBottom = MARGIN + 8;
   }
 
   // Title block, right aligned
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(26);
+  doc.setFontSize(19);
   doc.setTextColor(...BRAND_DEEP);
-  doc.text(s.invoice, PAGE_W - MARGIN, MARGIN + 8, { align: 'right' });
+  doc.text(s.invoice, PAGE_W - MARGIN, MARGIN + 6, { align: 'right' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...INK);
-  doc.text(invoice.invoice_number, PAGE_W - MARGIN, MARGIN + 15, { align: 'right' });
-
   doc.setFontSize(9);
+  doc.setTextColor(...INK);
+  doc.text(invoice.invoice_number, PAGE_W - MARGIN, MARGIN + 11.5, { align: 'right' });
+
+  doc.setFontSize(8);
   doc.setTextColor(...MUTED);
   doc.text(
     `${s.issueDate}: ${prettyDate(invoice.issue_date)}`,
     PAGE_W - MARGIN,
-    MARGIN + 21,
+    MARGIN + 16,
     { align: 'right' }
   );
   if (invoice.due_date) {
     doc.text(
       `${s.dueDate}: ${prettyDate(invoice.due_date)}`,
       PAGE_W - MARGIN,
-      MARGIN + 26,
+      MARGIN + 20,
       { align: 'right' }
     );
   }
 
   // A paid/overdue invoice says so at a glance; a draft needs no stamp.
-  let stampBottom = MARGIN + 26;
+  let stampBottom = MARGIN + 20;
   if (invoice.status === 'paid' || invoice.status === 'overdue') {
     const label = s.statuses[invoice.status];
     const isPaid = invoice.status === 'paid';
-    const stampY = (invoice.due_date ? MARGIN + 31 : MARGIN + 26) - 4;
+    // 4px of breathing room so the badge does not sit on the line above it.
+    const stampY =
+      (invoice.due_date ? MARGIN + 23.5 : MARGIN + 19.5) - 3.2 + 4 * PX;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(7);
     const textW = doc.getTextWidth(label);
-    const boxW = textW + 6;
-    const boxH = 6.5;
+    const boxW = textW + 3.4;
+    const boxH = 4.6;
     const boxX = PAGE_W - MARGIN - boxW;
 
     doc.setFillColor(...(isPaid ? PAID : OVERDUE));
-    doc.roundedRect(boxX, stampY, boxW, boxH, 1.2, 1.2, 'F');
+    doc.roundedRect(boxX, stampY, boxW, boxH, 1, 1, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.text(label, boxX + boxW / 2, stampY + 4.5, { align: 'center' });
+    doc.text(label, boxX + boxW / 2, stampY + 3.15, { align: 'center' });
     stampBottom = stampY + boxH;
   }
 
-  let y = Math.max(headerBottom, stampBottom, MARGIN + 30) + 6;
+  let y = Math.max(headerBottom, stampBottom, MARGIN + 22) + 4;
 
   // Brand rule: a short teal segment running into a hairline across the page.
   // Purely decorative, so the exact #00ADB5 is fine here.
@@ -254,7 +272,7 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
   doc.setDrawColor(...HAIRLINE);
   doc.setLineWidth(0.4);
   doc.line(MARGIN + 26, y, PAGE_W - MARGIN, y);
-  y += 8;
+  y += 6;
 
   // ---- Parties -----------------------------------------------------
   const colW = contentW / 2 - 4;
@@ -270,15 +288,15 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
     doc.setFontSize(8);
     doc.setTextColor(...SLATE);
     doc.text(heading.toUpperCase(), x, cursor);
-    cursor += 5;
+    cursor += 4;
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     lines.filter(Boolean).forEach((line, index) => {
       doc.setFont('helvetica', index === 0 ? 'bold' : 'normal');
       doc.setTextColor(...(index === 0 ? INK : MUTED));
       const wrapped = doc.splitTextToSize(String(line), colW);
       doc.text(wrapped, x, cursor);
-      cursor += wrapped.length * 4.6;
+      cursor += wrapped.length * 3.8;
     });
     return cursor;
   };
@@ -298,7 +316,7 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
     client?.email,
   ]);
 
-  y = Math.max(sellerBottom, buyerBottom) + 6;
+  y = Math.max(sellerBottom, buyerBottom) + 4;
 
   // ---- Items table -------------------------------------------------
   autoTable(doc, {
@@ -314,8 +332,8 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
     theme: 'plain',
     styles: {
       font: 'helvetica',
-      fontSize: 9.5,
-      cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
+      fontSize: 9,
+      cellPadding: { top: 2.1, bottom: 2.1, left: 2, right: 2 },
       textColor: INK,
       lineColor: HAIRLINE,
       lineWidth: { top: 0, bottom: 0.1, left: 0, right: 0 },
@@ -326,7 +344,7 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
       textColor: [255, 255, 255],
       fillColor: INK,
       lineWidth: 0,
-      cellPadding: { top: 3.2, bottom: 3.2, left: 2, right: 2 },
+      cellPadding: { top: 2.4, bottom: 2.4, left: 2, right: 2 },
     },
     columnStyles: {
       0: { cellWidth: contentW - 96 },
@@ -381,22 +399,22 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
     doc.text(s.notes.toUpperCase(), MARGIN, y);
-    y += 5;
+    y += 4.2;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(...INK);
     const wrapped = doc.splitTextToSize(invoice.notes.trim(), contentW);
     doc.text(wrapped, MARGIN, y);
-    y += wrapped.length * 4.4;
+    y += wrapped.length * 4.1;
   }
 
   // ---- Footer on every page ---------------------------------------
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page += 1) {
     doc.setPage(page);
-    const footerY = 287;
+    const footerY = 289;
     doc.setDrawColor(...HAIRLINE);
-    doc.line(MARGIN, footerY - 5, PAGE_W - MARGIN, footerY - 5);
+    doc.line(MARGIN, footerY - 4, PAGE_W - MARGIN, footerY - 4);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);

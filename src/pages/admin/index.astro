@@ -1,5 +1,7 @@
 ---
+import { useTranslations } from '@/lib/i18n';
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import TableSort from '@/components/TableSort.astro';
 import { Icon } from '@/components/ui/icon';
 import PaymentQueue from '@/components/react/PaymentQueue';
 import { formatALL, formatDate, groupThousands } from '@/lib/utils';
@@ -13,6 +15,7 @@ export const prerender = false;
   businesses' rows, so a mistake here leaks a count rather than a customer list.
 */
 const { supabase } = Astro.locals;
+const t = useTranslations(Astro.locals.lang);
 
 const [statsResult, seriesResult, businessesResult, pendingResult] = await Promise.all([
   supabase.rpc('admin_stats'),
@@ -47,48 +50,48 @@ const active30 = num(s.active_users_30d);
 
 const headline = [
   {
-    label: 'Përdorues gjithsej',
+    label: t('adm.usersTotal'),
     value: groupThousands(totalUsers),
     icon: 'users',
-    hint: `+${num(s.new_users_7d)} këtë javë`,
+    hint: t('adm.thisWeek', { n: num(s.new_users_7d) }),
   },
   {
-    label: 'Abonentë Pro',
+    label: t('adm.proSubscribers'),
     value: groupThousands(proUsers),
     icon: 'sparkles',
     tone: 'text-primary',
-    hint: `${pct(proUsers, totalUsers)}% konvertim`,
+    hint: t('adm.conversion', { n: pct(proUsers, totalUsers) }),
   },
   {
     label: 'MRR',
     value: formatALL(num(s.mrr_all)),
     icon: 'trending-up',
     tone: 'text-success',
-    hint: '990 Lekë / abonent',
+    hint: t('adm.perSubscriberHint'),
   },
   {
-    label: 'Aktivë (30 ditë)',
+    label: t('adm.active30d'),
     value: groupThousands(active30),
     icon: 'activity',
-    hint: `${pct(active30, totalUsers)}% e bazës`,
+    hint: t('adm.ofBase', { n: pct(active30, totalUsers) }),
   },
 ];
 
 const revenue = [
-  { label: 'Arkëtuar gjithsej', value: formatALL(num(s.revenue_confirmed)) },
-  { label: 'Arkëtuar (30 ditë)', value: formatALL(num(s.revenue_30d)) },
-  { label: 'Pagesa në pritje', value: groupThousands(num(s.payments_pending)) },
+  { label: t('adm.collectedTotal'), value: formatALL(num(s.revenue_confirmed)) },
+  { label: t('adm.collected30d'), value: formatALL(num(s.revenue_30d)) },
+  { label: t('adm.pendingPayments'), value: groupThousands(num(s.payments_pending)) },
 ];
 
 const secondary = [
-  { label: 'Fatura gjithsej', value: groupThousands(num(s.total_invoices)) },
-  { label: 'Fatura (30 ditë)', value: groupThousands(num(s.invoices_30d)) },
-  { label: 'Vlera e faturuar', value: formatALL(num(s.invoiced_total)) },
-  { label: 'Prej saj e paguar', value: formatALL(num(s.invoiced_paid)) },
-  { label: 'Klientë të ruajtur', value: groupThousands(num(s.total_clients)) },
-  { label: 'Kanë plotësuar profilin', value: groupThousands(num(s.onboarded_users)) },
-  { label: 'Kanë ngarkuar logo', value: groupThousands(num(s.users_with_logo)) },
-  { label: 'Lista e pritjes', value: groupThousands(num(s.waitlist_total)) },
+  { label: t('adm.invoicesTotal'), value: groupThousands(num(s.total_invoices)) },
+  { label: t('adm.invoices30d'), value: groupThousands(num(s.invoices_30d)) },
+  { label: t('adm.invoicedValue'), value: formatALL(num(s.invoiced_total)) },
+  { label: t('adm.invoicedPaid'), value: formatALL(num(s.invoiced_paid)) },
+  { label: t('adm.clientsSaved'), value: groupThousands(num(s.total_clients)) },
+  { label: t('adm.profileComplete'), value: groupThousands(num(s.onboarded_users)) },
+  { label: t('adm.uploadedLogo'), value: groupThousands(num(s.users_with_logo)) },
+  { label: t('adm.waitlist'), value: groupThousands(num(s.waitlist_total)) },
 ];
 
 // Chart geometry — a plain inline SVG, no charting library.
@@ -98,9 +101,9 @@ const chartMax = Math.max(maxSignups, maxInvoices);
 ---
 
 <AdminLayout
-  title="Përmbledhje — Admin Fatura.co"
-  heading="Përmbledhje e platformës"
-  subheading="Gjendja e sistemit në një vështrim."
+  title={t('adm.overviewPageTitle')}
+  heading={t('adm.overviewTitle')}
+  subheading={t('adm.overviewSub')}
   active="overview"
   pendingCount={pendingPayments.length}
 >
@@ -137,13 +140,13 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       <!-- 30-day activity -->
       <section class="bg-card ring-border rounded-xl p-5 ring-1">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-sm font-semibold">Aktiviteti — 30 ditët e fundit</h2>
+          <h2 class="text-sm font-semibold">{t('adm.activity30d')}</h2>
           <div class="flex items-center gap-4 text-xs">
             <span class="flex items-center gap-1.5">
-              <span class="bg-primary size-2 rounded-full"></span> Regjistrime
+              <span class="bg-primary size-2 rounded-full"></span> {t('adm.signupsLegend')}
             </span>
             <span class="flex items-center gap-1.5">
-              <span class="bg-brand/40 size-2 rounded-full"></span> Fatura
+              <span class="bg-brand/40 size-2 rounded-full"></span> {t('inv.title')}
             </span>
           </div>
         </div>
@@ -187,7 +190,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       <!-- Payment approvals -->
       <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
         <div class="flex items-center justify-between border-b px-5 py-4">
-          <h2 class="text-sm font-semibold">Pagesa në pritje</h2>
+          <h2 class="text-sm font-semibold">{t('adm.pendingPayments')}</h2>
           {
             pendingPayments.length > 0 && (
               <span class="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-[11px] font-bold">
@@ -196,42 +199,45 @@ const chartMax = Math.max(maxSignups, maxInvoices);
             )
           }
         </div>
-        <PaymentQueue initial={pendingPayments} client:load />
+        <PaymentQueue lang={Astro.locals.lang} initial={pendingPayments} client:load />
       </section>
 
       <!-- Recent businesses -->
       <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
-        <div class="flex items-center justify-between border-b px-5 py-4">
-          <h2 class="text-sm font-semibold">Bizneset e fundit</h2>
+        <!-- Stacks on a phone: side by side, the hint collided with the heading. -->
+        <div
+          class="flex flex-col gap-1 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+        >
+          <h2 class="text-sm font-semibold">{t('adm.recentBusinesses')}</h2>
           <span class="text-muted-foreground text-xs">
-            emri dhe qyteti — pa NIPT apo kontakte
+            {t('adm.businessesHint')}
           </span>
         </div>
 
         {
           businesses.length === 0 ? (
             <p class="text-muted-foreground px-5 py-12 text-center text-sm">
-              Ende asnjë biznes i regjistruar.
+              {t('adm.noBusinesses')}
             </p>
           ) : (
             <div class="overflow-x-auto">
-              <table class="w-full text-sm">
+              <table class="w-full text-sm" data-sortable>
                 <thead>
                   <tr class="bg-muted/40 border-b">
-                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
-                      Biznesi
+                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">
+                      {t('adm.business')}
                     </th>
-                    <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">
-                      Qyteti
+                    <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="qyteti">
+                      {t('adm.city')}
                     </th>
-                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
-                      Plani
+                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="plani">
+                      {t('set.plan')}
                     </th>
-                    <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">
-                      Fatura
+                    <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="fatura" data-sort-type="number">
+                      {t('inv.title')}
                     </th>
-                    <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell">
-                      Regjistruar
+                    <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell" data-sort-key="regjistruar" data-sort-type="date">
+                      {t('adm.registered')}
                     </th>
                   </tr>
                 </thead>
@@ -240,7 +246,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
                     <tr class="hover:bg-muted/40 transition-colors">
                       <td class="max-w-[16rem] truncate px-5 py-3 font-medium">
                         {b.business_name ?? (
-                          <span class="text-muted-foreground italic">pa emër</span>
+                          <span class="text-muted-foreground italic">{t('adm.noName')}</span>
                         )}
                       </td>
                       <td class="text-muted-foreground hidden px-5 py-3 sm:table-cell">
@@ -255,7 +261,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
                               : 'bg-muted text-muted-foreground',
                           ]}
                         >
-                          {b.is_pro ? 'PRO' : 'FALAS'}
+                          {b.is_pro ? t('plan.proBadge') : t('plan.freeBadge')}
                         </span>
                       </td>
                       <td class="px-5 py-3 text-right tabular-nums">{b.invoice_count}</td>
@@ -275,7 +281,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
     <!-- Side rail -->
     <aside class="flex flex-col gap-6">
       <section class="bg-card ring-border rounded-xl p-5 ring-1">
-        <h2 class="text-sm font-semibold">Numra të tjerë</h2>
+        <h2 class="text-sm font-semibold">{t('adm.otherNumbers')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           {
             secondary.map((row) => (
@@ -289,7 +295,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       </section>
 
       <section class="bg-card ring-border rounded-xl p-5 ring-1">
-        <h2 class="text-sm font-semibold">Të ardhurat</h2>
+        <h2 class="text-sm font-semibold">{t('adm.revenueSection')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           {
             revenue.map((row) => (
@@ -303,22 +309,22 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       </section>
 
       <section class="bg-card ring-border rounded-xl p-5 ring-1">
-        <h2 class="text-sm font-semibold">Rritja</h2>
+        <h2 class="text-sm font-semibold">{t('adm.growth')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           <div class="flex items-center justify-between">
-            <dt class="text-muted-foreground">Të rinj (7 ditë)</dt>
+            <dt class="text-muted-foreground">{t('adm.newIn7d')}</dt>
             <dd class="font-medium tabular-nums">{num(s.new_users_7d)}</dd>
           </div>
           <div class="flex items-center justify-between">
-            <dt class="text-muted-foreground">Të rinj (30 ditë)</dt>
+            <dt class="text-muted-foreground">{t('adm.newIn30d')}</dt>
             <dd class="font-medium tabular-nums">{num(s.new_users_30d)}</dd>
           </div>
           <div class="flex items-center justify-between">
-            <dt class="text-muted-foreground">Aktivë (7 ditë)</dt>
+            <dt class="text-muted-foreground">{t('adm.activeIn7d')}</dt>
             <dd class="font-medium tabular-nums">{num(s.active_users_7d)}</dd>
           </div>
           <div class="flex items-center justify-between">
-            <dt class="text-muted-foreground">Listë pritjeje (7 ditë)</dt>
+            <dt class="text-muted-foreground">{t('adm.waitlist7d')}</dt>
             <dd class="font-medium tabular-nums">{num(s.waitlist_7d)}</dd>
           </div>
         </dl>
@@ -328,11 +334,11 @@ const chartMax = Math.max(maxSignups, maxInvoices);
         <div class="flex items-start gap-2.5">
           <Icon name="shield-check" class="text-primary mt-0.5 size-4 shrink-0" />
           <p class="text-muted-foreground text-xs leading-relaxed">
-            Kjo faqe lexon vetëm shifra të përmbledhura. Faturat, NIPT-et dhe kontaktet e
-            bizneseve mbeten të palexueshme — RLS nuk hiqet për adminët.
+            {t('adm.privacyNote')}
           </p>
         </div>
       </section>
     </aside>
   </div>
+  <TableSort />
 </AdminLayout>

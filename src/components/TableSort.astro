@@ -1,0 +1,105 @@
+---
+/*
+  Client-side table sorting.
+
+  Drop this once on a page and every `<table data-sortable>` on it becomes
+  sortable: no request, no reload, no round trip to Postgres. Sorting reorders
+  rows already in the DOM, so it is instant.
+
+  Mark up a column with `data-sort-key` on its `<th>`, plus `data-sort-type`
+  ("text" | "number" | "date"). Where the visible text is not directly
+  comparable — "18 000 Lekë", "16.08.2026" — put a raw comparable value in
+  `data-sort-value` on the matching `<td>` and the script uses that instead.
+
+  The trade-off, deliberately accepted: on a paginated table this sorts the
+  page you are looking at, not the whole result set. For the invoice list that
+  means "largest on this page", not "largest overall".
+*/
+---
+
+<script is:inline>
+  (function () {
+    var tables = document.querySelectorAll('table[data-sortable]');
+    if (!tables.length) return;
+
+    var collator = new Intl.Collator('sq', { numeric: true, sensitivity: 'base' });
+
+    function cellValue(row, index, type) {
+      var cell = row.children[index];
+      if (!cell) return type === 'number' ? 0 : '';
+      var raw = cell.getAttribute('data-sort-value');
+      var text = raw !== null ? raw : cell.textContent.trim();
+      if (type === 'number') {
+        // Strip thousands separators (including the non-breaking space we use)
+        // and any currency suffix before parsing.
+        var n = parseFloat(text.replace(/[^0-9.,-]/g, '').replace(/[\s ]/g, '').replace(',', '.'));
+        return isNaN(n) ? 0 : n;
+      }
+      if (type === 'date') return Date.parse(text) || 0;
+      return text;
+    }
+
+    tables.forEach(function (table) {
+      var headers = table.querySelectorAll('th[data-sort-key]');
+      if (!headers.length) return;
+      var tbody = table.querySelector('tbody');
+      if (!tbody) return;
+
+      headers.forEach(function (th) {
+        var index = Array.prototype.indexOf.call(th.parentElement.children, th);
+        var type = th.getAttribute('data-sort-type') || 'text';
+
+        th.setAttribute('aria-sort', 'none');
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className =
+          'inline-flex items-center gap-1 hover:text-foreground transition-colors';
+        while (th.firstChild) button.appendChild(th.firstChild);
+
+        var arrow = document.createElement('span');
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.className = 'opacity-40';
+        arrow.textContent = '↕';
+        button.appendChild(arrow);
+        th.appendChild(button);
+
+        button.addEventListener('click', function () {
+          var current = th.getAttribute('aria-sort');
+          var asc = current !== 'ascending';
+
+          // Reset every other column so only one shows a direction.
+          headers.forEach(function (other) {
+            if (other === th) return;
+            other.setAttribute('aria-sort', 'none');
+            var a = other.querySelector('button > span[aria-hidden]');
+            if (a) {
+              a.textContent = '↕';
+              a.className = 'opacity-40';
+            }
+            var b = other.querySelector('button');
+            if (b) b.classList.remove('text-foreground', 'font-semibold');
+          });
+
+          th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+          arrow.textContent = asc ? '↑' : '↓';
+          arrow.className = 'opacity-80';
+          button.classList.add('text-foreground', 'font-semibold');
+
+          var rows = Array.prototype.slice.call(tbody.rows);
+          rows.sort(function (a, b) {
+            var x = cellValue(a, index, type);
+            var y = cellValue(b, index, type);
+            var cmp =
+              type === 'text' ? collator.compare(x, y) : x < y ? -1 : x > y ? 1 : 0;
+            return asc ? cmp : -cmp;
+          });
+          // Re-appending an existing node moves it, so this reorders in place.
+          rows.forEach(function (row) {
+            tbody.appendChild(row);
+          });
+        });
+      });
+    });
+  })();
+</script>

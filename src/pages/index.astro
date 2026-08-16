@@ -1,6 +1,8 @@
 ---
 import MarketingLayout from '@/layouts/MarketingLayout.astro';
-import Hero1 from '@/components/blocks/hero-1.astro';
+import HeroSection from '@/components/sections/HeroSection.astro';
+import TrustBar from '@/components/sections/TrustBar.astro';
+import ShowcaseSection from '@/components/sections/ShowcaseSection.astro';
 import FeaturesSection from '@/components/sections/FeaturesSection.astro';
 import Pricing2 from '@/components/blocks/pricing-2.astro';
 import Faqs1 from '@/components/blocks/faqs-1.astro';
@@ -8,7 +10,6 @@ import Cta1 from '@/components/blocks/cta-1.astro';
 import ProblemSection from '@/components/sections/ProblemSection.astro';
 import StepsSection from '@/components/sections/StepsSection.astro';
 import WaitlistSection from '@/components/sections/WaitlistSection.astro';
-import heroImage from '@/assets/hero-invoice.png';
 
 // Fully static: no session lookup, no JS shipped, cached at the edge.
 export const prerender = true;
@@ -86,6 +87,18 @@ const faqs = [
       'Po. Ne propozojmë formatin FAT-2025-001 dhe e rrisim vetë numrin, por ti mund ta shkruash si të duash.',
   },
   {
+    id: 'pagesa',
+    question: 'Si paguhet plani Pro?',
+    answer:
+      'Me transfertë bankare. Zgjedh 1, 6 ose 12 muaj, merr një referencë unike nga paneli, e vendos në përshkrimin e transfertës dhe Pro aktivizohet zakonisht brenda 24 orëve pune. Pagesat me kartë dhe PayPal shtohen sapo të lidhet llogaria tregtare.',
+  },
+  {
+    id: 'anulimi',
+    question: 'Çfarë ndodh nëse e anuloj abonimin?',
+    answer:
+      'Vazhdon ta përdorësh Pro-n me të gjitha veçoritë deri në fund të periudhës që ke paguar — nuk humbet asnjë ditë. Pas asaj date llogaria kalon vetë në planin falas dhe faturat ekzistuese mbeten të paprekura; asgjë nuk fshihet.',
+  },
+  {
     id: 'freelancer',
     question: 'A punon për profesionistë të lirë (freelancers)?',
     answer:
@@ -132,28 +145,13 @@ const appJsonLd = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
   </Fragment>
 
-  <Hero1
-    badge={{ label: 'Bërë në Fier, për gjithë Shqipërinë', href: '#si-funksionon' }}
-    title="Fatura profesionale në 2 minuta, jo 2 orë"
-    description="Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e gatshme për t'u dërguar në WhatsApp, në sekonda."
-    buttons={[
-      {
-        label: 'Fillo falas — pa kartë krediti',
-        href: '/regjistrohu',
-        'data-auth-show': 'anon',
-      },
-      {
-        label: 'Shko te paneli',
-        href: '/app',
-        variant: 'default',
-        'data-auth-show': 'user',
-      },
-      { label: 'Shiko si funksionon', href: '#si-funksionon', variant: 'outline' },
-    ]}
-    image={{ src: heroImage, alt: 'Faturë e krijuar me Fatura.co, me NIPT, TVSH dhe logo' }}
-  />
+  <HeroSection />
+
+  <TrustBar />
 
   <ProblemSection />
+
+  <ShowcaseSection />
 
   <FeaturesSection class="scroll-mt-16" />
 

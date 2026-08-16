@@ -1,0 +1,51 @@
+---
+/*
+  One section header, used by every band on the marketing site.
+
+  Before this, each section invented its own: different eyebrow treatments,
+  three different heading sizes, descriptions at three different widths. That
+  inconsistency is most of what separates a page that looks designed from one
+  that looks assembled — a reader does not consciously notice the rhythm, but
+  they notice its absence.
+
+  `align="start"` is for the alternating rows, `center` for full-width bands.
+*/
+
+export interface Props {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  align?: 'start' | 'center';
+  class?: string;
+}
+
+const {
+  eyebrow,
+  title,
+  description,
+  align = 'center',
+  class: className = '',
+} = Astro.props;
+
+const centered = align === 'center';
+---
+
+<div
+  class:list={[
+    'flex flex-col',
+    centered ? 'mx-auto max-w-2xl items-center text-center' : 'max-w-xl items-start',
+    className,
+  ]}
+>
+  {
+    eyebrow && (
+      <p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">{eyebrow}</p>
+    )
+  }
+  <h2 class="text-section text-foreground mt-4 text-balance">{title}</h2>
+  {
+    description && (
+      <p class="text-muted-foreground text-lead mt-5 text-pretty">{description}</p>
+    )
+  }
+</div>

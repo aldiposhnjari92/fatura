@@ -112,11 +112,41 @@ const { class: className, logo, navigation, buttons } = Astro.props
         </SheetHeader>
         <div class="flex h-full flex-col gap-6 px-4 py-12">
           <nav aria-label="Main navigation" class="flex flex-col gap-1">
+            {/*
+              These were rendering the label with no href at all — every item in
+              the mobile menu was an inert button.
+
+              Button carries `data-slot="dialog-close"` directly (which is all
+              SheetClose does) because SheetClose's prop type does not carry the
+              polymorphic `as`/`href`. Same behaviour, correct types: a real
+              anchor that also dismisses the sheet on tap.
+            */}
             {
               navigation.map((item) => (
-                <SheetClose variant="ghost" class="justify-start">
-                  {item.label}
-                </SheetClose>
+                <>
+                  <Button
+                    data-slot="dialog-close"
+                    as="a"
+                    href={item.href}
+                    variant="ghost"
+                    class="justify-start"
+                    aria-current={item.active ? 'page' : undefined}
+                  >
+                    {item.label}
+                  </Button>
+
+                  {item.links?.map((link) => (
+                    <Button
+                      data-slot="dialog-close"
+                      as="a"
+                      href={link.href}
+                      variant="ghost"
+                      class="text-muted-foreground justify-start pl-6 text-sm"
+                    >
+                      {link.label}
+                    </Button>
+                  ))}
+                </>
               ))
             }
           </nav>

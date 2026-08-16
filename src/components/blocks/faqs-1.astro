@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Section, SectionContainer } from "@/components/ui/section"
+import SectionHeading from "@/components/sections/SectionHeading.astro"
 
 type Props = {
   class?: string
@@ -29,49 +30,64 @@ const { class: className, title, description, faqs, buttons } = Astro.props
 ---
 
 <Section class={cn("", className)}>
-  <SectionContainer class="items-center text-center">
-    <div class="flex max-w-2xl flex-col items-center gap-5">
-      <h2
-        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-      >
-        {title}
-      </h2>
-      <p class="text-muted-foreground text-lg leading-relaxed text-balance">
-        {description}
-      </p>
-    </div>
-    {
-      buttons?.length && (
-        <div class="flex flex-wrap justify-center gap-3">
-          {buttons.map(({ href, label, ...button }, index) => (
-            <Button
-              as="a"
-              href={href}
-              size="lg"
-              variant={
-                button.variant ?? (index === 0 ? "default" : "secondary")
-              }
-              {...button}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )
-    }
-  </SectionContainer>
+  {/*
+    Two columns rather than a centred heading above a narrow accordion.
+
+    The heading and the "still stuck?" escape hatch hold the left rail and stay
+    put while the questions scroll past on the right — so help is always in
+    view, and the section stops looking like a FAQ bolted onto the bottom of
+    the page.
+  */}
   <SectionContainer>
-    <div class="mx-auto w-full max-w-3xl">
-      <Accordion collapsible>
+    <div class="grid gap-10 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-16">
+      <div class="lg:sticky lg:top-24 lg:self-start" data-reveal>
+        <SectionHeading eyebrow="Pyetje" title={title} description={description} align="start" />
+
+        <div class="border-primary/20 bg-accent/40 mt-8 rounded-2xl border p-5">
+          <p class="text-sm font-semibold">Nuk e gjete përgjigjen?</p>
+          <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+            Shkruaj dhe të kthejmë përgjigje brenda ditës.
+          </p>
+          <a
+            href="mailto:pershendetje@fatura.co"
+            class="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+          >
+            pershendetje@fatura.co
+          </a>
+        </div>
+
         {
-          faqs.map((item) => (
-            <AccordionItem value={item.id}>
-              <AccordionTrigger>{item.question}</AccordionTrigger>
-              <AccordionContent>{item.answer}</AccordionContent>
-            </AccordionItem>
-          ))
+          buttons?.length && (
+            <div class="mt-6 flex flex-wrap gap-3">
+              {buttons.map(({ href, label, ...button }, index) => (
+                <Button
+                  as="a"
+                  href={href}
+                  size="lg"
+                  class="press"
+                  variant={button.variant ?? (index === 0 ? "default" : "secondary")}
+                  {...button}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          )
         }
-      </Accordion>
+      </div>
+
+      <div data-reveal>
+        <Accordion collapsible>
+          {
+            faqs.map((item) => (
+              <AccordionItem value={item.id}>
+                <AccordionTrigger>{item.question}</AccordionTrigger>
+                <AccordionContent>{item.answer}</AccordionContent>
+              </AccordionItem>
+            ))
+          }
+        </Accordion>
+      </div>
     </div>
   </SectionContainer>
 </Section>

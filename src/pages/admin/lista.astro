@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import TableSort from '@/components/TableSort.astro';
 import { Icon } from '@/components/ui/icon';
 import { formatDate } from '@/lib/utils';
 
@@ -51,13 +52,13 @@ const waLink = (raw: string | null) => {
         </div>
       ) : (
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-sm" data-sortable>
             <thead>
               <tr class="bg-muted/40 border-b">
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Biznesi</th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">WhatsApp</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">Qyteti</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Data</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">Biznesi</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="whatsapp">WhatsApp</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="qyteti">Qyteti</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="data" data-sort-type="date">Data</th>
                 <th class="w-32 px-5 py-3" />
               </tr>
             </thead>
@@ -97,4 +98,5 @@ const waLink = (raw: string | null) => {
       )
     }
   </section>
+  <TableSort />
 </AdminLayout>

@@ -48,6 +48,24 @@ export function formatDate(value: string | Date | null | undefined): string {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
+/**
+ * "14 gusht 2027". Month names are hardcoded for the same reason
+ * groupThousands()/formatDate() avoid Intl: most browsers ship no Albanian
+ * locale data, so toLocaleDateString('sq-AL', { month: 'long' }) silently
+ * falls back to en-US and prints "August 14, 2027" to an Albanian customer.
+ */
+const SQ_MONTHS = [
+  'janar', 'shkurt', 'mars', 'prill', 'maj', 'qershor',
+  'korrik', 'gusht', 'shtator', 'tetor', 'nëntor', 'dhjetor',
+];
+
+export function formatLongDate(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  const d = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${d.getDate()} ${SQ_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /** yyyy-mm-dd in local time, for <input type="date"> values. */
 export function toDateInput(value: string | Date = new Date()): string {
   const d = typeof value === 'string' ? new Date(value) : value;

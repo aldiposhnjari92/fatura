@@ -1,0 +1,102 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import ActivityStream from '@/components/react/ActivityStream';
+import type { ActivityRow } from '@/components/react/ActivityStream';
+import { useTranslations } from '@/lib/i18n';
+
+export const prerender = false;
+
+/*
+  History of platform activity.
+
+  The first page is fetched on the server so the table is populated on load,
+  and the island then keeps it live. Pagination is keyset, not OFFSET — the
+  cursor is the last row's (created_at, id), so page 500 costs the same as
+  page 1 no matter how large the table grows.
+*/
+
+const { supabase, lang } = Astro.locals;
+const t = useTranslations(lang);
+
+const params = Astro.url.searchParams;
+const beforeAt = params.get('para') || null;
+const beforeId = params.get('id') ? Number(params.get('id')) : null;
+const type = params.get('lloj') || null;
+
+const { data, error } = await supabase.rpc('activity_feed', {
+  p_limit: 50,
+  p_before_at: beforeAt,
+  p_before_id: beforeId,
+  p_type: type,
+});
+
+const rows = ((data as { rows: ActivityRow[] } | null)?.rows ?? []) as ActivityRow[];
+const last = rows.at(-1);
+const nextHref =
+  rows.length === 50 && last
+    ? `/admin/aktiviteti?para=${encodeURIComponent(last.created_at)}&id=${last.id}${
+        type ? `&lloj=${type}` : ''
+      }`
+    : null;
+
+const TYPES = [
+  { label: t('common.all'), value: null },
+  { label: 'Fatura', value: 'invoice.created' },
+  { label: 'Pagesa', value: 'payment.confirmed' },
+  { label: 'Abonime', value: 'subscription.started' },
+  { label: 'Regjistrime', value: 'user.signup' },
+];
+---
+
+<AdminLayout
+  title={`${t('adm.audit')} — Fatura.co`}
+  heading="Historiku i aktivitetit"
+  subheading="Çdo veprim i rëndësishëm në platformë, në kohë reale."
+  active="activity"
+>
+  {
+    error && (
+      <p class="border-destructive/30 bg-destructive/10 text-destructive mb-6 rounded-lg border px-4 py-3 text-sm">
+        {error.message}
+      </p>
+    )
+  }
+
+  <div class="mb-4 flex flex-wrap gap-2">
+    {
+      TYPES.map((item) => (
+        <a
+          href={item.value ? `/admin/aktiviteti?lloj=${item.value}` : '/admin/aktiviteti'}
+          class:list={[
+            'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+            type === item.value
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          ]}
+        >
+          {item.label}
+        </a>
+      ))
+    }
+  </div>
+
+  <ActivityStream lang={lang} initial={rows} variant="list" client:load />
+
+  {
+    nextHref && (
+      <div class="mt-4 flex justify-center">
+        <a
+          href={nextHref}
+          class="text-muted-foreground hover:text-foreground rounded-lg border px-4 py-2 text-sm font-medium"
+        >
+          Më të vjetra →
+        </a>
+      </div>
+    )
+  }
+
+  <p class="text-muted-foreground mt-4 text-xs leading-relaxed">
+    Historiku ruhet për 90 ditë dhe pastrohet vetë. Faqet lëvizin me kursor, jo me
+    OFFSET, që shpejtësia të mos varet nga sa e madhe bëhet tabela.
+  </p>
+</AdminLayout>

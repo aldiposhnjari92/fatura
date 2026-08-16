@@ -1,0 +1,70 @@
+---
+import { LANGS, LANG_COOKIE, LANG_LABEL, alternatePath, type Lang } from '@/lib/i18n';
+
+/*
+  Two shapes, one component.
+
+  On SSR pages the choice is a cookie, so switching is a POST to /api/lang that
+  writes it and sends the visitor back where they were — a form, not a link, so
+  it works with JavaScript switched off.
+
+  On the prerendered marketing pages there is no server to talk to at render
+  time and the language lives in the URL, so the same control becomes a plain
+  anchor to the sibling route. That also gives crawlers a real link to follow.
+*/
+
+export interface Props {
+  lang: Lang;
+  /** Marketing pages switch by URL; app/admin pages switch by cookie. */
+  mode?: 'url' | 'cookie';
+  /** Current path, used to build the sibling URL in `url` mode. */
+  pathname?: string;
+  class?: string;
+}
+
+const { lang, mode = 'cookie', pathname = '/', class: className = '' } = Astro.props;
+
+// Nothing to switch between while only one language is offered.
+const hasChoice = LANGS.length > 1;
+---
+
+{hasChoice && (
+<div
+  class={`inline-flex items-center rounded-lg border p-0.5 text-xs font-medium ${className}`}
+  role="group"
+  aria-label={lang === 'sq' ? 'Zgjidh gjuhën' : 'Choose language'}
+>
+  {
+    LANGS.map((code) =>
+      code === lang ? (
+        <span
+          class="bg-secondary text-secondary-foreground rounded-md px-2.5 py-1"
+          aria-current="true"
+        >
+          {LANG_LABEL[code]}
+        </span>
+      ) : mode === 'url' ? (
+        <a
+          href={alternatePath(pathname, code)}
+          class="text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1"
+          hreflang={code}
+        >
+          {LANG_LABEL[code]}
+        </a>
+      ) : (
+        <form method="POST" action="/api/lang" class="contents">
+          <input type="hidden" name="lang" value={code} />
+          <input type="hidden" name="next" value={pathname} />
+          <button
+            type="submit"
+            name={LANG_COOKIE}
+            class="text-muted-foreground hover:text-foreground cursor-pointer rounded-md px-2.5 py-1"
+          >
+            {LANG_LABEL[code]}
+          </button>
+        </form>
+      )
+    )
+  }
+</div>
+)}

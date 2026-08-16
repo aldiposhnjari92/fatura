@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import TableSort from '@/components/TableSort.astro';
 import PaymentQueue from '@/components/react/PaymentQueue';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -81,7 +82,7 @@ const kpis = [
             {pending.length}
           </span>
         </div>
-        <PaymentQueue initial={pending} client:load />
+        <PaymentQueue lang={Astro.locals.lang} initial={pending} client:load />
       </section>
     )
   }
@@ -113,15 +114,15 @@ const kpis = [
         </p>
       ) : (
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-sm" data-sortable>
             <thead>
               <tr class="bg-muted/40 border-b">
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Referenca</th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium">Biznesi</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell">Mënyra</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Shuma</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium">Statusi</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell">Data</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="referenca">Referenca</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">Biznesi</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="menyra">Mënyra</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="shuma" data-sort-type="number">Shuma</th>
+                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="statusi">Statusi</th>
+                <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell" data-sort-key="data" data-sort-type="date">Data</th>
               </tr>
             </thead>
             <tbody class="divide-y">
@@ -151,4 +152,5 @@ const kpis = [
       )
     }
   </section>
+  <TableSort />
 </AdminLayout>

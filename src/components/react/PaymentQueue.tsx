@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Check, Loader2, Landmark, CreditCard, Wallet, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations, type Lang } from '@/lib/i18n';
 import { Button } from '@/components/ui/react/button';
 import { formatALL, formatDate } from '@/lib/utils';
 
@@ -21,13 +22,19 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   card: CreditCard,
   paypal: Wallet,
 };
-const LABELS: Record<string, string> = {
-  bank_transfer: 'Transfertë',
-  card: 'Kartë',
-  paypal: 'PayPal',
-};
-
-export default function PaymentQueue({ initial }: { initial: PendingPayment[] }) {
+export default function PaymentQueue({
+  initial,
+  lang,
+}: {
+  initial: PendingPayment[];
+  lang: Lang;
+}) {
+  const t = useTranslations(lang);
+  const LABELS: Record<string, string> = {
+    bank_transfer: t('pay.bankTransfer'),
+    card: t('pay.card'),
+    paypal: t('pay.paypal'),
+  };
   const [rows, setRows] = React.useState(initial);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -35,7 +42,7 @@ export default function PaymentQueue({ initial }: { initial: PendingPayment[] })
   async function decide(id: string, approve: boolean) {
     if (
       approve &&
-      !confirm('Konfirmo që pagesa ka mbërritur në llogari. Kjo aktivizon Pro-n.')
+      !confirm(t('adm.confirmPaymentPrompt'))
     ) {
       return;
     }
@@ -58,7 +65,7 @@ export default function PaymentQueue({ initial }: { initial: PendingPayment[] })
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground px-5 py-10 text-center text-sm">
-        Asnjë pagesë në pritje.
+        {t('adm.noPending')}
       </p>
     );
   }

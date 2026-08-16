@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import type { Profile } from '@/lib/types';
+import { LANG_COOKIE, langFromPath, resolveLang } from '@/lib/i18n';
 
 const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';
@@ -13,6 +14,14 @@ const AUTH_ROUTES = ['/login', '/regjistrohu'];
  * and by the inline `style` attributes the hero/gradients use.
  */
 function securityHeaders(supabaseOrigin: string): Record<string, string> {
+  /*
+    Realtime opens a WebSocket to the same host over wss://. Browsers do not
+    accept a wss: connection against an https: source expression, so the scheme
+    must be listed explicitly — without it the CSP silently blocks the
+    subscription and the activity feed never goes live.
+  */
+  const supabaseSocket = supabaseOrigin.replace(/^https:/, 'wss:');
+
   const csp = [
     "default-src 'self'",
     // Astro emits small inline hydration bootstrappers.
@@ -21,7 +30,7 @@ function securityHeaders(supabaseOrigin: string): Record<string, string> {
     "font-src 'self' https://fonts.gstatic.com data:",
     // blob: is the generated PDF preview; data: covers inlined logos.
     "img-src 'self' data: blob: https://*.supabase.co",
-    `connect-src 'self' ${supabaseOrigin}`,
+    `connect-src 'self' ${supabaseOrigin} ${supabaseSocket}`.trim(),
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -39,7 +48,14 @@ function securityHeaders(supabaseOrigin: string): Record<string, string> {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { cookies, request, url, locals, redirect } = context;
+  /*
+    `request` is deliberately not destructured. On a prerendered route
+    `context.request` is a getter that warns the moment it is touched, and
+    destructuring touches it for every page — including the static marketing
+    ones that never look at a header. Reached lazily below instead, only on
+    paths that genuinely render per request.
+  */
+  const { cookies, url, locals, redirect } = context;
 
   const isAdminArea = url.pathname.startsWith(ADMIN_PREFIX);
   const isProtected = url.pathname.startsWith(PROTECTED_PREFIX) || isAdminArea;
@@ -55,25 +71,73 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return response;
   };
 
+  /*
+    Language.
+
+    Per-request routes (/app, /admin, auth) settle it from the cookie, falling
+    back to Accept-Language. Prerendered routes must not read either: at build
+    time there is no visitor, and `cookies.get()` reaches into the Cookie header
+    just like `request.headers` does, which is what made Astro warn for every
+    static page. Those routes carry the language in the URL instead — `/` is
+    Albanian, `/en/...` is English — which is also what lets them stay static
+    and gives search engines two real pages.
+  */
+  const perRequest = isProtected || isAuthRoute;
+  locals.lang = perRequest
+    ? resolveLang(
+        cookies.get(LANG_COOKIE)?.value,
+        context.request.headers.get('accept-language')
+      )
+    : langFromPath(url.pathname);
+
   // Static marketing pages must stay free of a Supabase round-trip. Bail out
   // before touching request.headers, which does not exist while prerendering.
   if (!isProtected && !isAuthRoute) {
     return withHeaders(await next());
   }
 
-  const supabase = createSupabaseServerClient(cookies, request.headers);
+  const supabase = createSupabaseServerClient(cookies, context.request.headers);
   locals.supabase = supabase;
   locals.user = null;
   locals.profile = null;
   locals.invoicesThisMonth = 0;
 
-  // getUser() revalidates the JWT against Supabase — never trust getSession()
-  // alone for an authorization decision.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  /*
+    Never trust getSession() alone for an authorization decision — but
+    getUser() is not the only safe option, and it costs a network round-trip to
+    the auth server on *every* request (measured: ~90ms, on top of the ~100ms
+    the bootstrap RPC already costs).
 
-  locals.user = user ?? null;
+    getClaims() verifies the access token's signature and expiry locally
+    against the project's published JWKS, which is fetched once and then cached
+    in the process — measured at ~1ms warm. That is a real cryptographic
+    verification, not a decode: a forged or tampered token fails it.
+
+    What it cannot see is revocation between issue and expiry. That is covered
+    anyway, because every subsequent query runs under the same token: PostgREST
+    validates it independently and RLS scopes the rows, so a deleted or banned
+    user gets nothing back and `profile` comes out null below.
+
+    The getUser() fallback is what refreshes an expired access token and
+    rewrites the cookies, so a returning visitor is not silently signed out. It
+    is also cheap when there is no session at all — supabase-js answers from
+    storage without going to the network.
+  */
+  let user: App.Locals['user'] = null;
+
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+
+  if (claims?.sub) {
+    user = { id: claims.sub, email: (claims.email as string) ?? null };
+  } else {
+    const {
+      data: { user: refreshed },
+    } = await supabase.auth.getUser();
+    user = refreshed ? { id: refreshed.id, email: refreshed.email ?? null } : null;
+  }
+
+  locals.user = user;
 
   if (isProtected && !user) {
     const returnTo = encodeURIComponent(url.pathname + url.search);
@@ -115,11 +179,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // calls each re-check is_admin(), so this is defence in depth, not the
     // only check — a UI-only guard is exactly the mistake the invoice quota
     // taught us not to repeat.
-    if (
-      (isAdminArea || url.pathname.startsWith('/app/admin')) &&
-      !locals.profile?.is_admin
-    ) {
-      return withHeaders(redirect('/app', 302));
+    /*
+      Console access has two tiers now. A manager may enter, but only reaches
+      the invoice-activity page; every other console route is admin-only. The
+      RPCs behind each page re-check the caller's role in the database, so this
+      is defence in depth rather than the only gate.
+    */
+    const isAdmin = Boolean(locals.profile?.is_admin);
+    const isManager = Boolean(locals.profile?.is_manager) || isAdmin;
+    const MANAGER_ROUTES = ['/admin/faturat', '/admin/aktiviteti'];
+
+    if (isAdminArea || url.pathname.startsWith('/app/admin')) {
+      if (!isManager) {
+        return withHeaders(redirect('/app', 302));
+      }
+      if (!isAdmin && !MANAGER_ROUTES.includes(url.pathname)) {
+        return withHeaders(redirect('/admin/faturat', 302));
+      }
     }
 
     /*
@@ -130,11 +206,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
       Only the /app *root* redirects; /app/faturat and friends stay reachable.
     */
     if (
-      locals.profile?.is_admin &&
+      (locals.profile?.is_admin || locals.profile?.is_manager) &&
       url.pathname === '/app' &&
       !url.searchParams.has('klient')
     ) {
-      return withHeaders(redirect('/admin', 302));
+      return withHeaders(
+        redirect(locals.profile?.is_admin ? '/admin' : '/admin/faturat', 302)
+      );
     }
 
     // A brand-new user must finish onboarding before anything else works.

@@ -4,6 +4,7 @@ import ProfileSettings from '@/components/react/ProfileSettings';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { FREE_INVOICE_LIMIT } from '@/lib/types';
+import { formatDate } from '@/lib/utils';
 
 export const prerender = false;
 
@@ -11,6 +12,8 @@ export const prerender = false;
 const { user, profile, invoicesThisMonth } = Astro.locals;
 const welcome = Astro.url.searchParams.get('welcome') === '1';
 const isPro = profile?.is_pro ?? false;
+const cancelled = Boolean(profile?.cancelled_at);
+const proUntilLabel = profile?.pro_until ? formatDate(profile.pro_until) : '';
 const remaining = Math.max(FREE_INVOICE_LIMIT - invoicesThisMonth, 0);
 const usedPct = Math.min((invoicesThisMonth / FREE_INVOICE_LIMIT) * 100, 100);
 
@@ -55,14 +58,16 @@ const memberSince = createdAt
               isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
             ]}
           >
-            {isPro ? 'PRO' : 'FALAS'}
+            {isPro ? (cancelled ? 'PRO · deri' : 'PRO') : 'FALAS'}
           </span>
         </div>
 
         {
           isPro ? (
             <p class="text-muted-foreground mt-3 text-sm">
-              Fatura të palimituara. Faleminderit që na mbështet.
+              {cancelled
+                ? `Aktiv deri më ${proUntilLabel}, pastaj kalon në planin falas.`
+                : 'Fatura të palimituara. Faleminderit që na mbështet.'}
             </p>
           ) : (
             <>

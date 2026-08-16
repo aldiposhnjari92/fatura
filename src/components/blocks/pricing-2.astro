@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Price, PriceUnit, PriceValue } from '@/components/ui/price';
 import { Section, SectionContainer } from '@/components/ui/section';
+import SectionHeading from '@/components/sections/SectionHeading.astro';
 
 /*
   Fulldev's stock pricing-2 renders every plan as a flat `border-none
@@ -67,15 +68,8 @@ const hasFeatured = plans.some((plan) => plan.featured);
 
 <Section class={cn('', className)}>
   <SectionContainer class="gap-10">
-    <div class="mx-auto max-w-2xl text-center">
-      <h2
-        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-      >
-        {title}
-      </h2>
-      <p class="text-muted-foreground mt-4 text-lg leading-relaxed text-balance">
-        {description}
-      </p>
+    <div data-reveal>
+      <SectionHeading eyebrow="Çmimet" title={title} description={description} />
     </div>
 
     <div
@@ -84,31 +78,48 @@ const hasFeatured = plans.some((plan) => plan.featured);
         // Room for the featured card to lift without clipping its glow.
         hasFeatured && 'lg:gap-8 lg:py-4'
       )}
+      data-stagger
     >
       {
         plans.map((plan) => (
           <div
             class={cn(
-              'relative flex flex-col rounded-2xl p-8 transition-transform duration-300',
+              'relative isolate flex flex-col rounded-2xl p-8 transition-transform duration-300',
+              !plan.featured && 'lift',
               // `dark` flips the tokens inside, so nested Fulldev primitives
               // (PriceValue writes text-foreground on an inner span) read light
               // on the ink surface instead of dark-on-dark.
               plan.featured
-                ? 'dark bg-ink text-mist shadow-2xl ring-1 ring-white/10 lg:-my-4 lg:scale-[1.03]'
-                : 'bg-card ring-border ring-1'
+                ? 'dark bg-ink text-mist shadow-2xl ring-1 ring-white/10 lg:-my-6 lg:scale-[1.04]'
+                : 'bg-card ring-border/70 ring-1'
             )}
           >
             {plan.featured && (
-              <div
-                class="pointer-events-none absolute -top-px right-10 left-10 h-px bg-gradient-to-r from-transparent via-[#00ADB5] to-transparent"
-                aria-hidden="true"
-              />
+              <>
+                <div
+                  class="pointer-events-none absolute -top-px right-10 left-10 h-px bg-gradient-to-r from-transparent via-[#00ADB5] to-transparent"
+                  aria-hidden="true"
+                />
+                {/*
+                  The glow lives in its own clipping layer. Putting
+                  overflow-hidden on the card itself sliced the ribbon above it
+                  clean in half.
+                */}
+                <div
+                  class="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-2xl"
+                  aria-hidden="true"
+                >
+                  <div
+                    class="absolute -top-20 -right-16 size-56 rounded-full bg-[#00ADB5]/20 blur-3xl"
+                  />
+                </div>
+              </>
             )}
 
             {plan.badge && (
               <span
                 class={cn(
-                  'absolute -top-3 left-8 rounded-full px-3 py-1 text-xs font-semibold',
+                  'absolute -top-3 left-8 z-10 rounded-full px-3 py-1 text-xs font-semibold tracking-wide',
                   plan.featured
                     ? 'bg-brand text-ink shadow-lg'
                     : 'bg-secondary text-secondary-foreground'

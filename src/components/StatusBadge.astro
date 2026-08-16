@@ -1,5 +1,6 @@
 ---
 import { STATUS_META, type InvoiceStatus } from '@/lib/types';
+import { useTranslations } from '@/lib/i18n';
 
 export interface Props {
   status: InvoiceStatus;
@@ -8,10 +9,23 @@ export interface Props {
 
 const { status, class: className = '' } = Astro.props;
 const meta = STATUS_META[status] ?? STATUS_META.draft;
+
+/*
+  STATUS_META still owns the colours, but its `label` is Albanian-only. The
+  label comes from the dictionary instead so a badge cannot sit in Albanian
+  next to an English button.
+*/
+const t = useTranslations(Astro.locals.lang);
+const LABEL_KEY = {
+  draft: 'status.draft',
+  unpaid: 'status.unpaid',
+  paid: 'status.paid',
+  overdue: 'status.overdue',
+} as const;
 ---
 
 <span
-  class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${meta.className} ${className}`}
+  class={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${meta.className} ${className}`}
 >
-  {meta.label}
+  {t(LABEL_KEY[status] ?? 'status.draft')}
 </span>

@@ -3,6 +3,7 @@ import MarketingLayout from '@/layouts/MarketingLayout.astro';
 import Pricing2 from '@/components/blocks/pricing-2.astro';
 import Cta1 from '@/components/blocks/cta-1.astro';
 import { Section, SectionContainer } from '@/components/ui/section';
+import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Icon } from '@/components/ui/icon';
 
 export const prerender = true;
@@ -57,6 +58,9 @@ const rows = [
   { label: 'Fatura shqip / anglisht', free: true, pro: true },
   { label: 'Numërim automatik i faturave', free: true, pro: true },
   { label: 'Historik i plotë i faturave', free: true, pro: true },
+  { label: 'Prerje dhe rregullim i logos', free: true, pro: true },
+  { label: 'Të dhëna të ruajtura në BE', free: true, pro: true },
+  { label: 'Anulim në çdo moment', free: '—', pro: true },
   { label: 'Mbështetje në WhatsApp', free: 'Standarde', pro: 'Me përparësi' },
 ];
 ---
@@ -72,10 +76,12 @@ const rows = [
   />
 
   <Section class="bg-muted/40">
-    <SectionContainer class="max-w-4xl gap-6">
-      <h2 class="text-foreground text-center text-2xl font-semibold tracking-tight">
-        Krahasimi i plotë
-      </h2>
+    <SectionContainer class="max-w-4xl gap-6" data-reveal>
+      <SectionHeading
+        eyebrow="Krahasimi"
+        title="Çfarë ndryshon mes planeve"
+        description="I njëjti dokument në të dy planet. Ndryshon vetëm sa fatura mund të lëshosh."
+      />
 
       <div class="overflow-x-auto">
         <table class="w-full min-w-[520px] border-collapse text-sm">
@@ -120,11 +126,44 @@ const rows = [
         </table>
       </div>
 
+      <div class="grid gap-4 sm:grid-cols-3" data-stagger>
+        {
+          [
+            {
+              icon: 'landmark',
+              title: 'Transfertë bankare',
+              body: 'Aktive. Merr një referencë unike, bëj transfertën, Pro aktivizohet brenda 24 orëve pune.',
+            },
+            {
+              icon: 'calendar-check',
+              title: '1, 6 ose 12 muaj',
+              body: 'Paguaj për sa muaj të duash me një transfertë të vetme. Koha e re i shtohet asaj ekzistuese.',
+            },
+            {
+              icon: 'undo-2',
+              title: 'Anulo kur të duash',
+              body: 'Pas anulimit Pro vazhdon deri në fund të periudhës së paguar, pastaj kthehesh te falas.',
+            },
+          ].map((item) => (
+            <div class="bg-card ring-border lift rounded-2xl p-5 ring-1">
+              <span class="bg-accent text-primary flex size-9 items-center justify-center rounded-lg">
+                <Icon name={item.icon} class="size-[1.05rem]" />
+              </span>
+              <h3 class="mt-3.5 text-sm font-semibold">{item.title}</h3>
+              <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                {item.body}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+
       <p class="text-muted-foreground text-center text-sm">
-        Pagesat për planin Pro aktivizohen së shpejti. Deri atëherë, shkruaj në
+        Pagesat me kartë dhe PayPal shtohen sapo të lidhet llogaria tregtare. Për
+        çdo pyetje, shkruaj në
         <a class="text-primary font-medium underline" href="mailto:pershendetje@fatura.co"
           >pershendetje@fatura.co</a
-        > dhe të aktivizojmë Pro-n manualisht.
+        >.
       </p>
     </SectionContainer>
   </Section>

@@ -1,4 +1,5 @@
 ---
+import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
 import DeleteInvoiceButton from '@/components/react/DeleteInvoiceButton';
@@ -35,13 +36,14 @@ const [{ data: clientsData }, suggestedNumber] = await Promise.all([
 ]);
 
 const clients = (clientsData ?? []) as Client[];
+const t = useTranslations(Astro.locals.lang);
 ---
 
 <AppLayout title={`${invoice.invoice_number} — Fatura.co`} active="invoices">
   <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <a
       href="/app/faturat"
-      class="text-sm font-medium text-muted-foreground hover:text-foreground">← Faturat</a
+      class="text-sm font-medium text-muted-foreground hover:text-foreground">← {t('inv.title')}</a
     >
     <DeleteInvoiceButton
       invoiceId={invoice.id}
@@ -55,6 +57,7 @@ const clients = (clientsData ?? []) as Client[];
   </h1>
 
   <InvoiceEditor
+    lang={Astro.locals.lang}
     profile={profile}
     clients={clients}
     invoice={invoice}

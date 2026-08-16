@@ -195,6 +195,64 @@
   text-wrap: pretty;
 }
 
+/* ===================================================================
+   Editorial type scale
+
+   Template pages stack similar weights at similar sizes, which is what makes
+   them read as templates. These three steps are deliberately far apart: a
+   display size that is much larger than anything else on the page, a section
+   size, and body copy that stays comfortable to read rather than shrinking to
+   fill space.
+   =================================================================== */
+
+@utility text-display {
+  font-size: clamp(2.5rem, 1.4rem + 3.2vw, 3.75rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+
+@utility text-section {
+  font-size: clamp(1.875rem, 1.2rem + 2vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+}
+
+@utility text-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  line-height: 1.65;
+}
+
+/* A hairline that fades at both ends — used to separate bands without the
+   hard edge of a full-width border. */
+@utility rule-fade {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border) 15%,
+    var(--color-border) 85%,
+    transparent
+  );
+}
+
+/* Soft brand light behind the hero product panel. */
+@utility bg-aurora {
+  background:
+    radial-gradient(60% 50% at 75% 20%, --alpha(var(--brand) / 14%), transparent 70%),
+    radial-gradient(45% 45% at 15% 5%, --alpha(var(--primary) / 8%), transparent 70%);
+}
+
+/* Fine grid, fading downward. Reads as engineered rather than decorative. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, --alpha(var(--foreground) / 5%) 1px, transparent 1px),
+    linear-gradient(to bottom, --alpha(var(--foreground) / 5%) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 75%);
+}
+
 /* Faint dotted ground, used behind the hero. */
 @utility bg-dots {
   background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
@@ -284,6 +342,154 @@ html[data-auth='user'] [data-auth-show='anon'] {
   [data-slot='logo'] {
     transition: none;
   }
+}
+
+/*
+  Lock the page behind the admin drawer.
+
+  The drawer is a checkbox + labels with no JavaScript, so the usual
+  `body.style.overflow` toggle is not available; `:has()` reads the checkbox
+  state straight from the DOM instead. Scoped below `lg`, where the drawer
+  exists at all — the desktop sidebar is in normal flow and must never lock
+  scrolling.
+*/
+@media (width < 64rem) {
+  body:has(#admin-nav:checked) {
+    overflow: hidden;
+  }
+}
+
+/* ===================================================================
+   Motion system
+
+   Framer Motion's feel — spring-ish easing, staggered reveals, tactile
+   press states — without shipping a 40 KB animation runtime to a landing
+   page that is otherwise mostly static. Everything below is CSS; the only
+   JavaScript is a ~15-line IntersectionObserver that flips `data-shown`.
+
+   Every rule collapses to nothing under prefers-reduced-motion.
+   =================================================================== */
+
+@theme inline {
+  /* A gentle overshoot, the closest cubic-bezier to a light spring. */
+  --ease-spring: linear(
+    0, 0.006, 0.025, 0.101, 0.539, 0.815, 0.929, 0.98, 1.004, 1.012, 1.005, 1
+  );
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ---- Scroll reveal ----------------------------------------------
+   Offsets use the independent `translate`/`scale` properties, never
+   `transform`. Tailwind's hover utilities (and .lift/.press below) write
+   `transform`, so keeping the two on separate properties lets a revealed
+   card still lift on hover instead of having its offset reset fight the
+   hover state. */
+html[data-motion='on'] [data-reveal] {
+  opacity: 0;
+  translate: 0 18px;
+  transition:
+    opacity 0.7s var(--ease-out-quint),
+    translate 0.7s var(--ease-out-quint),
+    scale 0.7s var(--ease-out-quint);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, translate;
+}
+html[data-motion='on'] [data-reveal='left'] { translate: -22px 0; }
+html[data-motion='on'] [data-reveal='right'] { translate: 22px 0; }
+html[data-motion='on'] [data-reveal='scale'] { translate: 0 0; scale: 0.96; }
+
+html[data-motion='on'] [data-reveal][data-shown='true'] {
+  opacity: 1;
+  translate: 0 0;
+  will-change: auto;
+}
+html[data-motion='on'] [data-reveal='scale'][data-shown='true'] { scale: 1; }
+
+/* Children stagger themselves — no per-item delay in the markup. */
+html[data-motion='on'] [data-stagger] > * {
+  opacity: 0;
+  translate: 0 16px;
+  transition:
+    opacity 0.6s var(--ease-out-quint),
+    translate 0.6s var(--ease-out-quint);
+}
+html[data-motion='on'] [data-stagger][data-shown='true'] > * {
+  opacity: 1;
+  translate: 0 0;
+}
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(1) { transition-delay: 0ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(2) { transition-delay: 70ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(3) { transition-delay: 140ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(4) { transition-delay: 210ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(5) { transition-delay: 280ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(6) { transition-delay: 350ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(7) { transition-delay: 420ms; }
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(8) { transition-delay: 490ms; }
+/* Past eight, everything lands together rather than trailing off. */
+html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(n + 9) { transition-delay: 560ms; }
+
+/* ---- Entrance on load (above the fold, no observer needed) ------- */
+@keyframes rise-in {
+  from { opacity: 0; translate: 0 20px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+@utility animate-rise {
+  html[data-motion='on'] & {
+    animation: rise-in 0.8s var(--ease-out-quint) both;
+  }
+}
+
+/* ---- Tactile interactions --------------------------------------- */
+@utility press {
+  transition:
+    transform 0.18s var(--ease-spring),
+    box-shadow 0.25s var(--ease-out-quint),
+    background-color 0.2s var(--ease-out-quint);
+  &:active { transform: scale(0.975); }
+}
+
+@utility lift {
+  transition:
+    transform 0.35s var(--ease-out-quint),
+    box-shadow 0.35s var(--ease-out-quint),
+    border-color 0.35s var(--ease-out-quint);
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px -12px --alpha(var(--foreground) / 18%);
+  }
+}
+
+/* Buttons and links everywhere get the press feel without extra classes. */
+a, button {
+  transition:
+    color 0.2s var(--ease-out-quint),
+    background-color 0.2s var(--ease-out-quint),
+    border-color 0.2s var(--ease-out-quint),
+    opacity 0.2s var(--ease-out-quint),
+    transform 0.18s var(--ease-spring);
+}
+button:active:not(:disabled),
+a[data-slot='button']:active {
+  transform: scale(0.975);
+}
+
+/* ---- Number / progress transitions ------------------------------ */
+@utility bar-fill {
+  transition: width 0.9s var(--ease-out-quint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-stagger] > * {
+    opacity: 1 !important;
+    translate: none !important;
+    scale: none !important;
+    transition: none !important;
+  }
+  a, button { transition: none; }
+  button:active:not(:disabled), a[data-slot='button']:active { transform: none; }
+  .animate-rise { animation: none; }
 }
 
 /* The browser-print fallback for an invoice preview. */

@@ -1,7 +1,9 @@
 ---
+import { useTranslations } from '@/lib/i18n';
 import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import UserMenu from '@/components/react/UserMenu';
+import ActivityStream from '@/components/react/ActivityStream';
 
 export interface Props {
   title: string;
@@ -12,32 +14,37 @@ export interface Props {
 const { title, heading, active = 'dashboard' } = Astro.props;
 // All three come from the single app_bootstrap() call in the middleware —
 // this layout issues no queries of its own.
-const { profile, user, invoicesThisMonth } = Astro.locals;
+const { profile, user, invoicesThisMonth, lang } = Astro.locals;
+const t = useTranslations(lang);
 
 // For an admin, bare /app redirects to the console — so the in-app "Paneli"
 // link carries the escape param and stays where the user already is.
 const isAdmin = profile?.is_admin ?? false;
 const dashboardHref = isAdmin ? '/app?klient=1' : '/app';
 
+/*
+  Settings deliberately lives only in the account dropdown, not here.
+
+  It was in both, and the navbar is for the things a business does daily —
+  invoices and clients. Settings is a set-once-and-forget screen, so it belongs
+  with the account, which is also where a user goes looking for it.
+
+  Reachable on mobile too: the dropdown is on the avatar in the top bar, and
+  the bottom nav below is built from this same list.
+*/
 const nav = [
-  { key: 'dashboard', href: dashboardHref, label: 'Paneli', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+  { key: 'dashboard', href: dashboardHref, label: t('nav.dashboard'), icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
   {
     key: 'invoices',
     href: '/app/faturat',
-    label: 'Faturat',
+    label: t('nav.invoices'),
     icon: 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h7M9 17h5',
   },
   {
     key: 'clients',
     href: '/app/klientet',
-    label: 'Klientët',
+    label: t('nav.clients'),
     icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM3 21v-2a6 6 0 016-6h6a6 6 0 016 6v2',
-  },
-  {
-    key: 'settings',
-    href: '/app/cilesimet',
-    label: 'Cilësimet',
-    icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 008.9 19a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 8.3a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
   },
 ] as const;
 ---
@@ -73,18 +80,21 @@ const nav = [
         </div>
 
         <div class="flex items-center gap-2">
-          <a
-            href="/app/faturat/e-re"
-            class="bg-primary text-primary-foreground hidden h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold shadow-sm transition-opacity hover:opacity-90 sm:inline-flex"
-          >
-            + Faturë e re
-          </a>
+          {/*
+            The bell replaces the new-invoice button here. Creating an invoice
+            is still one tap away: the floating action button on mobile, and the
+            primary CTA on the dashboard and invoice list on desktop.
+          */}
+          <ActivityStream lang={lang} variant="bell" scope="own" client:idle />
 
           <UserMenu
+            lang={lang}
+            pathname={Astro.url.pathname}
             businessName={profile?.business_name ?? null}
             email={user?.email ?? ''}
             logoUrl={profile?.logo_url ?? null}
             isPro={profile?.is_pro ?? false}
+            proEndsOn={profile?.cancelled_at ? (profile?.pro_until ?? null) : null}
             isAdmin={profile?.is_admin ?? false}
             invoicesThisMonth={invoicesThisMonth}
             client:load
@@ -142,7 +152,7 @@ const nav = [
     <a
       href="/app/faturat/e-re"
       class="fixed bottom-20 right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl font-light text-primary-foreground shadow-lg transition-transform hover:scale-105 md:hidden"
-      aria-label="Faturë e re"
+      aria-label={t("nav.newInvoice")}
     >
       +
     </a>

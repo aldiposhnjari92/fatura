@@ -1,19 +1,15 @@
 import * as React from 'react';
-import { Loader2, Plus, Trash2, Download, Share2, Save, Eye } from 'lucide-react';
+import { CheckCircle2, Loader2, Plus, Trash2, Download, Share2, Save, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations, type Lang } from '@/lib/i18n';
+import PaidToggle from '@/components/react/PaidToggle';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { Label } from '@/components/ui/react/label';
 import { Textarea } from '@/components/ui/react/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/react/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/react/select';
 import { DatePicker } from '@/components/ui/react/date-picker';
+import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import {
   computeTotals,
   type Client,
@@ -32,15 +28,24 @@ interface Props {
   invoice?: Invoice | null;
   suggestedNumber: string;
   limitReached?: boolean;
+  /** Interface language. Separate from `invoice.language`, which is the
+      language of the printed document and is chosen per invoice. */
+  lang: Lang;
 }
 
 const VAT_OPTIONS = [0, 6, 20];
-const STATUS_OPTIONS: { value: InvoiceStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'unpaid', label: 'E papaguar' },
-  { value: 'paid', label: 'E paguar' },
-  { value: 'overdue', label: 'E vonuar' },
-];
+/* Built per render rather than at module scope: the labels are translated. */
+function statusOptions(
+  t: ReturnType<typeof useTranslations>
+): { value: InvoiceStatus; label: string }[] {
+  return [
+    { value: 'draft', label: t('status.draft') },
+    { value: 'unpaid', label: t('status.unpaid') },
+    { value: 'paid', label: t('status.paid') },
+    // No 'overdue' entry: lateness is derived from the due date, not chosen.
+    // Letting someone pick it would allow the badge to contradict the dates.
+  ];
+}
 
 const emptyItem = (): InvoiceItem => ({ description: '', quantity: 1, price: 0 });
 
@@ -56,7 +61,9 @@ export default function InvoiceEditor({
   invoice,
   suggestedNumber,
   limitReached = false,
+  lang,
 }: Props) {
+  const t = useTranslations(lang);
   const isEdit = Boolean(invoice?.id);
 
   const [clients, setClients] = React.useState<Client[]>(initialClients);
@@ -170,11 +177,11 @@ export default function InvoiceEditor({
   );
 
   function validate(): string | null {
-    if (!invoiceNumber.trim()) return 'Numri i faturës është i detyrueshëm.';
-    if (!clientId) return 'Zgjidh një klient për faturën.';
-    if (!issueDate) return 'Data e lëshimit është e detyrueshme.';
+    if (!invoiceNumber.trim()) return t('inv.errNumberRequired');
+    if (!clientId) return t('inv.errClientRequired');
+    if (!issueDate) return t('inv.errIssueDateRequired');
     const filled = items.filter((i) => i.description.trim());
-    if (filled.length === 0) return 'Shto të paktën një artikull me përshkrim.';
+    if (filled.length === 0) return t('inv.errNoItems');
     return null;
   }
 
@@ -188,7 +195,7 @@ export default function InvoiceEditor({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('Sesioni skadoi. Hyr sërish.');
+      if (!user) throw new Error(t('inv.errSessionExpired'));
 
       const { data, error: insertError } = await supabase
         .from('clients')
@@ -208,7 +215,7 @@ export default function InvoiceEditor({
       setClientId((data as Client).id);
       setShowNewClient(false);
       setNewClient({ name: '', nipt: '', email: '', address: '' });
-      setToast('Klienti u shtua.');
+      setToast(t('inv.clientAdded'));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -216,7 +223,12 @@ export default function InvoiceEditor({
     }
   }
 
-  async function handleSave(): Promise<string | null> {
+  /**
+   * `statusOverride` is what "Konfirmo faturën" uses: it issues the invoice in
+   * the same write that saves it, rather than making the user remember to
+   * change the status dropdown first and then save.
+   */
+  async function handleSave(statusOverride?: InvoiceStatus): Promise<string | null> {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -230,7 +242,7 @@ export default function InvoiceEditor({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('Sesioni skadoi. Hyr sërish.');
+      if (!user) throw new Error(t('inv.errSessionExpired'));
 
       const cleanItems = items
         .filter((item) => item.description.trim())
@@ -251,7 +263,7 @@ export default function InvoiceEditor({
         vat_percent: vatPercent,
         discount: totals.discount,
         total: totals.total,
-        status,
+        status: statusOverride ?? status,
         notes: notes.trim() || null,
         language,
       };
@@ -262,7 +274,8 @@ export default function InvoiceEditor({
           .update(payload)
           .eq('id', invoice.id);
         if (updateError) throw updateError;
-        setToast('Fatura u ruajt.');
+        if (statusOverride) setStatus(statusOverride);
+        setToast(statusOverride ? t('inv.confirmed') : t('inv.saved'));
         return invoice.id;
       }
 
@@ -275,20 +288,21 @@ export default function InvoiceEditor({
       if (insertError) {
         if (insertError.code === '23505') {
           throw new Error(
-            `Numri "${invoiceNumber}" është përdorur tashmë. Ndrysho numrin e faturës.`
+            t('inv.errNumberTaken', { number: invoiceNumber })
           );
         }
         // Raised by the enforce_invoice_quota trigger — the cap is enforced in
         // the database now, so this fires even if the UI thought it was fine.
         if (/FREE_PLAN_LIMIT_REACHED/.test(insertError.message)) {
           throw new Error(
-            'Ke arritur limitin e planit falas për këtë muaj. Kalo në Pro për fatura të palimituara.'
+            t('inv.errQuota')
           );
         }
         throw insertError;
       }
 
-      setToast('Fatura u krijua.');
+      if (statusOverride) setStatus(statusOverride);
+      setToast(statusOverride ? t('inv.confirmed') : t('inv.created'));
       return (data as { id: string }).id;
     } catch (err) {
       setError((err as Error).message);
@@ -303,6 +317,16 @@ export default function InvoiceEditor({
     if (id && !isEdit) window.location.assign(`/app/faturat/${id}`);
   }
 
+  /*
+    Confirming issues the invoice: it stops being a draft and starts counting
+    as money owed. 'unpaid' is the issued-but-not-yet-settled state; marking it
+    paid stays a separate, deliberate act via the status dropdown.
+  */
+  async function handleConfirm() {
+    const id = await handleSave('unpaid');
+    if (id && !isEdit) window.location.assign(`/app/faturat/${id}`);
+  }
+
   async function handleDownload() {
     const validationError = validate();
     if (validationError) {
@@ -313,7 +337,7 @@ export default function InvoiceEditor({
     try {
       await downloadInvoicePdf(pdfInput, selectedClient?.name);
     } catch (err) {
-      reportPdfError('PDF-ja dështoi', err);
+      reportPdfError(t('inv.errPdfFailed'), err);
     } finally {
       setBusyPdf(null);
     }
@@ -328,9 +352,9 @@ export default function InvoiceEditor({
     setBusyPdf('share');
     try {
       const result = await shareInvoicePdf(pdfInput, selectedClient?.name);
-      if (result === 'downloaded') setToast('PDF-ja u shkarkua.');
+      if (result === 'downloaded') setToast(t('inv.pdfDownloaded'));
     } catch (err) {
-      reportPdfError('Ndarja dështoi', err);
+      reportPdfError(t('inv.errShareFailed'), err);
     } finally {
       setBusyPdf(null);
     }
@@ -350,7 +374,7 @@ export default function InvoiceEditor({
       // Give the new tab time to claim the blob before releasing it.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
-      reportPdfError('Parapamja dështoi', err);
+      reportPdfError(t('inv.errPreviewFailed'), err);
     } finally {
       setBusyPdf(null);
     }
@@ -368,7 +392,7 @@ export default function InvoiceEditor({
             className="border-warning/40 bg-warning/10 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm"
           >
             <span className="font-medium">
-              Faqja u përditësua ndërkohë. Rifreskoje për të shkarkuar PDF-në.
+              {t('inv.staleReload')}
             </span>
             <Button
               type="button"
@@ -376,7 +400,7 @@ export default function InvoiceEditor({
               onClick={() => window.location.reload()}
               className="shrink-0"
             >
-              Rifresko faqen
+              {t('inv.reloadPage')}
             </Button>
           </div>
         )}
@@ -392,47 +416,47 @@ export default function InvoiceEditor({
 
         {limitReached && !isEdit && (
           <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
-            Ke arritur limitin e planit falas për këtë muaj. Mund ta shkarkosh PDF-në, por
-            ruajtja do të dështojë derisa të kalosh në Pro.
+            {t('inv.warnLimitReached')}
           </p>
         )}
 
         {profileIncomplete && (
           <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
-            Të dhënat e biznesit janë të paplota.{' '}
+            {t('inv.warnProfileIncomplete')}{' '}
             <a href="/app/cilesimet" className="font-semibold underline">
-              Plotëso NIPT-in dhe logon
+              {t('inv.warnProfileLink')}
             </a>{' '}
-            që fatura të dalë profesionale.
+            {t('inv.warnProfileTail')}
           </p>
         )}
 
         {/* Client */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Klienti</CardTitle>
+            <CardTitle className="text-base">{t('inv.client')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger className="h-10" aria-label="Zgjidh klientin">
-                  <SelectValue placeholder="Zgjidh klientin…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.length === 0 ? (
-                    <div className="text-muted-foreground px-2 py-3 text-sm">
-                      Ende asnjë klient — shto një më poshtë.
-                    </div>
-                  ) : (
-                    clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                        {client.nipt ? ` · ${client.nipt}` : ''}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {/*
+                Searchable: this is the one list in the form that grows without
+                limit, and scrolling a hundred clients to find one is the thing
+                that makes invoicing slow. The VAT number is searchable too,
+                because that is often what a business remembers.
+              */}
+              <SearchableSelect
+                value={clientId}
+                onValueChange={setClientId}
+                aria-label={t('inv.client')}
+                className="flex-1"
+                placeholder={t('inv.clientPlaceholder')}
+                searchPlaceholder={t('cli.searchPlaceholder')}
+                emptyText={t('adm.noResults')}
+                options={clients.map((client) => ({
+                  value: client.id,
+                  label: client.name,
+                  hint: client.nipt ? `NIPT: ${client.nipt}` : undefined,
+                }))}
+              />
 
               <Button
                 type="button"
@@ -440,7 +464,7 @@ export default function InvoiceEditor({
                 onClick={() => setShowNewClient((v) => !v)}
                 className="h-10 shrink-0"
               >
-                <Plus /> Klient i ri
+                <Plus /> {t('cli.new')}
               </Button>
             </div>
 
@@ -465,7 +489,7 @@ export default function InvoiceEditor({
                 className="grid gap-3 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2"
               >
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="nc-name">Emri i klientit *</Label>
+                  <Label htmlFor="nc-name">{t('inv.clientNameLabel')} *</Label>
                   <Input
                     id="nc-name"
                     value={newClient.name}
@@ -477,7 +501,7 @@ export default function InvoiceEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="nc-nipt">NIPT</Label>
+                  <Label htmlFor="nc-nipt">{t('cli.nipt')}</Label>
                   <Input
                     id="nc-nipt"
                     value={newClient.nipt}
@@ -488,7 +512,7 @@ export default function InvoiceEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="nc-email">Email</Label>
+                  <Label htmlFor="nc-email">{t('cli.email')}</Label>
                   <Input
                     id="nc-email"
                     type="email"
@@ -500,7 +524,7 @@ export default function InvoiceEditor({
                   />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="nc-address">Adresa</Label>
+                  <Label htmlFor="nc-address">{t('cli.address')}</Label>
                   <Input
                     id="nc-address"
                     value={newClient.address}
@@ -513,7 +537,7 @@ export default function InvoiceEditor({
                 <div className="flex gap-2 sm:col-span-2">
                   <Button type="submit" disabled={creatingClient} size="sm">
                     {creatingClient && <Loader2 className="animate-spin" />}
-                    Ruaj klientin
+                    {t('inv.saveClient')}
                   </Button>
                   <Button
                     type="button"
@@ -521,7 +545,7 @@ export default function InvoiceEditor({
                     size="sm"
                     onClick={() => setShowNewClient(false)}
                   >
-                    Anulo
+                    {t('action.cancel')}
                   </Button>
                 </div>
               </form>
@@ -532,11 +556,11 @@ export default function InvoiceEditor({
         {/* Invoice meta */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Të dhënat e faturës</CardTitle>
+            <CardTitle className="text-base">{t('inv.details')}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="invoice_number">Numri i faturës *</Label>
+              <Label htmlFor="invoice_number">{t('inv.number')} *</Label>
               <Input
                 id="invoice_number"
                 value={invoiceNumber}
@@ -546,79 +570,90 @@ export default function InvoiceEditor({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="status">Statusi</Label>
-              <Select
+              <Label htmlFor="status">{t('inv.status')}</Label>
+              {/*
+                A paid invoice is final in the database, so the control is
+                disabled rather than left enabled to fail on save. The hint
+                below says why, so a locked field never looks like a bug.
+              */}
+              <SearchableSelect
+                id="status"
                 value={status}
                 onValueChange={(v) => setStatus(v as InvoiceStatus)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                disabled={isEdit && invoice?.status === 'paid'}
+                aria-label={t('inv.status')}
+                searchPlaceholder={t('action.search')}
+                emptyText={t('adm.noResults')}
+                options={statusOptions(t).map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+              />
+              {isEdit && invoice?.status === 'paid' && (
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  {t('inv.paidLockedHint')}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="issue_date">Data e lëshimit *</Label>
+              <Label htmlFor="issue_date">{t('inv.issueDate')} *</Label>
               <DatePicker
                 id="issue_date"
                 value={issueDate}
                 onChange={setIssueDate}
-                aria-label="Data e lëshimit"
+                aria-label={t('inv.issueDate')}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="due_date">Afati i pagesës</Label>
+              <Label htmlFor="due_date">{t('inv.dueDate')}</Label>
               <DatePicker
                 id="due_date"
                 value={dueDate}
                 onChange={setDueDate}
-                placeholder="Pa afat"
+                placeholder={t('inv.noDueDate')}
                 clearable
-                aria-label="Afati i pagesës"
+                aria-label={t('inv.dueDate')}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="language">Gjuha e faturës</Label>
-              <Select
+              <Label htmlFor="language">{t('inv.language')}</Label>
+              {/*
+                This is the language of the printed invoice, not the interface —
+                a business invoicing a foreign client picks English here while
+                their own app stays Albanian. It is unaffected by the interface
+                language being Albanian-only for now.
+              */}
+              <SearchableSelect
+                id="language"
                 value={language}
                 onValueChange={(v) => setLanguage(v as InvoiceLanguage)}
-              >
-                <SelectTrigger id="language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sq">Shqip</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
+                aria-label={t('inv.language')}
+                searchPlaceholder={t('action.search')}
+                emptyText={t('adm.noResults')}
+                options={[
+                  { value: 'sq', label: 'Shqip' },
+                  { value: 'en', label: 'English' },
+                ]}
+              />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="vat">TVSH</Label>
-              <Select
+              <Label htmlFor="vat">{t('inv.vat')}</Label>
+              <SearchableSelect
+                id="vat"
                 value={String(vatPercent)}
                 onValueChange={(v) => setVatPercent(Number(v))}
-              >
-                <SelectTrigger id="vat">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VAT_OPTIONS.map((v) => (
-                    <SelectItem key={v} value={String(v)}>
-                      {v}%
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                aria-label={t('inv.vat')}
+                searchPlaceholder={t('action.search')}
+                emptyText={t('adm.noResults')}
+                options={VAT_OPTIONS.map((v) => ({
+                  value: String(v),
+                  label: `${v}%`,
+                }))}
+              />
             </div>
           </CardContent>
         </Card>
@@ -626,15 +661,15 @@ export default function InvoiceEditor({
         {/* Items */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Artikujt</CardTitle>
+            <CardTitle className="text-base">{t('inv.items')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Column headers, desktop only */}
             <div className="hidden gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid sm:grid-cols-[1fr_80px_120px_110px_40px]">
-              <span>Përshkrimi</span>
-              <span className="text-right">Sasia</span>
-              <span className="text-right">Çmimi</span>
-              <span className="text-right">Vlera</span>
+              <span>{t('inv.description')}</span>
+              <span className="text-right">{t('inv.quantity')}</span>
+              <span className="text-right">{t('inv.price')}</span>
+              <span className="text-right">{t('inv.amount')}</span>
               <span />
             </div>
 
@@ -649,8 +684,8 @@ export default function InvoiceEditor({
                   <Input
                     value={item.description}
                     onChange={(e) => updateItem(index, { description: e.target.value })}
-                    placeholder="Përshkrimi i shërbimit ose produktit"
-                    aria-label={`Përshkrimi i artikullit ${index + 1}`}
+                    placeholder={t('inv.descriptionPlaceholder')}
+                    aria-label={t('inv.itemDescriptionAria', { n: index + 1 })}
                   />
 
                   <div className="grid grid-cols-2 gap-2 sm:contents">
@@ -663,7 +698,7 @@ export default function InvoiceEditor({
                         updateItem(index, { quantity: toInt(e.target.value) })
                       }
                       className="sm:text-right"
-                      aria-label={`Sasia e artikullit ${index + 1}`}
+                      aria-label={t('inv.itemQtyAria', { n: index + 1 })}
                     />
                     <Input
                       type="number"
@@ -672,7 +707,7 @@ export default function InvoiceEditor({
                       value={item.price}
                       onChange={(e) => updateItem(index, { price: toInt(e.target.value) })}
                       className="sm:text-right"
-                      aria-label={`Çmimi i artikullit ${index + 1}`}
+                      aria-label={t('inv.itemPriceAria', { n: index + 1 })}
                     />
                   </div>
 
@@ -686,7 +721,7 @@ export default function InvoiceEditor({
                     size="icon"
                     onClick={() => removeItem(index)}
                     disabled={items.length === 1}
-                    aria-label={`Fshi artikullin ${index + 1}`}
+                    aria-label={t('inv.itemDeleteAria', { n: index + 1 })}
                     className="justify-self-end text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 />
@@ -696,7 +731,7 @@ export default function InvoiceEditor({
             })}
 
             <Button type="button" variant="outline" onClick={addItem} className="w-full">
-              <Plus /> Shto artikull
+              <Plus /> {t('inv.addItem')}
             </Button>
           </CardContent>
         </Card>
@@ -704,13 +739,13 @@ export default function InvoiceEditor({
         {/* Notes */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Shënime</CardTitle>
+            <CardTitle className="text-base">{t('inv.notes')}</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="p.sh. Pagesa kryhet me transfertë bankare në llogarinë ..."
+              placeholder={t('inv.notesPlaceholder')}
               rows={3}
             />
           </CardContent>
@@ -721,19 +756,19 @@ export default function InvoiceEditor({
       <div className="lg:sticky lg:top-24 lg:self-start">
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Përmbledhje</CardTitle>
+            <CardTitle className="text-base">{t('inv.summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Nëntotali</dt>
+                <dt className="text-muted-foreground">{t('inv.subtotal')}</dt>
                 <dd className="font-medium tabular-nums">{formatALL(totals.subtotal)}</dd>
               </div>
 
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">
                   <Label htmlFor="discount" className="font-normal text-muted-foreground">
-                    Zbritje
+                    {t('inv.discount')}
                   </Label>
                 </dt>
                 <dd>
@@ -751,7 +786,7 @@ export default function InvoiceEditor({
 
               {vatPercent > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">TVSH {vatPercent}%</dt>
+                  <dt className="text-muted-foreground">{t('inv.vat')} {vatPercent}%</dt>
                   <dd className="font-medium tabular-nums">
                     {formatALL(totals.vatAmount)}
                   </dd>
@@ -759,23 +794,71 @@ export default function InvoiceEditor({
               )}
 
               <div className="flex justify-between border-t pt-3 text-lg">
-                <dt className="font-bold">TOTALI</dt>
+                <dt className="font-bold">{t('inv.total')}</dt>
                 <dd className="font-extrabold tabular-nums text-primary">
                   {formatALL(totals.total)}
                 </dd>
               </div>
             </dl>
 
+            {/*
+              Answering "has this been paid?" is the job people come back to an
+              invoice for, so it gets its own control here rather than being
+              buried in the status dropdown above. Only for saved invoices —
+              there is nothing to mark until the row exists.
+            */}
+            {isEdit && invoice?.id && (
+              <div className="border-t pt-4">
+                <PaidToggle
+                  invoiceId={invoice.id}
+                  status={status}
+                  paidAt={invoice.paid_at ?? null}
+                  lang={lang}
+                  variant="panel"
+                />
+              </div>
+            )}
+
             <div className="space-y-2 border-t pt-4">
-              <Button
-                type="button"
-                onClick={handleSaveAndClose}
-                disabled={saving}
-                className="w-full"
-              >
-                {saving ? <Loader2 className="animate-spin" /> : <Save />}
-                {isEdit ? 'Ruaj ndryshimet' : 'Ruaj faturën'}
-              </Button>
+              {/*
+                A draft is not yet a real invoice. Confirming is the act that
+                issues it, so it gets the primary button and saving-as-draft
+                steps down to secondary. Once issued, there is nothing left to
+                confirm and plain save takes the lead again.
+              */}
+              {status === 'draft' ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={saving}
+                    className="press w-full"
+                  >
+                    {saving ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+                    {t('inv.confirm')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSaveAndClose}
+                    disabled={saving}
+                    className="press w-full"
+                  >
+                    <Save />
+                    {t('inv.saveDraft')}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleSaveAndClose}
+                  disabled={saving}
+                  className="press w-full"
+                >
+                  {saving ? <Loader2 className="animate-spin" /> : <Save />}
+                  {isEdit ? t('action.saveChanges') : t('inv.save')}
+                </Button>
+              )}
 
               <Button
                 type="button"
@@ -785,7 +868,7 @@ export default function InvoiceEditor({
                 className="w-full"
               >
                 {busyPdf === 'download' ? <Loader2 className="animate-spin" /> : <Download />}
-                Shkarko PDF
+                {t('inv.downloadPdf')}
               </Button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -796,7 +879,7 @@ export default function InvoiceEditor({
                   disabled={busyPdf !== null}
                 >
                   {busyPdf === 'preview' ? <Loader2 className="animate-spin" /> : <Eye />}
-                  Parapamje
+                  {t('inv.preview')}
                 </Button>
                 <Button
                   type="button"
@@ -805,14 +888,13 @@ export default function InvoiceEditor({
                   disabled={busyPdf !== null}
                 >
                   {busyPdf === 'share' ? <Loader2 className="animate-spin" /> : <Share2 />}
-                  Dërgo
+                  {t('inv.share')}
                 </Button>
               </div>
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
-              PDF-ja krijohet në telefonin tënd. Asnjë të dhënë nuk shkon te ndonjë server
-              i tretë.
+              {t('inv.pdfNote')}
             </p>
           </CardContent>
         </Card>

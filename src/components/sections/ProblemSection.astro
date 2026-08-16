@@ -1,5 +1,6 @@
 ---
 import { Section, SectionContainer } from '@/components/ui/section';
+import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 
@@ -23,21 +24,15 @@ const after = [
 ---
 
 <Section>
-  <SectionContainer class="items-center gap-6 text-center">
-    <div class="flex max-w-2xl flex-col items-center gap-4">
-      <h2
-        class="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-      >
-        2 orë në javë, të humbura në Word
-      </h2>
-      <p class="text-muted-foreground max-w-2xl text-lg leading-relaxed text-balance">
-        Kopjo faturën e vjetër. Ndrysho datën. Ndrysho numrin. Rillogarit TVSH-në.
-        Shpeto si PDF. Gabo diku. Nis nga e para.
-      </p>
-    </div>
+  <SectionContainer data-reveal>
+    <SectionHeading
+      eyebrow="Problemi"
+      title="2 orë në javë, të humbura në Word"
+      description="Kopjo faturën e vjetër. Ndrysho datën. Ndrysho numrin. Rillogarit TVSH-në. Shpeto si PDF. Gabo diku. Nis nga e para."
+    />
   </SectionContainer>
 
-  <SectionContainer class="max-w-4xl">
+  <SectionContainer class="max-w-4xl" data-stagger>
     <div class="grid gap-5 md:grid-cols-2">
       <Card class="bg-muted/50">
         <CardHeader>

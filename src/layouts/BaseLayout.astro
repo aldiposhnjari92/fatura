@@ -75,6 +75,19 @@ const ogImage = new URL(image, siteUrl).href;
         } catch (e) {
           document.documentElement.setAttribute('data-auth', 'anon');
         }
+
+        /*
+          Reveal-on-scroll hides elements with opacity:0 until the observer
+          runs. Gate that behind a marker set here, before first paint, so a
+          visitor with JavaScript disabled — or with reduced motion asked for —
+          gets the fully visible page instead of a blank one.
+        */
+        try {
+          var still =
+            window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (!still) document.documentElement.setAttribute('data-motion', 'on');
+        } catch (e) {}
       })();
     </script>
 
@@ -82,5 +95,67 @@ const ogImage = new URL(image, siteUrl).href;
   </head>
   <body class="min-h-screen bg-background font-sans text-foreground">
     <slot />
+
+    <script is:inline>
+      /*
+        Scroll reveal.
+
+        A rAF-throttled geometry check rather than IntersectionObserver: IO
+        coalesces notifications, so an element flicked past between deliveries
+        can be skipped and then sits at opacity:0 forever — a blank section is
+        a far worse outcome than a missed animation. This tests position
+        directly, so nothing can be missed, and it unbinds itself once every
+        element has been revealed.
+
+        Nothing runs unless the root element carries data-motion="on", which
+        the head script sets only when JS is available and reduced motion has
+        not been requested.
+        All easing and timing lives in CSS.
+      */
+      (function () {
+        var nodes = [].slice.call(
+          document.querySelectorAll('[data-reveal], [data-stagger]')
+        );
+        if (!nodes.length) return;
+
+        if (document.documentElement.getAttribute('data-motion') !== 'on') {
+          for (var i = 0; i < nodes.length; i++) {
+            nodes[i].setAttribute('data-shown', 'true');
+          }
+          return;
+        }
+
+        var queued = false;
+
+        function check() {
+          queued = false;
+          var fold = window.innerHeight * 0.92;
+
+          for (var i = nodes.length - 1; i >= 0; i--) {
+            // Reveal once the top edge crosses into the fold, which also
+            // covers anything already scrolled past (top < 0).
+            if (nodes[i].getBoundingClientRect().top < fold) {
+              nodes[i].setAttribute('data-shown', 'true');
+              nodes.splice(i, 1);
+            }
+          }
+
+          if (!nodes.length) {
+            window.removeEventListener('scroll', onChange);
+            window.removeEventListener('resize', onChange);
+          }
+        }
+
+        function onChange() {
+          if (queued) return;
+          queued = true;
+          window.requestAnimationFrame(check);
+        }
+
+        window.addEventListener('scroll', onChange, { passive: true });
+        window.addEventListener('resize', onChange);
+        check();
+      })();
+    </script>
   </body>
 </html>

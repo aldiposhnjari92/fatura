@@ -1,0 +1,243 @@
+---
+import { Icon } from '@/components/ui/icon';
+import { formatALL } from '@/lib/utils';
+
+/*
+  Three alternating rows, each with its own piece of the real interface.
+
+  The rest of the page (and most template marketing pages) repeats one shape:
+  centred heading, then a grid of equally weighted cards. Doing that four times
+  in a row is what makes a page feel assembled. These rows deliberately break
+  it — the eye crosses the page left-right-left, and every visual is a different
+  part of the product rather than the same card with a different icon.
+
+  The kickers are labels rather than 01/02/03: these are not steps, and the page
+  already has a numbered sequence in StepsSection. Two competing numberings read
+  as an accident.
+
+  Each mock mirrors a screen that exists: the invoice list with its derived
+  overdue badge, the saved-client picker, and the per-invoice language switch.
+*/
+---
+
+<section id="produkti" class="scroll-mt-16 py-20 sm:py-28">
+  <div class="container flex flex-col gap-20 sm:gap-28">
+    <!-- ── 01 · Payment tracking ─────────────────────────────────── -->
+    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16" data-reveal>
+      <div class="max-w-lg">
+        <p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">
+          Paratë
+        </p>
+        <h2 class="text-section text-foreground mt-4 text-balance">
+          Dije menjëherë kush të ka paguar
+        </h2>
+        <p class="text-muted-foreground mt-5 leading-relaxed text-pretty">
+          Një klikim e shënon faturën si të paguar. Faturat që kalojnë afatin shënohen
+          vetë si të vonuara — pa e ndryshuar ti asgjë, pa e mbajtur mend.
+        </p>
+        <ul class="mt-6 flex flex-col gap-3 text-sm">
+          {
+            [
+              'Shëno si të paguar me një klik, nga lista',
+              'Të vonuarat dallohen vetë sipas afatit',
+              'Data e pagesës ruhet për barazimin me bankën',
+            ].map((point) => (
+              <li class="flex items-start gap-2.5">
+                <span class="bg-accent text-primary mt-px flex size-5 shrink-0 items-center justify-center rounded-full">
+                  <Icon name="check" class="size-3" />
+                </span>
+                <span class="text-foreground/85">{point}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="bg-card ring-border rounded-2xl p-2 shadow-xl ring-1">
+        <div class="overflow-hidden rounded-xl border">
+          <div
+            class="text-muted-foreground bg-muted/50 grid grid-cols-[1fr_auto] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold tracking-wide uppercase"
+          >
+            <span>Fatura</span>
+            <span>Statusi</span>
+          </div>
+          {
+            [
+              { no: 'FAT-2026-014', client: 'Alba Construction', total: 66000, state: 'paid' },
+              { no: 'FAT-2026-013', client: 'Studio Dizajn', total: 24000, state: 'overdue' },
+              { no: 'FAT-2026-012', client: 'Market Rina', total: 12500, state: 'unpaid' },
+            ].map((row) => (
+              <div class="grid grid-cols-[1fr_auto] items-center gap-4 border-b px-4 py-3 last:border-0">
+                <div class="min-w-0">
+                  <p class="text-primary truncate text-xs font-semibold">{row.no}</p>
+                  <p class="text-muted-foreground truncate text-[11px]">{row.client}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-foreground text-xs font-medium tabular-nums">
+                    {formatALL(row.total, false)}
+                  </span>
+                  <span
+                    class:list={[
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset',
+                      row.state === 'paid' &&
+                        'bg-teal-100 text-teal-900 ring-teal-300/70 dark:bg-brand/20 dark:text-brand dark:ring-brand/40',
+                      row.state === 'overdue' &&
+                        'bg-red-100 text-red-900 ring-red-300/70 dark:bg-red-400/15 dark:text-red-200 dark:ring-red-400/30',
+                      row.state === 'unpaid' &&
+                        'bg-amber-100 text-amber-900 ring-amber-300/70 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/30',
+                    ]}
+                  >
+                    {row.state === 'paid'
+                      ? 'E paguar'
+                      : row.state === 'overdue'
+                        ? 'E vonuar'
+                        : 'E papaguar'}
+                  </span>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 02 · Saved clients (visual first) ─────────────────────── -->
+    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16" data-reveal>
+      <div class="bg-card ring-border rounded-2xl p-6 shadow-xl ring-1 lg:order-first">
+        <p class="text-muted-foreground text-[10px] font-semibold tracking-[0.14em] uppercase">
+          Klienti
+        </p>
+        <div class="border-input mt-2 flex items-center justify-between rounded-lg border px-3 py-2.5">
+          <span class="text-sm font-medium">Alba Construction sh.p.k.</span>
+          <Icon name="chevron-down" class="text-muted-foreground size-4" />
+        </div>
+
+        <div class="border-border/70 mt-2 overflow-hidden rounded-lg border shadow-lg">
+          {
+            [
+              { name: 'Alba Construction sh.p.k.', nipt: 'K81430022M', active: true },
+              { name: 'Studio Dizajn', nipt: 'L92318844J', active: false },
+              { name: 'Market Rina', nipt: 'M11204471C', active: false },
+            ].map((client) => (
+              <div
+                class:list={[
+                  'flex items-center justify-between gap-3 border-b px-3 py-2.5 last:border-0',
+                  client.active && 'bg-accent/50',
+                ]}
+              >
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-medium">{client.name}</p>
+                  <p class="text-muted-foreground truncate text-[11px]">
+                    NIPT: {client.nipt}
+                  </p>
+                </div>
+                {client.active && <Icon name="check" class="text-primary size-4 shrink-0" />}
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="max-w-lg">
+        <p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">
+          Klientët
+        </p>
+        <h2 class="text-section text-foreground mt-4 text-balance">
+          Shkruaje NIPT-in një herë. Kurrë më.
+        </h2>
+        <p class="text-muted-foreground mt-5 leading-relaxed text-pretty">
+          Ruaj emrin, NIPT-in dhe adresën e klientit një herë të vetme. Në faturën e
+          radhës e zgjedh nga lista — pa kopjuar, pa gabuar një shifër.
+        </p>
+        <ul class="mt-6 flex flex-col gap-3 text-sm">
+          {
+            [
+              'Klientë të palimituar edhe në planin falas',
+              'NIPT-i kontrollohet ndërsa e shkruan',
+              'Kërkim i shpejtë kur lista rritet',
+            ].map((point) => (
+              <li class="flex items-start gap-2.5">
+                <span class="bg-accent text-primary mt-px flex size-5 shrink-0 items-center justify-center rounded-full">
+                  <Icon name="check" class="size-3" />
+                </span>
+                <span class="text-foreground/85">{point}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <!-- ── 03 · Bilingual documents ──────────────────────────────── -->
+    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16" data-reveal>
+      <div class="max-w-lg">
+        <p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">
+          Klientët e huaj
+        </p>
+        <h2 class="text-section text-foreground mt-4 text-balance">
+          Shqip për këtu. Anglisht për jashtë.
+        </h2>
+        <p class="text-muted-foreground mt-5 leading-relaxed text-pretty">
+          E njëjta faturë, dy gjuhë. Zgjedh gjuhën për secilën faturë veç — biznesi yt
+          mbetet në shqip, klienti i huaj merr një dokument që e lexon.
+        </p>
+        <ul class="mt-6 flex flex-col gap-3 text-sm">
+          {
+            [
+              'Gjuha zgjidhet për çdo faturë veç e veç',
+              'Valuta mbetet Lekë, siç e kërkon ligji',
+              'I njëjti dokument, i njëjti format',
+            ].map((point) => (
+              <li class="flex items-start gap-2.5">
+                <span class="bg-accent text-primary mt-px flex size-5 shrink-0 items-center justify-center rounded-full">
+                  <Icon name="check" class="size-3" />
+                </span>
+                <span class="text-foreground/85">{point}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {
+          [
+            { lang: 'Shqip', title: 'FATURË', from: 'Nga', billTo: 'Faturuar për', total: 'TOTALI' },
+            { lang: 'English', title: 'INVOICE', from: 'From', billTo: 'Bill to', total: 'TOTAL' },
+          ].map((doc, index) => (
+            <div
+              class:list={[
+                'bg-card ring-border rounded-2xl p-4 shadow-lg ring-1',
+                index === 1 && 'mt-6',
+              ]}
+            >
+              <div class="flex items-center justify-between">
+                <span class="text-primary text-[11px] font-extrabold tracking-[0.1em]">
+                  {doc.title}
+                </span>
+                <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[9px] font-semibold">
+                  {doc.lang}
+                </span>
+              </div>
+              <div class="bg-brand mt-2 h-0.5 w-8 rounded-full" aria-hidden="true" />
+              <p class="text-muted-foreground mt-3 text-[10px] font-semibold uppercase">
+                {doc.from}
+              </p>
+              <div class="bg-muted mt-1 h-1.5 w-4/5 rounded-full" aria-hidden="true" />
+              <p class="text-muted-foreground mt-3 text-[10px] font-semibold uppercase">
+                {doc.billTo}
+              </p>
+              <div class="bg-muted mt-1 h-1.5 w-3/5 rounded-full" aria-hidden="true" />
+              <div class="mt-4 flex items-center justify-between border-t pt-2">
+                <span class="text-[10px] font-bold">{doc.total}</span>
+                <span class="text-primary text-[11px] font-extrabold tabular-nums">
+                  66 000 Lekë
+                </span>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>

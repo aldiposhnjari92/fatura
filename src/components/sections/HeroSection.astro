@@ -1,0 +1,118 @@
+---
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import InvoicePanel from '@/components/sections/InvoicePanel.astro';
+
+/*
+  Replaces Fulldev's hero-1, which centres everything and drops a screenshot
+  underneath — the arrangement every template ships with, and the main reason
+  the page read as "assembled" rather than designed.
+
+  This is the split hero instead: copy holds the left rail at a fixed measure,
+  the product holds the right and is allowed to run past the container edge on
+  large screens. The asymmetry is the point; it gives the eye a path (headline →
+  CTA → product) instead of a stack of centred blocks.
+
+  The product panel is built in markup rather than shipped as a screenshot: it
+  stays in step with the design tokens, works in dark mode, is sharp at any
+  pixel density, and costs no image bytes on the page we most want to be fast.
+*/
+
+const proofPoints = [
+  'Falas për 5 fatura në muaj',
+  'Pa kartë krediti',
+  'Gati për 2 minuta',
+];
+---
+
+<section class="relative isolate overflow-x-clip">
+  <!-- Ground: aurora wash over a fine grid, both fading before the fold ends. -->
+  <div class="bg-aurora pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
+  <div class="bg-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
+
+  <div class="container">
+    <div
+      class="grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10 lg:py-28"
+    >
+      <!-- Copy -->
+      <div class="max-w-xl">
+        <a
+          href="#si-funksionon"
+          class="border-border/70 bg-background/60 text-muted-foreground hover:border-primary/30 hover:text-foreground animate-rise inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
+        >
+          <span class="bg-brand size-1.5 rounded-full" aria-hidden="true"></span>
+          Bërë në Fier, për gjithë Shqipërinë
+        </a>
+
+        <h1
+          class="text-display text-foreground animate-rise mt-6 text-balance"
+          style="animation-delay: 70ms"
+        >
+          Fatura profesionale në
+          <span class="text-primary whitespace-nowrap">2 minuta</span>, jo 2 orë.
+        </h1>
+
+        <p
+          class="text-lead text-muted-foreground animate-rise mt-6 max-w-lg text-pretty"
+          style="animation-delay: 140ms"
+        >
+          Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e
+          gatshme për t'u dërguar në WhatsApp, në sekonda.
+        </p>
+
+        <div
+          class="animate-rise mt-9 flex flex-col gap-3 sm:flex-row"
+          style="animation-delay: 210ms"
+        >
+          <Button as="a" href="/regjistrohu" size="lg" class="press" data-auth-show="anon">
+            Fillo falas
+            <Icon name="arrow-right" class="size-4" />
+          </Button>
+          <Button as="a" href="/app" size="lg" class="press" data-auth-show="user">
+            Shko te paneli
+            <Icon name="arrow-right" class="size-4" />
+          </Button>
+          <Button
+            as="a"
+            href="#si-funksionon"
+            size="lg"
+            variant="outline"
+            class="press bg-background/60 backdrop-blur-sm"
+          >
+            Shiko si funksionon
+          </Button>
+        </div>
+
+        <!-- Structured microcopy under the CTA: the three objections a small
+             business raises before signing up, answered in one line. -->
+        <ul
+          class="text-muted-foreground animate-rise mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs"
+          style="animation-delay: 280ms"
+        >
+          {
+            proofPoints.map((point) => (
+              <li class="flex items-center gap-1.5">
+                <Icon name="check" class="text-primary size-3.5 shrink-0" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <!-- Product -->
+      {/*
+        Capped and inset rather than bled to the viewport edge: at full width the
+        card lost its shadow to the section's overflow clip and crowded the
+        headline. It still sits slightly right of its column to keep the
+        asymmetry.
+      */}
+      <div
+        class="animate-rise relative mx-auto w-full max-w-[34rem] lg:mr-0 lg:ml-auto"
+        style="animation-delay: 260ms"
+      >
+        <InvoicePanel />
+      </div>
+    </div>
+  </div>
+</section>

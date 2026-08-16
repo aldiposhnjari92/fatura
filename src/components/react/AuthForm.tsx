@@ -4,13 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { Label } from '@/components/ui/react/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/react/select';
+import { SearchableSelect } from '@/components/ui/react/searchable-select';
 
 type Mode = 'login' | 'register';
 
@@ -50,6 +44,17 @@ function translateError(message: string): string {
     return 'Ky email është i regjistruar. Provo të hysh.';
   if (m.includes('password should be at least'))
     return 'Fjalëkalimi duhet të ketë të paktën 6 karaktere.';
+  /*
+    Two very different 429s arrive here and must not read the same.
+
+    "email rate limit exceeded" / over_email_send_rate_limit is a *project*
+    limit, not a per-user one: Supabase's built-in sender allows only a handful
+    of confirmation mails per hour and is explicitly not meant for production.
+    Telling this person to "try again" is wrong — nothing they do resets it,
+    and the account itself was usually created fine.
+  */
+  if (m.includes('email rate limit') || m.includes('over_email_send_rate_limit'))
+    return 'Nuk mundëm të dërgojmë email-in e konfirmimit tani (kufi i përkohshëm i dërgimit). Llogaria mund të jetë krijuar — provo të hysh, ose na shkruaj në pershendetje@fatura.co.';
   if (m.includes('rate limit') || m.includes('too many'))
     return 'Shumë përpjekje. Prit pak dhe provo sërish.';
   if (m.includes('unable to validate email') || m.includes('invalid email'))
@@ -150,18 +155,15 @@ export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
 
           <div className="space-y-1.5">
             <Label htmlFor="city">Qyteti</Label>
-            <Select value={city} onValueChange={setCity}>
-              <SelectTrigger id="city" className="h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ALBANIAN_CITIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Long enough to be worth typing into rather than scrolling. */}
+            <SearchableSelect
+              id="city"
+              value={city}
+              onValueChange={setCity}
+              aria-label="Qyteti"
+              className="h-11"
+              options={ALBANIAN_CITIES.map((c) => ({ value: c, label: c }))}
+            />
           </div>
         </>
       )}

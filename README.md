@@ -313,6 +313,28 @@ server-side**; the client only picks a method and a term. The customer quotes th
 reference in the transfer description, an admin confirms it in the panel, and Pro
 activates. Paying early *extends* from the current expiry rather than resetting it.
 
+### Cancelling (Netflix-style)
+
+Cancelling never takes away what was paid for. `has_active_pro()` already gates on
+`pro_until > now()`, so `cancel_subscription()` only records the intent not to renew —
+it does **not** touch `is_pro` or `pro_until`. Pro keeps working, unlimited invoices and
+all, until the paid period ends; then it lapses to free on its own.
+
+`cancelled_at` is deliberately **not read by `has_active_pro()`**. It drives copy and
+future renewal reminders only, which is why it is safe for the customer to own and why a
+bug there can never hand out free Pro.
+
+- `resume_subscription()` undoes it while the period is still running; once it has lapsed
+  there is nothing to resume and they buy again.
+- Paying again clears `cancelled_at`, so a renewed customer is not still told "Pro ends
+  on …".
+- Admin sees `cancelling_users` as a churn signal; those subscribers still count as active
+  Pro but are **excluded from MRR**.
+
+Note: today's payments are manual bank transfers, so there is no recurring charge to stop.
+Cancelling records the decision and shows the exact end date — the flag is already in place
+for when card billing goes live.
+
 ### What stops a free subscription
 
 | Attack | Stopped by |

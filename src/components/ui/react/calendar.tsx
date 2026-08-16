@@ -19,21 +19,32 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       locale={sq}
       weekStartsOn={1}
       showOutsideDays={showOutsideDays}
-      className={cn('p-3', className)}
+      className={cn('relative p-3', className)}
       classNames={{
         ...defaults,
         months: cn(defaults.months, 'flex flex-col gap-4'),
         month: cn(defaults.month, 'flex flex-col gap-4'),
         month_caption: cn(defaults.month_caption, 'flex h-9 items-center justify-center'),
         caption_label: cn(defaults.caption_label, 'text-sm font-semibold capitalize'),
-        nav: cn(defaults.nav, 'flex items-center gap-1'),
+        /*
+          react-day-picker's own stylesheet is never imported (we restyle it
+          entirely with Tailwind), so `.rdp-root { position: relative }` does
+          not apply and the nav had no positioning context: the arrows escaped
+          to the popover's top corners, sitting on a line above the month name
+          instead of beside it. The root now establishes the context and the
+          nav is laid out explicitly as a row over the caption.
+        */
+        nav: cn(
+          defaults.nav,
+          'absolute inset-x-3 top-3 z-10 flex h-9 items-center justify-between'
+        ),
         button_previous: cn(
           buttonVariants({ variant: 'outline' }),
-          'absolute left-3 size-7 p-0 opacity-70 hover:opacity-100'
+          'size-7 p-0 opacity-70 hover:opacity-100'
         ),
         button_next: cn(
           buttonVariants({ variant: 'outline' }),
-          'absolute right-3 size-7 p-0 opacity-70 hover:opacity-100'
+          'size-7 p-0 opacity-70 hover:opacity-100'
         ),
         month_grid: cn(defaults.month_grid, 'w-full border-collapse'),
         weekdays: cn(defaults.weekdays, 'flex'),
