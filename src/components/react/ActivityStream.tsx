@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bell, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatALL, formatDate } from '@/lib/utils';
-import { useTranslations, type Lang } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 
 export interface ActivityRow {
   id: number;
@@ -15,7 +15,6 @@ export interface ActivityRow {
 }
 
 interface Props {
-  lang: Lang;
   /** Server-rendered first page, so the list is never empty on load. */
   initial?: ActivityRow[];
   /**
@@ -67,12 +66,11 @@ function meta(type: string) {
 let channelSeq = 0;
 
 export default function ActivityStream({
-  lang,
   initial = [],
   variant = 'toast',
   scope = 'platform',
 }: Props) {
-  const t = useTranslations(lang);
+  const t = useTranslations();
   const [rows, setRows] = React.useState<ActivityRow[]>(initial);
   const [toasts, setToasts] = React.useState<ActivityRow[]>([]);
   const [live, setLive] = React.useState(false);

@@ -25,7 +25,7 @@ const plans = [
       '5 fatura në muaj',
       'Klientë të palimituar',
       'PDF me logon tënde',
-      'Fatura shqip dhe anglisht',
+      'TVSH dhe zbritje',
     ],
     note: 'Pa kartë krediti',
     button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
@@ -36,14 +36,38 @@ const plans = [
     },
   },
   {
-    name: 'Pro',
+    name: 'Starter',
     description: 'Për biznese që faturojnë çdo javë.',
+    price: 1000,
+    currency: 'ALL',
+    unit: 'muaj',
+    features: [
+      '30 fatura në muaj',
+      'Gjithçka nga plani falas',
+      'Klientë të palimituar',
+      'Anulo kur të duash',
+    ],
+    note: 'Anulo kur të duash',
+    button: {
+      label: 'Fillo me Starter',
+      href: '/regjistrohu?plan=starter&muaj=1',
+      variant: 'outline' as const,
+    },
+    authedButton: {
+      label: 'Kalo në Starter',
+      href: '/app/abonimi?plan=starter&muaj=1',
+      variant: 'outline' as const,
+    },
+  },
+  {
+    name: 'Pro',
+    description: 'Për biznese që faturojnë çdo ditë.',
     price: 2000,
     currency: 'ALL',
     unit: 'muaj',
     features: [
       'Fatura të palimituara',
-      'Gjithçka nga plani falas',
+      'Gjithçka nga plani Starter',
       'Mbështetje me përparësi në WhatsApp',
       'Veçoritë e reja të parët',
     ],
@@ -51,7 +75,7 @@ const plans = [
     badge: 'Më i zgjedhuri',
     note: 'Anulo kur të duash',
     button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
-    authedButton: { label: 'Kalo në Pro', href: '/app/abonimi?muaj=1' },
+    authedButton: { label: 'Kalo në Pro', href: '/app/abonimi?plan=pro&muaj=1' },
   },
 ];
 
@@ -60,7 +84,7 @@ const faqs = [
     id: 'falas',
     question: 'A është vërtet falas?',
     answer:
-      'Po. Plani falas të lejon 5 fatura në muaj, klientë të palimituar dhe PDF me logon tënde. Plani Pro (2000 Lekë/muaj) heq limitin dhe shton fatura të palimituara.',
+      'Po. Plani falas të lejon 5 fatura në muaj, klientë të palimituar dhe PDF me logon tënde. Nëse të duhen më shumë, Starter (1000 Lekë/muaj) të jep 30 fatura në muaj dhe Pro (2000 Lekë/muaj) i heq fare limitet.',
   },
   {
     id: 'nipt',
@@ -88,21 +112,21 @@ const faqs = [
   },
   {
     id: 'pagesa',
-    question: 'Si paguhet plani Pro?',
+    question: 'Si paguhet plani me pagesë?',
     answer:
-      'Me transfertë bankare. Zgjedh 1, 6 ose 12 muaj, merr një referencë unike nga paneli, e vendos në përshkrimin e transfertës dhe Pro aktivizohet zakonisht brenda 24 orëve pune. Pagesat me kartë dhe PayPal shtohen sapo të lidhet llogaria tregtare.',
+      'Me transfertë bankare. Zgjedh planin (Starter ose Pro) dhe 1, 6 ose 12 muaj, merr një referencë unike nga paneli, e vendos në përshkrimin e transfertës dhe plani aktivizohet zakonisht brenda 24 orëve pune. Pagesat me kartë dhe PayPal shtohen sapo të lidhet llogaria tregtare.',
   },
   {
     id: 'anulimi',
     question: 'Çfarë ndodh nëse e anuloj abonimin?',
     answer:
-      'Vazhdon ta përdorësh Pro-n me të gjitha veçoritë deri në fund të periudhës që ke paguar — nuk humbet asnjë ditë. Pas asaj date llogaria kalon vetë në planin falas dhe faturat ekzistuese mbeten të paprekura; asgjë nuk fshihet.',
+      'Vazhdon ta përdorësh planin me të gjitha veçoritë deri në fund të periudhës që ke paguar — nuk humbet asnjë ditë. Pas asaj date llogaria kalon vetë në planin falas dhe faturat ekzistuese mbeten të paprekura; asgjë nuk fshihet.',
   },
   {
     id: 'freelancer',
     question: 'A punon për profesionistë të lirë (freelancers)?',
     answer:
-      'Po, dhe është ndërtuar pikërisht për ta. Fatura në anglisht me valutë Lekë dhe të dhënat e plota të biznesit janë të gatshme që në ditën e parë.',
+      'Po, dhe është ndërtuar pikërisht për ta. Fatura me NIPT, TVSH dhe të dhënat e plota të biznesit janë të gatshme që në ditën e parë.',
   },
 ];
 

@@ -4,22 +4,22 @@ import Checkout from '@/components/react/Checkout';
 import { Icon } from '@/components/ui/icon';
 import { formatALL, formatDate } from '@/lib/utils';
 import {
-  PLAN_OPTIONS,
+  isTermMonths,
   getBankDetails,
   getMethods,
   isBankConfigured,
   isPaypalConfigured,
 } from '@/lib/payments';
+import { PLANS, isPaidPlanId, isPlanId, planOf, type PaidPlanId } from '@/lib/plans';
 
 export const prerender = false;
 
 const { supabase, user, profile } = Astro.locals;
 
-// Term chosen on the pricing page, carried here through signup.
+// Tier and term chosen on the pricing page, carried here through signup.
 const requestedMonths = Number.parseInt(Astro.url.searchParams.get('muaj') ?? '', 10);
-const initialMonths = PLAN_OPTIONS.some((o) => o.months === requestedMonths)
-  ? requestedMonths
-  : 1;
+const initialMonths = isTermMonths(requestedMonths) ? requestedMonths : 1;
+const requestedPlan = Astro.url.searchParams.get('plan');
 const fromSignup = Astro.url.searchParams.has('muaj');
 
 // import.meta.env is server-side here; only PUBLIC_* reaches the browser, and
@@ -36,7 +36,7 @@ const [bootstrapResult, historyResult] = await Promise.all([
   supabase.rpc('app_bootstrap'),
   supabase
     .from('payments')
-    .select('id, reference, method, amount, months, status, created_at, decided_at')
+    .select('id, reference, method, amount, months, plan, status, created_at, decided_at')
     .eq('owner_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(10),
@@ -46,12 +46,26 @@ const bootstrap = (bootstrapResult.data ?? {}) as Record<string, any>;
 const proActive = Boolean(bootstrap.pro_active);
 const pending = bootstrap.pending_payment ?? null;
 const invoicesThisMonth = Number(bootstrap.invoices_this_month ?? 0);
+const activePlan = isPlanId(bootstrap.plan) ? bootstrap.plan : 'free';
+
+/*
+  What the plan picker opens on: the link's ?plan= when it carries one, then the
+  tier still pending payment, then the obvious next step — Pro for a Starter
+  customer, Pro for everyone else, Starter only when they asked for it.
+*/
+const initialPlan: PaidPlanId = isPaidPlanId(requestedPlan)
+  ? requestedPlan
+  : isPaidPlanId(pending?.plan)
+    ? pending.plan
+    : 'pro';
+
 const history = (historyResult.data ?? []) as {
   id: string;
   reference: string;
   method: string;
   amount: number;
   months: number;
+  plan: string | null;
   status: string;
   created_at: string;
   decided_at: string | null;
@@ -107,22 +121,36 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   },
 };
 
-const PRO_FEATURES = [
-  'Fatura të palimituara',
-  'Gjithçka nga plani falas',
-  'Mbështetje me përparësi në WhatsApp',
-  'Veçoritë e reja të parët',
-];
+/* The rail describes the tier being sold, not always Pro. */
+const PLAN_FEATURES: Record<PaidPlanId, string[]> = {
+  starter: [
+    '30 fatura në muaj',
+    'Gjithçka nga plani falas',
+    'Klientë të palimituar',
+    'Anulo kur të duash',
+  ],
+  pro: [
+    'Fatura të palimituara',
+    'Gjithçka nga plani Starter',
+    'Mbështetje me përparësi në WhatsApp',
+    'Veçoritë e reja të parët',
+  ],
+};
+
+const railPlan: PaidPlanId = activePlan === 'pro' ? 'pro' : initialPlan;
+const railFeatures = PLAN_FEATURES[railPlan];
 ---
 
 <AppLayout title="Abonimi — Fatura.co" active="settings">
   <div class="mb-6">
     <p class="text-muted-foreground text-sm font-medium">Abonimi</p>
     <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-      {proActive ? 'Abonimi yt' : 'Kalo në Pro'}
+      {proActive ? 'Abonimi yt' : `Kalo në ${PLANS[initialPlan].name}`}
     </h1>
     <p class="text-muted-foreground mt-1 text-sm">
-      Fatura të palimituara për 2000 Lekë në muaj. Anulo kur të duash.
+      Starter {formatALL(PLANS.starter.monthlyALL)}/muaj për 30 fatura, Pro {
+        formatALL(PLANS.pro.monthlyALL)
+      }/muaj pa limit. Anulo kur të duash.
     </p>
   </div>
 
@@ -137,6 +165,7 @@ const PRO_FEATURES = [
     bankConfigured={bankConfigured}
     paypalClientId={paypalClientId}
     pending={pending}
+    activePlan={activePlan}
     proActive={proActive}
     proUntil={profile?.pro_until ?? null}
     cancelledAt={profile?.cancelled_at ?? null}
@@ -144,14 +173,15 @@ const PRO_FEATURES = [
     invoicesThisMonth={invoicesThisMonth}
     currentTerm={currentTerm}
     initialMonths={initialMonths}
+    initialPlan={initialPlan}
     fromSignup={fromSignup}
     client:load
   >
     <section class="bg-card ring-border rounded-2xl p-5 ring-1">
-      <h2 class="text-sm font-semibold">Çfarë përfshin Pro</h2>
+      <h2 class="text-sm font-semibold">Çfarë përfshin {PLANS[railPlan].name}</h2>
       <ul class="mt-4 flex flex-col gap-3 text-sm">
         {
-          PRO_FEATURES.map((item) => (
+          railFeatures.map((item) => (
             <li class="flex items-start gap-2.5">
               <span class="bg-accent text-primary mt-px flex size-5 shrink-0 items-center justify-center rounded-full">
                 <Icon name="check" class="size-3.5" />
@@ -175,7 +205,8 @@ const PRO_FEATURES = [
                   <div class="min-w-0">
                     <p class="font-mono text-xs">{p.reference}</p>
                     <p class="text-muted-foreground mt-0.5 text-xs">
-                      {METHOD_LABEL[p.method] ?? p.method} · {formatDate(p.created_at)}
+                      {planOf(p.plan ?? 'pro').name} · {METHOD_LABEL[p.method] ?? p.method}{' '}
+                      · {formatDate(p.created_at)}
                     </p>
                   </div>
                   <div class="shrink-0 text-right">

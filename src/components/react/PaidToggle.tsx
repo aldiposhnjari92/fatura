@@ -3,7 +3,7 @@ import { Check, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { formatDate } from '@/lib/utils';
-import { useTranslations, type Lang } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 import { STATUS_META, displayStatus, type InvoiceStatus } from '@/lib/types';
 
 interface Props {
@@ -12,7 +12,6 @@ interface Props {
   paidAt?: string | null;
   /** Needed to derive the overdue badge; lateness is never stored. */
   dueDate?: string | null;
-  lang: Lang;
   /** `row` is the compact control used in the invoice list. */
   variant?: 'row' | 'panel';
   /**
@@ -50,12 +49,11 @@ export default function PaidToggle({
   status: initialStatus,
   paidAt: initialPaidAt = null,
   dueDate = null,
-  lang,
   variant = 'row',
   showBadge = false,
   onStatusChange,
 }: Props) {
-  const t = useTranslations(lang);
+  const t = useTranslations();
   const [status, setStatus] = React.useState<InvoiceStatus>(initialStatus);
   const [paidAt, setPaidAt] = React.useState<string | null>(initialPaidAt);
 

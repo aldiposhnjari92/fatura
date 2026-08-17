@@ -3,17 +3,16 @@ import { Check, KeyRound, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { PasswordField } from '@/components/ui/react/password-field';
-import { useTranslations, type Lang } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 
 interface Props {
   email: string;
-  lang: Lang;
 }
 
 const MIN_LENGTH = 8;
 
-export default function ChangePassword({ email, lang }: Props) {
-  const t = useTranslations(lang);
+export default function ChangePassword({ email }: Props) {
+  const t = useTranslations();
   const [next, setNext] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [busy, setBusy] = React.useState(false);

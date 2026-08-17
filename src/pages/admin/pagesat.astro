@@ -5,6 +5,7 @@ import PaymentQueue from '@/components/react/PaymentQueue';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { formatALL, formatDate } from '@/lib/utils';
+import { planOf } from '@/lib/plans';
 
 export const prerender = false;
 
@@ -45,11 +46,16 @@ const BADGE: Record<string, string> = {
   refunded: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200',
 };
 
-const kpis = [
+const kpis: { label: string; value: string; hint?: string }[] = [
   { label: 'Arkëtuar gjithsej', value: formatALL(Number(s.revenue_confirmed ?? 0)) },
   { label: 'Arkëtuar (30 ditë)', value: formatALL(Number(s.revenue_30d ?? 0)) },
   { label: 'Në pritje', value: String(pending.length) },
-  { label: 'Abonentë aktivë', value: String(s.pro_users ?? 0) },
+  {
+    label: 'Abonentë aktivë',
+    value: String(s.pro_users ?? 0),
+    // Which tiers those subscribers are on — the split MRR is made of.
+    hint: `${s.starter_users ?? 0} Starter · ${s.pro_plan_users ?? 0} Pro`,
+  },
 ];
 ---
 
@@ -68,6 +74,7 @@ const kpis = [
             {k.label}
           </p>
           <p class="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{k.value}</p>
+          {k.hint && <p class="text-muted-foreground mt-1 text-xs">{k.hint}</p>}
         </div>
       ))
     }
@@ -82,7 +89,7 @@ const kpis = [
             {pending.length}
           </span>
         </div>
-        <PaymentQueue lang={Astro.locals.lang} initial={pending} client:load />
+        <PaymentQueue initial={pending} client:load />
       </section>
     )
   }
@@ -119,6 +126,7 @@ const kpis = [
               <tr class="bg-muted/40 border-b">
                 <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="referenca">Referenca</th>
                 <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">Biznesi</th>
+                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="plani">Plani</th>
                 <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="menyra">Mënyra</th>
                 <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="shuma" data-sort-type="number">Shuma</th>
                 <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="statusi">Statusi</th>
@@ -130,6 +138,11 @@ const kpis = [
                 <tr class="hover:bg-muted/40 transition-colors">
                   <td class="px-5 py-3.5 font-mono text-xs">{r.reference}</td>
                   <td class="max-w-[14rem] truncate px-5 py-3.5">{r.business_name ?? '—'}</td>
+                  <td class="px-5 py-3.5">
+                    <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                      {planOf(r.plan ?? 'pro').name}
+                    </span>
+                  </td>
                   <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
                     {METHOD[r.method] ?? r.method} · {r.months} muaj
                   </td>

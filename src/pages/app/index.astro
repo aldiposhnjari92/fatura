@@ -5,11 +5,13 @@ import { displayStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { formatALL, formatDate } from '@/lib/utils';
-import { FREE_INVOICE_LIMIT, type InvoiceWithClient } from '@/lib/types';
+import type { InvoiceWithClient } from '@/lib/types';
+import { PLANS, planOf, quotaReached, usageRatio } from '@/lib/plans';
 
 export const prerender = false;
 
-const { supabase, user, profile, invoicesThisMonth } = Astro.locals;
+const { supabase, user, profile, invoicesThisMonth, plan, invoiceLimit } =
+  Astro.locals;
 
 /*
   Two round trips, both bounded:
@@ -32,10 +34,14 @@ const [statsResult, recentResult] = await Promise.all([
 const stats = (statsResult.data ?? {}) as Record<string, number>;
 const recent = (recentResult.data ?? []) as unknown as InvoiceWithClient[];
 
-const isPro = profile?.is_pro ?? false;
-const remaining = Math.max(FREE_INVOICE_LIMIT - invoicesThisMonth, 0);
-const usedPct = Math.min((invoicesThisMonth / FREE_INVOICE_LIMIT) * 100, 100);
-const limitReached = !isPro && remaining === 0;
+/*
+  The meter follows the tier in force, not a boolean: free caps at 5, Starter
+  at 30, Pro not at all. `invoiceLimit` is null exactly when it is unlimited.
+*/
+const planSpec = planOf(plan);
+const unlimited = invoiceLimit === null;
+const usedPct = usageRatio(plan, invoicesThisMonth) * 100;
+const limitReached = quotaReached(plan, invoicesThisMonth);
 
 const monthTotal = Number(stats.month_total ?? 0);
 const prevMonthTotal = Number(stats.prev_month_total ?? 0);
@@ -276,15 +282,17 @@ const businessName = profile?.business_name?.trim() ?? '';
           <span
             class:list={[
               'rounded-full px-2 py-0.5 text-[11px] font-bold',
-              isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
+              plan === 'free'
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-brand/15 text-primary',
             ]}
           >
-            {isPro ? 'PRO' : 'FALAS'}
+            {planSpec.badge}
           </span>
         </div>
 
         {
-          isPro ? (
+          unlimited ? (
             <p class="text-muted-foreground mt-3 text-sm">
               Fatura të palimituara. Faleminderit që na mbështet.
             </p>
@@ -301,10 +309,12 @@ const businessName = profile?.business_name?.trim() ?? '';
               </div>
               <p class="text-muted-foreground mt-2 text-sm">
                 <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
-                {FREE_INVOICE_LIMIT} fatura këtë muaj
+                {invoiceLimit} fatura këtë muaj
               </p>
               <Button as="a" href="/app/abonimi" variant="outline" size="sm" class="mt-4 w-full">
-                Kalo në Pro
+                {plan === 'free'
+                  ? `Kalo në ${PLANS.starter.name}`
+                  : `Kalo në ${PLANS.pro.name}`}
               </Button>
             </>
           )

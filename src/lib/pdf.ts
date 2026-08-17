@@ -5,7 +5,7 @@
  */
 import { computeTotals, type Client, type Invoice, type Profile } from './types';
 import { groupThousands } from './utils';
-import { t } from './i18n';
+import { invoiceStrings } from './i18n';
 
 /*
   Layout is tuned so the items table gets as much of the page as possible: the
@@ -46,7 +46,6 @@ export interface InvoicePdfInput {
     | 'discount'
     | 'status'
     | 'notes'
-    | 'language'
   >;
   profile: Partial<Profile> | null;
   client: Partial<Client> | null;
@@ -170,8 +169,7 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
     throw new Error('Bibliotekat e PDF-së nuk u ngarkuan si duhet.');
   }
 
-  const lang = invoice.language === 'sq' ? 'sq' : 'en';
-  const s = t(lang);
+  const s = invoiceStrings();
   const items = Array.isArray(invoice.items) ? invoice.items : [];
   const totals = computeTotals(items, invoice.vat_percent, invoice.discount);
 

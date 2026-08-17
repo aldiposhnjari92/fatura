@@ -14,7 +14,16 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { formatALL, formatLongDate } from '@/lib/utils';
-import { FREE_INVOICE_LIMIT } from '@/lib/types';
+import {
+  PAID_PLANS,
+  PLANS,
+  invoiceLimitOf,
+  planOf,
+  quotaReached,
+  usageRatio as quotaRatio,
+  type PaidPlanId,
+  type PlanId,
+} from '@/lib/plans';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +32,7 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import {
-  PLAN_OPTIONS,
+  termOptions,
   type BankDetails,
   type MethodInfo,
   type PaymentMethod,
@@ -35,7 +44,11 @@ interface PendingPayment {
   method: PaymentMethod;
   amount: number;
   months: number;
+  /** Which tier this request buys. Absent on rows created before Starter. */
+  plan?: PaidPlanId;
   created_at: string;
+  /** Set when create_payment() handed back an existing open request. */
+  reused?: boolean;
 }
 
 interface Props {
@@ -44,6 +57,8 @@ interface Props {
   bankConfigured: boolean;
   paypalClientId: string | null;
   pending: PendingPayment | null;
+  /** The tier in force right now — 'free' once a subscription has lapsed. */
+  activePlan: PlanId;
   proActive: boolean;
   proUntil: string | null;
   /** Set when the customer already asked not to renew. */
@@ -60,7 +75,9 @@ interface Props {
   currentTerm?: { months: number; method: string; amount: number } | null;
   /** Term chosen on the pricing page and carried through signup. */
   initialMonths?: number;
-  /** True when the visitor arrived here straight after picking Pro. */
+  /** Tier chosen on the pricing page and carried through signup. */
+  initialPlan?: PaidPlanId;
+  /** True when the visitor arrived here straight after picking a paid plan. */
   fromSignup?: boolean;
   /** The page's side rail, slotted in so the island can own the full layout. */
   children?: React.ReactNode;
@@ -96,6 +113,7 @@ export default function Checkout({
   bankConfigured,
   paypalClientId,
   pending,
+  activePlan,
   proActive,
   proUntil,
   cancelledAt = null,
@@ -103,10 +121,12 @@ export default function Checkout({
   invoicesThisMonth = 0,
   currentTerm = null,
   initialMonths = 1,
+  initialPlan = 'pro',
   fromSignup = false,
   children,
 }: Props) {
   const [months, setMonths] = React.useState(initialMonths);
+  const [plan, setPlan] = React.useState<PaidPlanId>(initialPlan);
   const [method, setMethod] = React.useState<PaymentMethod>('bank_transfer');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -124,9 +144,19 @@ export default function Checkout({
   */
   const [buying, setBuying] = React.useState(!proActive || Boolean(pending));
 
-  const selected = PLAN_OPTIONS.find((o) => o.months === months) ?? PLAN_OPTIONS[0];
+  const terms = React.useMemo(() => termOptions(plan), [plan]);
+  const selected = terms.find((o) => o.months === months) ?? terms[0];
   const activeMethod = methods.find((m) => m.id === method);
   const endsOn = proUntil ? formatLongDate(proUntil) : null;
+
+  const active = planOf(activePlan);
+  const chosen = PLANS[plan];
+  /*
+    Buying Starter while Pro is still running is a downgrade the moment the
+    payment clears — confirm_paid_payment() takes the plan from the payment.
+    Say so here rather than letting someone discover it after the transfer.
+  */
+  const isDowngrade = activePlan === 'pro' && plan === 'starter';
 
   // Rendered only after mount so the server and client never disagree on "now".
   const [today, setToday] = React.useState<Date | null>(null);
@@ -144,8 +174,10 @@ export default function Checkout({
     return Math.min(1, Math.max(0, ratio));
   }, [today, proUntil, periodStart]);
 
-  const usageRatio = Math.min(1, invoicesThisMonth / FREE_INVOICE_LIMIT);
-  const overFreeLimit = invoicesThisMonth >= FREE_INVOICE_LIMIT;
+  /* The meter follows the tier in force: 5 on free, 30 on Starter, hidden on Pro. */
+  const monthlyLimit = invoiceLimitOf(activePlan);
+  const usageRatio = quotaRatio(activePlan, invoicesThisMonth);
+  const overLimit = quotaReached(activePlan, invoicesThisMonth);
 
   /** Cancelling never revokes anything — it only stops the renewal. */
   async function cancelSubscription() {
@@ -195,6 +227,7 @@ export default function Checkout({
       const { data, error: rpcError } = await supabase.rpc('create_payment', {
         p_method: method,
         p_months: months,
+        p_plan: plan,
       });
       if (rpcError) throw rpcError;
       setOrder(data as PendingPayment);
@@ -263,7 +296,7 @@ export default function Checkout({
               Plani yt
             </p>
             <p className="text-2xl font-semibold tracking-tight">
-              {proActive ? 'Pro' : 'Falas'}
+              {proActive ? active.name : PLANS.free.name}
             </p>
           </div>
         </div>
@@ -292,14 +325,16 @@ export default function Checkout({
           >
             {cancelled ? (
               <>
-                Abonimi nuk do të rinovohet. Vazhdon me të gjitha veçoritë e Pro-s deri
-                më <strong className="text-mist">{endsOn}</strong>, pastaj llogaria kalon
-                vetë në planin falas. Asnjë faturë nuk fshihet.
+                Abonimi nuk do të rinovohet. Vazhdon me të gjitha veçoritë e planit{' '}
+                {active.name} deri më <strong className="text-mist">{endsOn}</strong>,
+                pastaj llogaria kalon vetë në planin falas. Asnjë faturë nuk fshihet.
               </>
             ) : (
               <>
-                Fatura të palimituara dhe mbështetje me përparësi. Rinovohet më{' '}
-                <strong className="text-mist">{endsOn}</strong>.
+                {monthlyLimit === null
+                  ? 'Fatura të palimituara dhe mbështetje me përparësi.'
+                  : `${monthlyLimit} fatura në muaj, me të gjitha veçoritë e dokumentit.`}{' '}
+                Rinovohet më <strong className="text-mist">{endsOn}</strong>.
               </>
             )}
           </p>
@@ -338,6 +373,42 @@ export default function Checkout({
             </div>
           )}
 
+          {/* Starter is paid but still capped, so the meter belongs here too. */}
+          {monthlyLimit !== null && (
+            <div className="mt-7">
+              <div className="flex items-baseline justify-between gap-4 text-sm">
+                <p className="text-mist font-medium">
+                  <span className="text-2xl font-bold tabular-nums">
+                    {invoicesThisMonth}
+                  </span>
+                  <span className="text-mist/60"> nga {monthlyLimit} fatura këtë muaj</span>
+                </p>
+                {overLimit && (
+                  <span className="text-xs font-semibold text-amber-300">
+                    Kuota u mbush
+                  </span>
+                )}
+              </div>
+
+              <div
+                className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={monthlyLimit}
+                aria-valuenow={invoicesThisMonth}
+                aria-label="Fatura të përdorura këtë muaj"
+              >
+                <div
+                  className={[
+                    'bar-fill h-full rounded-full',
+                    overLimit ? 'bg-amber-300' : 'bg-brand',
+                  ].join(' ')}
+                  style={{ width: `${Math.max(2, usageRatio * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {cancelled ? (
               <Button
@@ -348,6 +419,28 @@ export default function Checkout({
                 {cancelBusy ? <Loader2 className="animate-spin" /> : <Undo2 />}
                 Rikthe abonimin
               </Button>
+            ) : activePlan === 'starter' ? (
+              <>
+                <Button
+                  className="bg-brand text-ink hover:bg-brand/90 press"
+                  onClick={() => {
+                    setPlan('pro');
+                    setBuying(true);
+                  }}
+                >
+                  Kalo në Pro <ArrowRight />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="text-mist/70 hover:bg-white/5 hover:text-mist"
+                  onClick={() => {
+                    setPlan('starter');
+                    setBuying(true);
+                  }}
+                >
+                  Zgjat Starter
+                </Button>
+              </>
             ) : (
               <Button
                 className="bg-brand text-ink hover:bg-brand/90 press"
@@ -371,8 +464,8 @@ export default function Checkout({
       ) : (
         <>
           <p className="text-muted-foreground mt-6 max-w-xl text-sm leading-relaxed">
-            Plani falas mbulon {FREE_INVOICE_LIMIT} fatura në muaj me të gjitha veçoritë
-            e dokumentit — logo, NIPT, TVSH dhe PDF dygjuhësh.
+            Plani falas mbulon {PLANS.free.invoiceLimit} fatura në muaj me të gjitha
+            veçoritë e dokumentit — logo, NIPT, TVSH dhe PDF i gatshëm.
           </p>
 
           <div className="mt-7">
@@ -383,10 +476,10 @@ export default function Checkout({
                 </span>
                 <span className="text-muted-foreground">
                   {' '}
-                  nga {FREE_INVOICE_LIMIT} fatura këtë muaj
+                  nga {monthlyLimit} fatura këtë muaj
                 </span>
               </p>
-              {overFreeLimit && (
+              {overLimit && (
                 <span className="text-warning text-xs font-semibold">Kuota u mbush</span>
               )}
             </div>
@@ -395,14 +488,14 @@ export default function Checkout({
               className="bg-secondary mt-3 h-1.5 w-full overflow-hidden rounded-full"
               role="progressbar"
               aria-valuemin={0}
-              aria-valuemax={FREE_INVOICE_LIMIT}
+              aria-valuemax={monthlyLimit ?? 0}
               aria-valuenow={invoicesThisMonth}
               aria-label="Fatura të përdorura këtë muaj"
             >
               <div
                 className={[
                   'bar-fill h-full rounded-full',
-                  overFreeLimit ? 'bg-warning' : 'bg-primary',
+                  overLimit ? 'bg-warning' : 'bg-primary',
                 ].join(' ')}
                 style={{ width: `${Math.max(2, usageRatio * 100)}%` }}
               />
@@ -421,13 +514,77 @@ export default function Checkout({
         <div className="border-primary/25 bg-accent/40 animate-rise rounded-xl border px-4 py-3">
           <p className="text-sm font-semibold">Llogaria u krijua ✓</p>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            Plani Pro aktivizohet pasi të konfirmohet pagesa. Deri atëherë llogaria punon
-            me planin falas — asnjë faturë nuk humbet.
+            Plani {chosen.name} aktivizohet pasi të konfirmohet pagesa. Deri atëherë
+            llogaria punon me planin falas — asnjë faturë nuk humbet.
           </p>
         </div>
       )}
 
       {errorBanner}
+
+      {/* Plan */}
+      <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+        <h2 className="font-semibold">Zgjidh planin</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          I njëjti dokument në të dyja planet. Ndryshon vetëm sa fatura mund të lëshosh
+          në muaj.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {PAID_PLANS.map((option) => {
+            const isSelected = plan === option.id;
+            const limit = option.invoiceLimit;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setPlan(option.id as PaidPlanId)}
+                aria-pressed={isSelected}
+                className={[
+                  'press relative rounded-xl border p-4 text-left',
+                  isSelected
+                    ? 'border-primary bg-accent/50 ring-primary/25 ring-2'
+                    : 'hover:border-input hover:bg-muted/50',
+                ].join(' ')}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">{option.name}</span>
+                  <span
+                    className={[
+                      'flex size-4 shrink-0 items-center justify-center rounded-full border',
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input',
+                    ].join(' ')}
+                  >
+                    {isSelected && <Check className="size-2.5" strokeWidth={3.5} />}
+                  </span>
+                </span>
+                <span className="mt-2 block text-lg font-bold tabular-nums">
+                  {formatALL(option.monthlyALL)}
+                  <span className="text-muted-foreground text-xs font-medium">/muaj</span>
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  {limit === null ? 'Fatura të palimituara' : `${limit} fatura në muaj`}
+                </span>
+                {activePlan === option.id && (
+                  <span className="bg-secondary text-secondary-foreground absolute -top-2 right-3 rounded-full px-2 py-0.5 text-[10px] font-bold">
+                    Plani yt
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {isDowngrade && (
+          <p className="border-warning/40 bg-warning/10 mt-4 rounded-lg border px-3 py-2 text-xs leading-relaxed">
+            Ke Pro aktiv. Nëse paguan për Starter, llogaria kalon në Starter (
+            {PLANS.starter.invoiceLimit} fatura në muaj) sapo të konfirmohet pagesa, dhe
+            koha e re i shtohet asaj ekzistuese.
+          </p>
+        )}
+      </section>
 
       {/* Term */}
       <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
@@ -455,7 +612,7 @@ export default function Checkout({
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {PLAN_OPTIONS.map((option) => {
+          {terms.map((option) => {
             const isSelected = months === option.months;
             return (
               <button
@@ -571,7 +728,7 @@ export default function Checkout({
             <>
               <div className="bg-muted/50 mt-4 flex items-center justify-between gap-4 rounded-xl px-4 py-3">
                 <span className="text-muted-foreground text-sm">
-                  {selected.label} · Pro
+                  {selected.label} · {chosen.name}
                 </span>
                 <span className="text-lg font-bold tabular-nums">
                   {formatALL(selected.total)}
@@ -639,12 +796,27 @@ export default function Checkout({
                 ))}
               </dl>
 
+              {/*
+                create_payment() hands back the open bank request instead of
+                issuing a second reference, so the tier and term shown here can
+                differ from what is selected above. Say which one is waiting
+                rather than letting the amount look wrong.
+              */}
+              {order.plan && order.plan !== plan && (
+                <p className="border-warning/40 bg-warning/10 mt-4 rounded-lg border px-3 py-2 text-xs leading-relaxed">
+                  Ke tashmë një kërkesë të hapur për planin{' '}
+                  <strong>{planOf(order.plan).name}</strong>. Kjo referencë vlen për atë
+                  plan — përfundoje ose na shkruaj nëse do ta ndryshosh.
+                </p>
+              )}
+
               <div className="bg-muted/60 mt-4 rounded-xl p-4">
                 <p className="text-xs leading-relaxed">
                   <strong>Pas transfertës</strong> nuk ka nevojë të bësh gjë tjetër. Sapo
                   ta shohim pagesën me referencën{' '}
-                  <code className="font-mono">{order.reference}</code>, aktivizojmë Pro-n
-                  dhe të njoftojmë me email — zakonisht brenda 24 orëve pune.
+                  <code className="font-mono">{order.reference}</code>, aktivizojmë planin{' '}
+                  {planOf(order.plan ?? plan).name} dhe të njoftojmë me email — zakonisht
+                  brenda 24 orëve pune.
                 </p>
               </div>
             </div>
@@ -660,12 +832,18 @@ export default function Checkout({
           {activeMethod?.available && paypalClientId ? (
             <>
               <p className="text-muted-foreground mt-2 text-sm">
-                Do të paguash {formatALL(selected.total)} për {selected.label}.
+                Do të paguash {formatALL(selected.total)} për {selected.label} ·{' '}
+                {chosen.name}.
               </p>
               {/* Mount point for the PayPal SDK buttons; the order is created
                   and captured by /api/payments/paypal/* so the amount is never
                   taken from the browser. */}
-              <div id="paypal-buttons" className="mt-4" data-months={months} />
+              <div
+                id="paypal-buttons"
+                className="mt-4"
+                data-months={months}
+                data-plan={plan}
+              />
             </>
           ) : (
             <div className="border-warning/40 bg-warning/10 mt-3 rounded-xl border px-4 py-3">
@@ -707,8 +885,12 @@ export default function Checkout({
                 {[
                   {
                     k: 'Plani',
-                    v: 'Pro',
-                    sub: currentTerm ? termLabel(currentTerm.months) : 'Fatura të palimituara',
+                    v: active.name,
+                    sub: currentTerm
+                      ? termLabel(currentTerm.months)
+                      : monthlyLimit === null
+                        ? 'Fatura të palimituara'
+                        : `${monthlyLimit} fatura në muaj`,
                   },
                   {
                     k: cancelled ? 'Mbaron më' : 'Rinovohet më',
@@ -728,7 +910,10 @@ export default function Checkout({
                   {
                     k: 'Fatura këtë muaj',
                     v: String(invoicesThisMonth),
-                    sub: 'pa limit në Pro',
+                    sub:
+                      monthlyLimit === null
+                        ? 'pa limit në Pro'
+                        : `nga ${monthlyLimit} në ${active.name}`,
                   },
                 ].map((row) => (
                   <div key={row.k}>
@@ -746,7 +931,7 @@ export default function Checkout({
               <p className="text-muted-foreground mt-6 border-t pt-4 text-sm leading-relaxed">
                 {cancelled
                   ? 'Pas kësaj date llogaria kalon vetë në planin falas. Faturat ekzistuese mbeten të gjitha aty.'
-                  : `Nëse e anulon, Pro vazhdon deri në fund të periudhës së paguar dhe pastaj kthehesh te plani falas (${FREE_INVOICE_LIMIT} fatura në muaj).`}
+                  : `Nëse e anulon, ${active.name} vazhdon deri në fund të periudhës së paguar dhe pastaj kthehesh te plani falas (${PLANS.free.invoiceLimit} fatura në muaj).`}
               </p>
             </section>
           )}
@@ -762,16 +947,16 @@ export default function Checkout({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Anulo abonimin Pro?</DialogTitle>
+            <DialogTitle>Anulo abonimin {active.name}?</DialogTitle>
           </DialogHeader>
 
           <div className="border-primary/25 bg-accent/40 rounded-xl border px-4 py-3">
             <p className="text-sm font-medium">Nuk humbet asgjë tani</p>
             <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-              Pro mbetet aktiv me të gjitha veçoritë deri më{' '}
+              {active.name} mbetet aktiv me të gjitha veçoritë deri më{' '}
               <strong className="text-foreground">{endsOn}</strong> — koha që ke paguar
               nuk shkurtohet. Pas asaj date kthehesh te plani falas (
-              {FREE_INVOICE_LIMIT} fatura në muaj) dhe faturat ekzistuese mbeten të
+              {PLANS.free.invoiceLimit} fatura në muaj) dhe faturat ekzistuese mbeten të
               paprekura.
             </p>
           </div>
@@ -786,7 +971,7 @@ export default function Checkout({
               onClick={() => setShowCancel(false)}
               disabled={cancelBusy}
             >
-              Mbaje Pro-n
+              Mbaje {active.name}
             </Button>
             <Button
               variant="destructive"

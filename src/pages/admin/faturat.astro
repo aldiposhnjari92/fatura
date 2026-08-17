@@ -15,8 +15,8 @@ export const prerender = false;
   them is enforced in the database, not by leaving fields out of this template.
 */
 
-const { supabase, lang, profile } = Astro.locals;
-const t = useTranslations(lang);
+const { supabase, profile } = Astro.locals;
+const t = useTranslations();
 
 const params = Astro.url.searchParams;
 const VALID = ['draft', 'unpaid', 'paid', 'overdue'];

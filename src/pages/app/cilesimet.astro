@@ -5,20 +5,21 @@ import ProfileSettings from '@/components/react/ProfileSettings';
 import ChangePassword from '@/components/react/ChangePassword';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { FREE_INVOICE_LIMIT } from '@/lib/types';
+import { PLANS, planOf, quotaReached, usageRatio } from '@/lib/plans';
 import { formatDate } from '@/lib/utils';
 
 export const prerender = false;
 
 // Every value here already came from app_bootstrap() in the middleware.
-const { user, profile, invoicesThisMonth, lang } = Astro.locals;
-const t = useTranslations(lang);
+const { user, profile, invoicesThisMonth, plan, invoiceLimit } = Astro.locals;
+const t = useTranslations();
 const welcome = Astro.url.searchParams.get('welcome') === '1';
-const isPro = profile?.is_pro ?? false;
+const planSpec = planOf(plan);
+const unlimited = invoiceLimit === null;
 const cancelled = Boolean(profile?.cancelled_at);
 const proUntilLabel = profile?.pro_until ? formatDate(profile.pro_until) : '';
-const remaining = Math.max(FREE_INVOICE_LIMIT - invoicesThisMonth, 0);
-const usedPct = Math.min((invoicesThisMonth / FREE_INVOICE_LIMIT) * 100, 100);
+const limitReached = quotaReached(plan, invoicesThisMonth);
+const usedPct = usageRatio(plan, invoicesThisMonth) * 100;
 
 const createdAt = profile?.created_at ? new Date(profile.created_at) : null;
 const memberSince = createdAt
@@ -61,7 +62,7 @@ const memberSince = createdAt
         <p class="text-muted-foreground mt-1 text-sm">{t('pw.sectionHint')}</p>
         <div class="mt-5">
           {/* Below the fold and rarely used — no reason to block first paint. */}
-          <ChangePassword email={user!.email ?? ''} lang={lang} client:idle />
+          <ChangePassword email={user!.email ?? ''} client:idle />
         </div>
       </section>
     </div>
@@ -74,37 +75,49 @@ const memberSince = createdAt
           <span
             class:list={[
               'rounded-full px-2 py-0.5 text-[11px] font-bold',
-              isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
+              plan === 'free'
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-brand/15 text-primary',
             ]}
           >
-            {isPro ? (cancelled ? 'PRO · deri' : 'PRO') : 'FALAS'}
+            {cancelled && plan !== 'free' ? `${planSpec.badge} · deri` : planSpec.badge}
           </span>
         </div>
 
         {
-          isPro ? (
+          cancelled && plan !== 'free' && (
             <p class="text-muted-foreground mt-3 text-sm">
-              {cancelled
-                ? `Aktiv deri më ${proUntilLabel}, pastaj kalon në planin falas.`
-                : 'Fatura të palimituara. Faleminderit që na mbështet.'}
+              Aktiv deri më {proUntilLabel}, pastaj kalon në planin falas.
             </p>
+          )
+        }
+
+        {
+          unlimited ? (
+            !cancelled && (
+              <p class="text-muted-foreground mt-3 text-sm">
+                Fatura të palimituara. Faleminderit që na mbështet.
+              </p>
+            )
           ) : (
             <>
               <div class="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
                 <div
                   class:list={[
                     'h-full rounded-full transition-all',
-                    remaining === 0 ? 'bg-warning' : 'bg-primary',
+                    limitReached ? 'bg-warning' : 'bg-primary',
                   ]}
                   style={`width:${usedPct}%`}
                 />
               </div>
               <p class="text-muted-foreground mt-2 text-sm">
                 <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
-                {FREE_INVOICE_LIMIT} fatura këtë muaj
+                {invoiceLimit} fatura këtë muaj
               </p>
               <Button as="a" href="/app/abonimi" size="sm" class="mt-4 w-full">
-                Kalo në Pro
+                {plan === 'free'
+                  ? `Kalo në ${PLANS.starter.name}`
+                  : `Kalo në ${PLANS.pro.name}`}
               </Button>
             </>
           )

@@ -14,8 +14,8 @@ export interface Props {
 const { title, heading, active = 'dashboard' } = Astro.props;
 // All three come from the single app_bootstrap() call in the middleware —
 // this layout issues no queries of its own.
-const { profile, user, invoicesThisMonth, lang } = Astro.locals;
-const t = useTranslations(lang);
+const { profile, user, invoicesThisMonth, plan } = Astro.locals;
+const t = useTranslations();
 
 // For an admin, bare /app redirects to the console — so the in-app "Paneli"
 // link carries the escape param and stays where the user already is.
@@ -85,7 +85,7 @@ const nav = [
             is still one tap away: the floating action button on mobile, and the
             primary CTA on the dashboard and invoice list on desktop.
           */}
-          <ActivityStream lang={lang} variant="bell" scope="own" client:idle />
+          <ActivityStream variant="bell" scope="own" client:idle />
 
           {/*
             client:idle, not client:load: this is a dropdown behind the avatar.
@@ -93,12 +93,10 @@ const nav = [
             app page for a menu most visits never open.
           */}
           <UserMenu
-            lang={lang}
-            pathname={Astro.url.pathname}
             businessName={profile?.business_name ?? null}
             email={user?.email ?? ''}
             logoUrl={profile?.logo_url ?? null}
-            isPro={profile?.is_pro ?? false}
+            plan={plan}
             proEndsOn={profile?.cancelled_at ? (profile?.pro_until ?? null) : null}
             isAdmin={profile?.is_admin ?? false}
             invoicesThisMonth={invoicesThisMonth}

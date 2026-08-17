@@ -9,30 +9,49 @@
  * then.
  */
 
+import { PLANS, planOf, type PaidPlanId } from '@/lib/plans';
+
 export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
 
 /*
   Display only. The amount actually charged comes from
-  public.pro_monthly_price() via create_payment() — the server never trusts a
-  price sent by the browser. Keep the two in step when changing it.
+  public.plan_monthly_price() via create_payment() — the server never trusts a
+  price sent by the browser. Keep src/lib/plans.ts and the SQL in step.
 */
-export const PRO_MONTHLY_ALL = 2000;
+export const PRO_MONTHLY_ALL = PLANS.pro.monthlyALL;
 
-export interface PlanOption {
+/** Terms on offer. The same three for every plan; only the total differs. */
+export const TERM_MONTHS = [1, 6, 12] as const;
+
+export interface TermOption {
   months: number;
   label: string;
-  /** Total in Lek. */
+  /** Total in Lek for this plan over this term. */
   total: number;
   /** Marketing note, e.g. a discount hint. */
   note?: string;
   best?: boolean;
 }
 
-export const PLAN_OPTIONS: PlanOption[] = [
-  { months: 1, label: '1 muaj', total: PRO_MONTHLY_ALL },
-  { months: 6, label: '6 muaj', total: PRO_MONTHLY_ALL * 6, note: 'gjysmë viti' },
-  { months: 12, label: '12 muaj', total: PRO_MONTHLY_ALL * 12, note: 'një vit', best: true },
-];
+const TERM_META: Record<number, { label: string; note?: string; best?: boolean }> = {
+  1: { label: '1 muaj' },
+  6: { label: '6 muaj', note: 'gjysmë viti' },
+  12: { label: '12 muaj', note: 'një vit', best: true },
+};
+
+/** The term cards for a given plan, priced from that plan's monthly rate. */
+export function termOptions(plan: PaidPlanId | string): TermOption[] {
+  const monthly = planOf(plan).monthlyALL || PLANS.pro.monthlyALL;
+  return TERM_MONTHS.map((months) => ({
+    months,
+    total: monthly * months,
+    ...TERM_META[months],
+  }));
+}
+
+export function isTermMonths(value: unknown): boolean {
+  return TERM_MONTHS.includes(Number(value) as (typeof TERM_MONTHS)[number]);
+}
 
 export interface BankDetails {
   beneficiary: string;
@@ -119,8 +138,7 @@ export function getMethods(env: Record<string, unknown>): MethodInfo[] {
   ];
 }
 
-/** Human summary of what a purchase buys, e.g. "12 muaj · 11 880 Lekë". */
-export function describePlan(months: number): string {
-  const option = PLAN_OPTIONS.find((o) => o.months === months);
-  return option ? option.label : `${months} muaj`;
+/** Human label for a term, e.g. "12 muaj". */
+export function describeTerm(months: number): string {
+  return TERM_META[months]?.label ?? `${months} muaj`;
 }

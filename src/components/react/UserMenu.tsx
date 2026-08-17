@@ -1,9 +1,7 @@
 import * as React from 'react';
 import {
-  Check,
   ChevronDown,
   FileText,
-  Languages,
   LogOut,
   CreditCard,
   Settings,
@@ -21,43 +19,37 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/react/dropdown-menu';
 import { formatDate, initials } from '@/lib/utils';
-import { FREE_INVOICE_LIMIT } from '@/lib/types';
-import { LANGS, LANG_LABEL, useTranslations, type Lang } from '@/lib/i18n';
+import { invoiceLimitOf, planOf, usageRatio, type PlanId } from '@/lib/plans';
+import { useTranslations } from '@/lib/i18n';
 
 interface Props {
   businessName: string | null;
   email: string;
   logoUrl: string | null;
-  isPro: boolean;
-  /** ISO date the Pro period ends, when the customer has cancelled. */
+  /** The tier in force — 'free' once a paid plan has lapsed. */
+  plan: PlanId;
+  /** ISO date the paid period ends, when the customer has cancelled. */
   proEndsOn?: string | null;
   isAdmin?: boolean;
   invoicesThisMonth: number;
-  lang: Lang;
-  /** Where to return after switching language. */
-  pathname: string;
 }
 
 export default function UserMenu({
   businessName,
   email,
   logoUrl,
-  isPro,
+  plan,
   proEndsOn = null,
   isAdmin = false,
   invoicesThisMonth,
-  lang,
-  pathname,
 }: Props) {
-  const t = useTranslations(lang);
+  const t = useTranslations();
   const signOutRef = React.useRef<HTMLFormElement>(null);
-  // One hidden form, retargeted per language — a POST so the cookie is set
-  // server-side and the switch survives with JavaScript off elsewhere.
-  const langFormRef = React.useRef<HTMLFormElement>(null);
-  const langInputRef = React.useRef<HTMLInputElement>(null);
   const label = businessName || email;
-  const remaining = Math.max(FREE_INVOICE_LIMIT - invoicesThisMonth, 0);
-  const usedPct = Math.min((invoicesThisMonth / FREE_INVOICE_LIMIT) * 100, 100);
+  /* Unlimited on Pro, 30 on Starter, 5 on free — the meter follows the tier. */
+  const monthlyLimit = invoiceLimitOf(plan);
+  const remaining = monthlyLimit === null ? null : Math.max(monthlyLimit - invoicesThisMonth, 0);
+  const usedPct = usageRatio(plan, invoicesThisMonth) * 100;
 
   return (
     <>
@@ -103,16 +95,16 @@ export default function UserMenu({
               <span className="text-xs font-medium">{t('set.plan')}</span>
               <span
                 className={
-                  isPro
+                  plan !== 'free'
                     ? 'bg-brand/15 text-primary rounded-full px-2 py-0.5 text-[11px] font-bold'
                     : 'bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold'
                 }
               >
-                {isPro ? t('plan.proBadge') : t('plan.freeBadge')}
+                {planOf(plan).badge}
               </span>
             </div>
 
-            {isPro ? (
+            {monthlyLimit === null ? (
               <p className="text-muted-foreground text-xs">
                 {proEndsOn
                   ? t('sub.activeUntil', { date: formatDate(proEndsOn) })
@@ -127,8 +119,13 @@ export default function UserMenu({
                   />
                 </div>
                 <p className="text-muted-foreground mt-1.5 text-xs">
-                  {t('usage.remaining', { left: remaining, max: FREE_INVOICE_LIMIT })}
+                  {t('usage.remaining', { left: remaining ?? 0, max: monthlyLimit })}
                 </p>
+                {proEndsOn && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {t('sub.activeUntil', { date: formatDate(proEndsOn) })}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -157,10 +154,14 @@ export default function UserMenu({
             </a>
           </DropdownMenuItem>
 
-          {!isPro && (
+          {/* Nothing to upsell on Pro; Starter is offered the step above it. */}
+          {plan !== 'pro' && (
             <DropdownMenuItem asChild>
-              <a href="/app/abonimi" className="text-primary font-medium">
-                <Sparkles /> {t('sub.upgrade')}
+              <a
+                href={plan === 'free' ? '/app/abonimi?plan=starter' : '/app/abonimi?plan=pro'}
+                className="text-primary font-medium"
+              >
+                <Sparkles /> {plan === 'free' ? t('sub.upgradeStarter') : t('sub.upgrade')}
               </a>
             </DropdownMenuItem>
           )}
@@ -175,31 +176,6 @@ export default function UserMenu({
               </DropdownMenuItem>
             </>
           )}
-
-          <DropdownMenuSeparator />
-
-          {/* Only shown while more than one language is offered. */}
-          {LANGS.length > 1 && (
-            <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-              {t('nav.language')}
-            </DropdownMenuLabel>
-          )}
-          {LANGS.length > 1 &&
-            LANGS.map((code) => (
-            <DropdownMenuItem
-              key={code}
-              className={code === lang ? 'font-semibold' : undefined}
-              onSelect={(event) => {
-                event.preventDefault();
-                if (code === lang) return;
-                if (langInputRef.current) langInputRef.current.value = code;
-                langFormRef.current?.submit();
-              }}
-            >
-              <Languages /> {LANG_LABEL[code]}
-              {code === lang && <Check className="ml-auto size-4" />}
-            </DropdownMenuItem>
-          ))}
 
           <DropdownMenuSeparator />
 
@@ -218,11 +194,6 @@ export default function UserMenu({
       </DropdownMenu>
 
       <form ref={signOutRef} method="POST" action="/auth/signout" className="hidden" />
-
-      <form ref={langFormRef} method="POST" action="/api/lang" className="hidden">
-        <input type="hidden" name="lang" ref={langInputRef} />
-        <input type="hidden" name="next" value={pathname} />
-      </form>
     </>
   );
 }

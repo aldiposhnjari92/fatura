@@ -36,7 +36,7 @@ const [{ data: clientsData }, suggestedNumber] = await Promise.all([
 ]);
 
 const clients = (clientsData ?? []) as Client[];
-const t = useTranslations(Astro.locals.lang);
+const t = useTranslations();
 ---
 
 <AppLayout title={`${invoice.invoice_number} — Fatura.co`} active="invoices">
@@ -57,7 +57,6 @@ const t = useTranslations(Astro.locals.lang);
   </h1>
 
   <InvoiceEditor
-    lang={Astro.locals.lang}
     profile={profile}
     clients={clients}
     invoice={invoice}

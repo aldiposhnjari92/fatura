@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 import { formatALL } from '@/lib/utils';
 
 /*
-  Three alternating rows, each with its own piece of the real interface.
+  Two alternating rows, each with its own piece of the real interface.
 
   The rest of the page (and most template marketing pages) repeats one shape:
   centred heading, then a grid of equally weighted cards. Doing that four times
@@ -16,7 +16,7 @@ import { formatALL } from '@/lib/utils';
   as an accident.
 
   Each mock mirrors a screen that exists: the invoice list with its derived
-  overdue badge, the saved-client picker, and the per-invoice language switch.
+  overdue badge, and the saved-client picker.
 */
 ---
 
@@ -165,78 +165,6 @@ import { formatALL } from '@/lib/utils';
             ))
           }
         </ul>
-      </div>
-    </div>
-
-    <!-- ── 03 · Bilingual documents ──────────────────────────────── -->
-    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16" data-reveal>
-      <div class="max-w-lg">
-        <p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">
-          Klientët e huaj
-        </p>
-        <h2 class="text-section text-foreground mt-4 text-balance">
-          Shqip për këtu. Anglisht për jashtë.
-        </h2>
-        <p class="text-muted-foreground mt-5 leading-relaxed text-pretty">
-          E njëjta faturë, dy gjuhë. Zgjedh gjuhën për secilën faturë veç — biznesi yt
-          mbetet në shqip, klienti i huaj merr një dokument që e lexon.
-        </p>
-        <ul class="mt-6 flex flex-col gap-3 text-sm">
-          {
-            [
-              'Gjuha zgjidhet për çdo faturë veç e veç',
-              'Valuta mbetet Lekë, siç e kërkon ligji',
-              'I njëjti dokument, i njëjti format',
-            ].map((point) => (
-              <li class="flex items-start gap-2.5">
-                <span class="bg-accent text-primary mt-px flex size-5 shrink-0 items-center justify-center rounded-full">
-                  <Icon name="check" class="size-3" />
-                </span>
-                <span class="text-foreground/85">{point}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        {
-          [
-            { lang: 'Shqip', title: 'FATURË', from: 'Nga', billTo: 'Faturuar për', total: 'TOTALI' },
-            { lang: 'English', title: 'INVOICE', from: 'From', billTo: 'Bill to', total: 'TOTAL' },
-          ].map((doc, index) => (
-            <div
-              class:list={[
-                'bg-card ring-border rounded-2xl p-4 shadow-lg ring-1',
-                index === 1 && 'mt-6',
-              ]}
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-primary text-[11px] font-extrabold tracking-[0.1em]">
-                  {doc.title}
-                </span>
-                <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[9px] font-semibold">
-                  {doc.lang}
-                </span>
-              </div>
-              <div class="bg-brand mt-2 h-0.5 w-8 rounded-full" aria-hidden="true" />
-              <p class="text-muted-foreground mt-3 text-[10px] font-semibold uppercase">
-                {doc.from}
-              </p>
-              <div class="bg-muted mt-1 h-1.5 w-4/5 rounded-full" aria-hidden="true" />
-              <p class="text-muted-foreground mt-3 text-[10px] font-semibold uppercase">
-                {doc.billTo}
-              </p>
-              <div class="bg-muted mt-1 h-1.5 w-3/5 rounded-full" aria-hidden="true" />
-              <div class="mt-4 flex items-center justify-between border-t pt-2">
-                <span class="text-[10px] font-bold">{doc.total}</span>
-                <span class="text-primary text-[11px] font-extrabold tabular-nums">
-                  66 000 Lekë
-                </span>
-              </div>
-            </div>
-          ))
-        }
       </div>
     </div>
   </div>

@@ -5,6 +5,7 @@ import TableSort from '@/components/TableSort.astro';
 import { Icon } from '@/components/ui/icon';
 import PaymentQueue from '@/components/react/PaymentQueue';
 import { formatALL, formatDate, groupThousands } from '@/lib/utils';
+import { planOf } from '@/lib/plans';
 
 export const prerender = false;
 
@@ -15,7 +16,7 @@ export const prerender = false;
   businesses' rows, so a mistake here leaks a count rather than a customer list.
 */
 const { supabase } = Astro.locals;
-const t = useTranslations(Astro.locals.lang);
+const t = useTranslations();
 
 const [statsResult, seriesResult, businessesResult, pendingResult] = await Promise.all([
   supabase.rpc('admin_stats'),
@@ -34,6 +35,7 @@ const businesses = (businessesResult.data ?? []) as {
   business_name: string | null;
   city: string | null;
   is_pro: boolean;
+  plan?: string | null;
   created_at: string;
   invoice_count: number;
 }[];
@@ -67,7 +69,11 @@ const headline = [
     value: formatALL(num(s.mrr_all)),
     icon: 'trending-up',
     tone: 'text-success',
-    hint: t('adm.perSubscriberHint'),
+    // MRR now mixes two prices, so the tier split is what makes it legible.
+    hint: t('adm.perSubscriberHint', {
+      starter: num(s.starter_users),
+      pro: num(s.pro_plan_users),
+    }),
   },
   {
     label: t('adm.active30d'),
@@ -199,7 +205,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
             )
           }
         </div>
-        <PaymentQueue lang={Astro.locals.lang} initial={pendingPayments} client:load />
+        <PaymentQueue initial={pendingPayments} client:load />
       </section>
 
       <!-- Recent businesses -->
@@ -261,7 +267,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
                               : 'bg-muted text-muted-foreground',
                           ]}
                         >
-                          {b.is_pro ? t('plan.proBadge') : t('plan.freeBadge')}
+                          {b.is_pro ? planOf(b.plan ?? 'pro').badge : t('plan.freeBadge')}
                         </span>
                       </td>
                       <td class="px-5 py-3 text-right tabular-nums">{b.invoice_count}</td>

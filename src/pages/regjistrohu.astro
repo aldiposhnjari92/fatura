@@ -1,49 +1,61 @@
 ---
 import AuthLayout from '@/layouts/AuthLayout.astro';
 import AuthForm from '@/components/react/AuthForm';
-import { PLAN_OPTIONS, PRO_MONTHLY_ALL } from '@/lib/payments';
+import { isTermMonths, termOptions } from '@/lib/payments';
+import { PLANS, isPaidPlanId, invoiceLimitOf } from '@/lib/plans';
 import { formatALL } from '@/lib/utils';
 
 export const prerender = false;
 
 /*
-  The pricing cards link here with ?plan=pro&muaj=N. Without carrying that
-  through, every signup silently landed on the free plan no matter which card
-  was clicked — the choice was simply dropped.
+  The pricing cards link here with ?plan=starter|pro&muaj=N. Without carrying
+  that through, every signup silently landed on the free plan no matter which
+  card was clicked — the choice was simply dropped.
 
-  Signing up does NOT grant Pro; nothing has been paid yet. The intent is
-  carried to the checkout instead, with the chosen term preselected.
+  Signing up does NOT grant a paid plan; nothing has been paid yet. The intent
+  is carried to the checkout instead, with the tier and term preselected.
 */
 const params = Astro.url.searchParams;
-const wantsPro = params.get('plan') === 'pro';
+const requestedPlan = params.get('plan');
+const paidPlan = isPaidPlanId(requestedPlan) ? PLANS[requestedPlan] : null;
 const requested = Number.parseInt(params.get('muaj') ?? '', 10);
-const months = PLAN_OPTIONS.some((o) => o.months === requested) ? requested : 1;
-const plan = PLAN_OPTIONS.find((o) => o.months === months) ?? PLAN_OPTIONS[0];
+const months = isTermMonths(requested) ? requested : 1;
+const term =
+  termOptions(paidPlan?.id ?? 'pro').find((o) => o.months === months) ??
+  termOptions(paidPlan?.id ?? 'pro')[0];
 
-const next = wantsPro ? `/app/abonimi?muaj=${months}` : '/app/cilesimet?welcome=1';
+const limit = paidPlan ? invoiceLimitOf(paidPlan.id) : null;
+const quotaLine =
+  limit === null ? 'fatura të palimituara' : `${limit} fatura në muaj`;
+
+const next = paidPlan
+  ? `/app/abonimi?plan=${paidPlan.id}&muaj=${months}`
+  : '/app/cilesimet?welcome=1';
 ---
 
 <AuthLayout
   title="Krijo llogari falas — Fatura.co"
   description="Krijo llogarinë falas dhe bëj faturën e parë me NIPT dhe logo në 2 minuta."
-  heading={wantsPro ? 'Krijo llogarinë për Pro' : 'Krijo llogarinë falas'}
+  heading={paidPlan ? `Krijo llogarinë për ${paidPlan.name}` : 'Krijo llogarinë falas'}
   subheading={
-    wantsPro
-      ? `Pas regjistrimit vazhdon me pagesën për ${plan.label}.`
+    paidPlan
+      ? `Pas regjistrimit vazhdon me pagesën për ${term.label}.`
       : 'Pa kartë krediti. Fatura e parë brenda 5 minutash.'
   }
 >
   {
-    wantsPro && (
+    paidPlan && (
       <div class="border-primary/25 bg-accent/40 mb-6 rounded-xl border px-4 py-3">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold">Plani Pro · {plan.label}</p>
+            <p class="text-sm font-semibold">
+              Plani {paidPlan.name} · {term.label}
+            </p>
             <p class="text-muted-foreground mt-0.5 text-xs">
-              {formatALL(PRO_MONTHLY_ALL)}/muaj · fatura të palimituara
+              {formatALL(paidPlan.monthlyALL)}/muaj · {quotaLine}
             </p>
           </div>
-          <p class="shrink-0 text-lg font-bold tabular-nums">{formatALL(plan.total)}</p>
+          <p class="shrink-0 text-lg font-bold tabular-nums">{formatALL(term.total)}</p>
         </div>
       </div>
     )
@@ -52,7 +64,7 @@ const next = wantsPro ? `/app/abonimi?muaj=${months}` : '/app/cilesimet?welcome=
   <AuthForm
     mode="register"
     next={next}
-    submitLabel={wantsPro ? 'Vazhdo me pagesën' : undefined}
+    submitLabel={paidPlan ? 'Vazhdo me pagesën' : undefined}
     client:load
   />
 

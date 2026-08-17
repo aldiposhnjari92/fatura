@@ -3,11 +3,12 @@ import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
-import { FREE_INVOICE_LIMIT, type Client } from '@/lib/types';
+import type { Client } from '@/lib/types';
+import { quotaReached } from '@/lib/plans';
 
 export const prerender = false;
 
-const { supabase, user, profile } = Astro.locals;
+const { supabase, user, profile, plan } = Astro.locals;
 
 const now = new Date();
 const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -24,8 +25,10 @@ const [clientsResult, monthResult, suggestedNumber] = await Promise.all([
 
 const clients = (clientsResult.data ?? []) as Client[];
 const invoicesThisMonth = monthResult.count ?? 0;
-const limitReached = !(profile?.is_pro ?? false) && invoicesThisMonth >= FREE_INVOICE_LIMIT;
-const t = useTranslations(Astro.locals.lang);
+// Same rule as enforce_invoice_quota(): the cap is the active tier's, and Pro
+// has none. This only warns — the database is what actually refuses the insert.
+const limitReached = quotaReached(plan, invoicesThisMonth);
+const t = useTranslations();
 ---
 
 <AppLayout title={`${t('inv.new')} — Fatura.co`} active="invoices">
@@ -40,7 +43,6 @@ const t = useTranslations(Astro.locals.lang);
   <h1 class="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">{t('inv.new')}</h1>
 
   <InvoiceEditor
-    lang={Astro.locals.lang}
     profile={profile}
     clients={clients}
     suggestedNumber={suggestedNumber}

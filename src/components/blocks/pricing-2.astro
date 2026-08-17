@@ -64,6 +64,13 @@ const {
 } = Astro.props;
 
 const hasFeatured = plans.some((plan) => plan.featured);
+
+/*
+  Two plans sit side by side at md; three need the wider container and a third
+  column, and only get it at lg — three cards at tablet width squeeze the price
+  and the feature list into two lines each.
+*/
+const isTrio = plans.length > 2;
 ---
 
 <Section class={cn('', className)}>
@@ -74,7 +81,8 @@ const hasFeatured = plans.some((plan) => plan.featured);
 
     <div
       class={cn(
-        'mx-auto grid w-full max-w-4xl items-stretch gap-6 md:grid-cols-2',
+        'mx-auto grid w-full items-stretch gap-6',
+        isTrio ? 'max-w-6xl sm:grid-cols-2 lg:grid-cols-3' : 'max-w-4xl md:grid-cols-2',
         // Room for the featured card to lift without clipping its glow.
         hasFeatured && 'lg:gap-8 lg:py-4'
       )}

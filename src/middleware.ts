@@ -1,7 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import type { Profile } from '@/lib/types';
-import { LANG_COOKIE, langFromPath, resolveLang } from '@/lib/i18n';
+import { invoiceLimitOf, isPaidPlanId, isPlanId, type PlanId } from '@/lib/plans';
 
 const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';
@@ -71,25 +71,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return response;
   };
 
-  /*
-    Language.
-
-    Per-request routes (/app, /admin, auth) settle it from the cookie, falling
-    back to Accept-Language. Prerendered routes must not read either: at build
-    time there is no visitor, and `cookies.get()` reaches into the Cookie header
-    just like `request.headers` does, which is what made Astro warn for every
-    static page. Those routes carry the language in the URL instead — `/` is
-    Albanian, `/en/...` is English — which is also what lets them stay static
-    and gives search engines two real pages.
-  */
-  const perRequest = isProtected || isAuthRoute;
-  locals.lang = perRequest
-    ? resolveLang(
-        cookies.get(LANG_COOKIE)?.value,
-        context.request.headers.get('accept-language')
-      )
-    : langFromPath(url.pathname);
-
   // Static marketing pages must stay free of a Supabase round-trip. Bail out
   // before touching request.headers, which does not exist while prerendering.
   if (!isProtected && !isAuthRoute) {
@@ -101,6 +82,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.user = null;
   locals.profile = null;
   locals.invoicesThisMonth = 0;
+  locals.plan = 'free';
+  locals.invoiceLimit = invoiceLimitOf('free');
 
   /*
     Never trust getSession() alone for an authorization decision — but
@@ -148,17 +131,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
     /*
       Someone already signed in has no use for /login or /regjistrohu — but do
       not throw away why they came. The pricing cards link to
-      /regjistrohu?plan=pro&muaj=N, so an existing customer clicking "upgrade"
-      was being dumped on the dashboard with their choice discarded. Carry the
-      intent to the checkout instead.
+      /regjistrohu?plan=starter|pro&muaj=N, so an existing customer clicking
+      "upgrade" was being dumped on the dashboard with their choice discarded.
+      Carry the intent to the checkout instead.
 
       This is the catch-all: it also covers bookmarks, cached marketing pages
       and the back button, not just the links we control.
     */
-    if (url.searchParams.get('plan') === 'pro') {
+    const wantedPlan = url.searchParams.get('plan');
+    if (isPaidPlanId(wantedPlan)) {
       const requested = Number.parseInt(url.searchParams.get('muaj') ?? '', 10);
       const months = [1, 6, 12].includes(requested) ? requested : 1;
-      return withHeaders(redirect(`/app/abonimi?muaj=${months}`, 302));
+      return withHeaders(
+        redirect(`/app/abonimi?plan=${wantedPlan}&muaj=${months}`, 302)
+      );
     }
 
     const rawNext = url.searchParams.get('next') ?? '';
@@ -174,6 +160,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     locals.profile = (bootstrap?.profile as Profile) ?? null;
     locals.invoicesThisMonth = Number(bootstrap?.invoices_this_month ?? 0);
+
+    /*
+      The tier comes from active_plan() rather than profiles.plan, so an expired
+      subscription reads as free here exactly as it does in the quota trigger.
+      `invoice_limit` is null on Pro — unlimited — which is why it is carried
+      through as null instead of being flattened to a number.
+    */
+    const activePlan: PlanId = isPlanId(bootstrap?.plan) ? bootstrap.plan : 'free';
+    locals.plan = activePlan;
+    locals.invoiceLimit =
+      bootstrap?.invoice_limit === null || bootstrap?.invoice_limit === undefined
+        ? invoiceLimitOf(activePlan)
+        : Number(bootstrap.invoice_limit);
 
     // The admin panel is gated here as well as in the database. The RPCs it
     // calls each re-check is_admin(), so this is defence in depth, not the

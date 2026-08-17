@@ -1,18 +1,19 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
-import { PRO_MONTHLY_ALL } from '@/lib/payments';
+import { PLANS, isPaidPlanId } from '@/lib/plans';
 
 export const prerender = false;
 
 /*
   PayPal Orders API. Two actions on one route:
 
-    POST { action: 'create', months }        -> creates a PayPal order
+    POST { action: 'create', months, plan }  -> creates a PayPal order
     POST { action: 'capture', orderId, ... } -> captures it and marks the payment
 
-  The amount is derived from `months` on the server and never read from the
-  request body, so a tampered client cannot buy a year for 1 Lek. Nothing here
+  The amount is derived from `plan` and `months` on the server — create_payment()
+  reads the price from plan_monthly_price() — and is never taken from the request
+  body, so a tampered client cannot buy a year of Pro for 1 Lek. Nothing here
   runs unless PAYPAL_CLIENT_ID/PAYPAL_SECRET are configured — Albania is not a
   supported Stripe country and PayPal receiving is account-dependent, so this
   stays dormant until a working merchant account exists.
@@ -74,11 +75,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   // ---------- create ----------
   if (body.action === 'create') {
     const months = Math.min(Math.max(Number(body.months) || 1, 1), 24);
+    // An unknown or missing tier falls back to Pro, which is what every order
+    // predating Starter bought.
+    const plan = isPaidPlanId(body.plan) ? body.plan : 'pro';
 
     // Open the payment row first: it computes and owns the amount.
     const { data: payment, error: rpcError } = await supabase.rpc('create_payment', {
       p_method: 'paypal',
       p_months: months,
+      p_plan: plan,
     });
     if (rpcError) return json({ error: rpcError.message }, 400);
 
@@ -93,7 +98,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         purchase_units: [
           {
             reference_id: reference,
-            description: `Fatura.co Pro — ${months} muaj`,
+            description: `Fatura.co ${PLANS[plan].name} — ${months} muaj`,
             custom_id: String((payment as Record<string, unknown>).id),
             amount: {
               // PayPal has no ALL support for card processing in most accounts,
@@ -111,7 +116,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return json({ error: 'PAYPAL_CREATE_FAILED', detail: await response.text() }, 502);
     }
     const order = await response.json();
-    return json({ id: order.id, reference, amount, months });
+    return json({ id: order.id, reference, amount, months, plan });
   }
 
   // ---------- capture ----------
@@ -166,5 +171,6 @@ export const GET: APIRoute = () =>
     configured: Boolean(
       import.meta.env.PUBLIC_PAYPAL_CLIENT_ID && import.meta.env.PAYPAL_SECRET
     ),
-    monthlyALL: PRO_MONTHLY_ALL,
+    monthlyALL: PLANS.pro.monthlyALL,
+    starterMonthlyALL: PLANS.starter.monthlyALL,
   });

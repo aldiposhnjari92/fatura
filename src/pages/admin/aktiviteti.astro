@@ -15,8 +15,8 @@ export const prerender = false;
   page 1 no matter how large the table grows.
 */
 
-const { supabase, lang } = Astro.locals;
-const t = useTranslations(lang);
+const { supabase } = Astro.locals;
+const t = useTranslations();
 
 const params = Astro.url.searchParams;
 const beforeAt = params.get('para') || null;
@@ -80,7 +80,7 @@ const TYPES = [
     }
   </div>
 
-  <ActivityStream lang={lang} initial={rows} variant="list" client:load />
+  <ActivityStream initial={rows} variant="list" client:load />
 
   {
     nextHref && (

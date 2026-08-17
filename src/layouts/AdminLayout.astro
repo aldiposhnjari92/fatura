@@ -1,7 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
-import LanguageSwitcher from '@/components/LanguageSwitcher.astro';
 import ActivityStream from '@/components/react/ActivityStream';
 import { Icon } from '@/components/ui/icon';
 import { initials } from '@/lib/utils';
@@ -17,9 +16,8 @@ export interface Props {
 }
 
 const { title, heading, subheading, active, pendingCount = 0 } = Astro.props;
-const { profile, user, lang } = Astro.locals;
-const t = useTranslations(lang);
-const pathname = Astro.url.pathname;
+const { profile, user } = Astro.locals;
+const t = useTranslations();
 
 /*
   A separate shell from /app on purpose. The client dashboard and the operator
@@ -121,7 +119,7 @@ const footerLink =
           )
         }
         <span class="text-mist">
-          <ActivityStream lang={lang} variant="bell" client:idle />
+          <ActivityStream variant="bell" client:idle />
         </span>
         <label
           for="admin-nav"
@@ -204,14 +202,6 @@ const footerLink =
             <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
           </button>
         </form>
-
-        <div class="px-3 pt-2">
-          <LanguageSwitcher
-            lang={lang}
-            pathname={pathname}
-            class="border-white/15 text-mist/70"
-          />
-        </div>
       </div>
     </aside>
 
@@ -273,14 +263,6 @@ const footerLink =
             <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
           </button>
         </form>
-
-        <div class="px-3 pt-2">
-          <LanguageSwitcher
-            lang={lang}
-            pathname={pathname}
-            class="border-white/15 text-mist/70"
-          />
-        </div>
       </div>
     </aside>
 
@@ -302,7 +284,7 @@ const footerLink =
           </div>
           <div class="flex items-center gap-2">
             <span class="hidden lg:block">
-              <ActivityStream lang={lang} variant="bell" client:idle />
+              <ActivityStream variant="bell" client:idle />
             </span>
             <slot name="actions" />
           </div>
@@ -315,7 +297,7 @@ const footerLink =
 
       {/* Live notifications, console-wide. The table's RLS is manager-only, so
           the subscription yields nothing to anyone else. */}
-      <ActivityStream lang={lang} variant="toast" client:idle />
+      <ActivityStream variant="toast" client:idle />
     </div>
   </div>
 </BaseLayout>

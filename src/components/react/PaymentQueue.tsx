@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Check, Loader2, Landmark, CreditCard, Wallet, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useTranslations, type Lang } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 import { Button } from '@/components/ui/react/button';
 import { formatALL, formatDate } from '@/lib/utils';
+import { planOf } from '@/lib/plans';
 
 interface PendingPayment {
   id: string;
@@ -11,6 +12,8 @@ interface PendingPayment {
   method: string;
   amount: number;
   months: number;
+  /** Tier this payment buys; absent on rows created before Starter existed. */
+  plan?: string | null;
   created_at: string;
   provider_ref: string | null;
   business_name: string | null;
@@ -24,12 +27,10 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 export default function PaymentQueue({
   initial,
-  lang,
 }: {
   initial: PendingPayment[];
-  lang: Lang;
 }) {
-  const t = useTranslations(lang);
+  const t = useTranslations();
   const LABELS: Record<string, string> = {
     bank_transfer: t('pay.bankTransfer'),
     card: t('pay.card'),
@@ -95,7 +96,10 @@ export default function PaymentQueue({
                 </p>
                 <p className="text-muted-foreground mt-0.5 text-xs">
                   <code className="font-mono">{row.reference}</code> ·{' '}
-                  {LABELS[row.method] ?? row.method} · {row.months} muaj ·{' '}
+                  <strong className="text-foreground">
+                    {planOf(row.plan ?? 'pro').name}
+                  </strong>{' '}
+                  · {LABELS[row.method] ?? row.method} · {row.months} muaj ·{' '}
                   {formatDate(row.created_at)}
                 </p>
               </div>

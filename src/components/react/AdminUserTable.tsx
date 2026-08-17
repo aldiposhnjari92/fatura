@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/react/dropdown-menu';
 import { formatALL, formatDate } from '@/lib/utils';
+import { PAID_PLANS, planOf, type PaidPlanId, type PlanId } from '@/lib/plans';
 
 export interface AdminUserRow {
   id: string;
@@ -37,6 +38,8 @@ export interface AdminUserRow {
   city: string | null;
   nipt: string | null;
   is_pro: boolean;
+  /** Tier in force, from active_plan() — already accounts for expiry. */
+  plan?: PlanId;
   is_admin: boolean;
   is_manager?: boolean;
   pro_until: string | null;
@@ -55,6 +58,12 @@ interface Props {
 
 function proActive(row: AdminUserRow) {
   return row.is_pro && (!row.pro_until || new Date(row.pro_until) > new Date());
+}
+
+/* Falls back to the boolean for rows fetched before `plan` was surfaced. */
+function planOfRow(row: AdminUserRow): PlanId {
+  if (row.plan) return row.plan;
+  return proActive(row) ? 'pro' : 'free';
 }
 
 interface DeletePreview {
@@ -118,13 +127,18 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
     }
   }
 
-  const grantPro = (row: AdminUserRow, months: number) =>
+  const grantPlan = (row: AdminUserRow, plan: PaidPlanId, months: number) =>
     run(
       row.id,
       'admin_set_pro',
-      { p_user: row.id, p_months: months, p_revoke: false },
-      (r, d) => ({ ...r, is_pro: true, pro_until: d?.pro_until ?? r.pro_until }),
-      `Pro u aktivizua për ${months} muaj.`
+      { p_user: row.id, p_months: months, p_revoke: false, p_plan: plan },
+      (r, d) => ({
+        ...r,
+        is_pro: true,
+        plan: (d?.plan as PlanId) ?? plan,
+        pro_until: d?.pro_until ?? r.pro_until,
+      }),
+      `${planOf(plan).name} u aktivizua për ${months} muaj.`
     );
 
   const revokePro = (row: AdminUserRow) =>
@@ -132,8 +146,8 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       row.id,
       'admin_set_pro',
       { p_user: row.id, p_months: 1, p_revoke: true },
-      (r) => ({ ...r, is_pro: false, pro_until: null }),
-      'Pro u hoq.'
+      (r) => ({ ...r, is_pro: false, plan: 'free' as PlanId, pro_until: null }),
+      'Plani me pagesë u hoq.'
     );
 
   /* Staff are appointed as managers; the single admin is fixed. */
@@ -245,6 +259,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
           <tbody className="divide-y">
             {rows.map((row) => {
               const isPro = proActive(row);
+              const rowPlan = planOfRow(row);
               return (
                 <tr key={row.id} className="hover:bg-muted/40 transition-colors">
                   <td className="px-5 py-3.5">
@@ -280,7 +295,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                         isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
                       ].join(' ')}
                     >
-                      {isPro ? 'PRO' : 'FALAS'}
+                      {planOf(rowPlan).badge}
                     </span>
                     {isPro && row.pro_until && (
                       <p className="text-muted-foreground mt-0.5 text-[11px]">
@@ -320,10 +335,20 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        {[1, 3, 12].map((m) => (
-                          <DropdownMenuItem key={m} onSelect={() => grantPro(row, m)}>
-                            <Sparkles /> Jep Pro — {m} muaj
-                          </DropdownMenuItem>
+                        {PAID_PLANS.map((p) => (
+                          <React.Fragment key={p.id}>
+                            <DropdownMenuLabel className="text-muted-foreground text-[11px]">
+                              {p.name}
+                            </DropdownMenuLabel>
+                            {[1, 3, 12].map((m) => (
+                              <DropdownMenuItem
+                                key={`${p.id}-${m}`}
+                                onSelect={() => grantPlan(row, p.id as PaidPlanId, m)}
+                              >
+                                <Sparkles /> Jep {p.name} — {m} muaj
+                              </DropdownMenuItem>
+                            ))}
+                          </React.Fragment>
                         ))}
 
                         {isPro && (
@@ -331,7 +356,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                             className="text-destructive focus:text-destructive"
                             onSelect={() => revokePro(row)}
                           >
-                            <X /> Hiq Pro
+                            <X /> Hiq planin me pagesë
                           </DropdownMenuItem>
                         )}
 

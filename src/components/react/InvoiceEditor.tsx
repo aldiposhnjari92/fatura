@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { CheckCircle2, Loader2, Plus, Trash2, Download, Share2, Save, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useTranslations, type Lang } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 import PaidToggle from '@/components/react/PaidToggle';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
@@ -16,7 +16,6 @@ import {
   type Client,
   type Invoice,
   type InvoiceItem,
-  type InvoiceLanguage,
   type InvoiceStatus,
   type Profile,
 } from '@/lib/types';
@@ -29,9 +28,6 @@ interface Props {
   invoice?: Invoice | null;
   suggestedNumber: string;
   limitReached?: boolean;
-  /** Interface language. Separate from `invoice.language`, which is the
-      language of the printed document and is chosen per invoice. */
-  lang: Lang;
 }
 
 const VAT_OPTIONS = [0, 6, 20];
@@ -56,9 +52,8 @@ export default function InvoiceEditor({
   invoice,
   suggestedNumber,
   limitReached = false,
-  lang,
 }: Props) {
-  const t = useTranslations(lang);
+  const t = useTranslations();
   const isEdit = Boolean(invoice?.id);
 
   const [clients, setClients] = React.useState<Client[]>(initialClients);
@@ -79,9 +74,6 @@ export default function InvoiceEditor({
   const [discount, setDiscount] = React.useState<number>(invoice?.discount ?? 0);
   const [status, setStatus] = React.useState<InvoiceStatus>(invoice?.status ?? 'draft');
   const [paidAt, setPaidAt] = React.useState<string | null>(invoice?.paid_at ?? null);
-  const [language, setLanguage] = React.useState<InvoiceLanguage>(
-    invoice?.language ?? 'sq'
-  );
   const [notes, setNotes] = React.useState(invoice?.notes ?? '');
 
   const [saving, setSaving] = React.useState(false);
@@ -152,7 +144,6 @@ export default function InvoiceEditor({
         discount,
         status,
         notes,
-        language,
       },
       profile,
       client: selectedClient,
@@ -166,7 +157,6 @@ export default function InvoiceEditor({
       discount,
       status,
       notes,
-      language,
       profile,
       selectedClient,
     ]
@@ -261,7 +251,6 @@ export default function InvoiceEditor({
         total: totals.total,
         status: statusOverride ?? status,
         notes: notes.trim() || null,
-        language,
       };
 
       if (isEdit && invoice) {
@@ -289,7 +278,8 @@ export default function InvoiceEditor({
         }
         // Raised by the enforce_invoice_quota trigger — the cap is enforced in
         // the database now, so this fires even if the UI thought it was fine.
-        if (/FREE_PLAN_LIMIT_REACHED/.test(insertError.message)) {
+        // One message for both tiers: what differs is only the number.
+        if (/(FREE|STARTER)_PLAN_LIMIT_REACHED/.test(insertError.message)) {
           throw new Error(
             t('inv.errQuota')
           );
@@ -615,28 +605,6 @@ export default function InvoiceEditor({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="language">{t('inv.language')}</Label>
-              {/*
-                This is the language of the printed invoice, not the interface —
-                a business invoicing a foreign client picks English here while
-                their own app stays Albanian. It is unaffected by the interface
-                language being Albanian-only for now.
-              */}
-              <SearchableSelect
-                id="language"
-                value={language}
-                onValueChange={(v) => setLanguage(v as InvoiceLanguage)}
-                aria-label={t('inv.language')}
-                searchPlaceholder={t('action.search')}
-                emptyText={t('adm.noResults')}
-                options={[
-                  { value: 'sq', label: 'Shqip' },
-                  { value: 'en', label: 'English' },
-                ]}
-              />
-            </div>
-
-            <div className="space-y-1.5">
               <Label htmlFor="vat">{t('inv.vat')}</Label>
               <SearchableSelect
                 id="vat"
@@ -798,7 +766,6 @@ export default function InvoiceEditor({
                   invoiceId={invoice.id}
                   status={status}
                   paidAt={paidAt}
-                  lang={lang}
                   variant="panel"
                   onStatusChange={(nextStatus, nextPaidAt) => {
                     // Keep the form in step: the status dropdown, its

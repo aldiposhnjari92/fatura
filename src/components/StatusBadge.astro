@@ -15,7 +15,7 @@ const meta = STATUS_META[status] ?? STATUS_META.draft;
   label comes from the dictionary instead so a badge cannot sit in Albanian
   next to an English button.
 */
-const t = useTranslations(Astro.locals.lang);
+const t = useTranslations();
 const LABEL_KEY = {
   draft: 'status.draft',
   unpaid: 'status.unpaid',

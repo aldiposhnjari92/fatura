@@ -207,7 +207,6 @@ const hasFilter = Boolean(status || search);
                   status={invoice.status}
                   paidAt={invoice.paid_at}
                   dueDate={invoice.due_date}
-                  lang={Astro.locals.lang}
                   showBadge
                 />
               </span>
@@ -273,8 +272,7 @@ const hasFilter = Boolean(status || search);
                       status={invoice.status}
                       paidAt={invoice.paid_at}
                       dueDate={invoice.due_date}
-                      lang={Astro.locals.lang}
-                      showBadge
+                          showBadge
                     />
                   </td>
                 </tr>

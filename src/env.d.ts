@@ -3,7 +3,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Profile } from './lib/types';
-import type { Lang } from './lib/i18n';
+import type { PlanId } from './lib/plans';
 
 declare global {
   namespace App {
@@ -19,8 +19,13 @@ declare global {
       profile: Profile | null;
       /** Invoices created this calendar month — from app_bootstrap(). */
       invoicesThisMonth: number;
-      /** Interface language for this request: cookie, else Accept-Language. */
-      lang: Lang;
+      /**
+       * The tier in force right now, from active_plan(): an expired
+       * subscription reads as 'free' here, same as in the quota trigger.
+       */
+      plan: PlanId;
+      /** Invoices allowed this month; null on Pro, which is unlimited. */
+      invoiceLimit: number | null;
     }
   }
 }

@@ -1,5 +1,6 @@
+import { PLANS, type PlanId } from '@/lib/plans';
+
 export type InvoiceStatus = 'draft' | 'paid' | 'unpaid' | 'overdue';
-export type InvoiceLanguage = 'en' | 'sq';
 
 export interface Profile {
   id: string;
@@ -9,11 +10,18 @@ export interface Profile {
   city: string | null;
   phone: string | null;
   logo_url: string | null;
+  /** True while any paid plan is running. Which one is `plan`. */
   is_pro: boolean;
+  /**
+   * The tier bought. Only meaningful while the subscription is live — read the
+   * effective tier from `Astro.locals.plan` (active_plan() in SQL), which
+   * already accounts for expiry.
+   */
+  plan?: PlanId;
   is_admin?: boolean;
   /** Read-mostly operator: sees invoice activity, changes nothing. */
   is_manager?: boolean;
-  /** When the Pro subscription lapses; null means no expiry set. */
+  /** When the subscription lapses; null means no expiry set. */
   pro_until?: string | null;
   /** Set when the customer asked not to renew; access still runs to pro_until. */
   cancelled_at?: string | null;
@@ -52,7 +60,6 @@ export interface Invoice {
   /** Set only while status is 'paid'; maintained by a database trigger. */
   paid_at?: string | null;
   notes: string | null;
-  language: InvoiceLanguage;
   created_at: string;
 }
 
@@ -165,5 +172,5 @@ export function daysOverdue(
   return Math.round((today.getTime() - due.getTime()) / 86_400_000);
 }
 
-/** Free plan ceiling. Pro lifts it entirely. */
-export const FREE_INVOICE_LIMIT = 5;
+/** Free plan ceiling. Starter raises it to 30; Pro lifts it entirely. */
+export const FREE_INVOICE_LIMIT = PLANS.free.invoiceLimit as number;

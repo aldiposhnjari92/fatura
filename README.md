@@ -190,8 +190,11 @@ Everything lives in [`src/lib/pdf.ts`](src/lib/pdf.ts) and runs **only in the br
    `shareInvoicePdf()` which uses the Web Share API on mobile (WhatsApp/Viber) and falls
    back to a download on desktop.
 
-Invoices are bilingual: `language` is `sq` or `en`, and the strings come from
-[`src/lib/i18n.ts`](src/lib/i18n.ts). The app UI itself is Albanian throughout.
+Everything is Albanian — the interface and the printed document alike. Invoices used to
+carry their own `language` (`sq` or `en`) with a per-invoice switch; that is gone, along
+with the interface language switcher, the language cookie and the `/en` marketing routes.
+[`src/lib/i18n.ts`](src/lib/i18n.ts) is now a single dictionary plus the document strings
+the PDF prints.
 
 ## UI libraries — who owns what
 
@@ -592,7 +595,7 @@ the same rule as everything else — Astro pages use Fulldev, hydrated islands u
 
 | Control      | Component                                   | Notes                                        |
 | ------------ | ------------------------------------------- | -------------------------------------------- |
-| Select       | `ui/react/select.tsx` (Radix)               | Client, status, language, VAT, city          |
+| Select       | `ui/react/select.tsx` (Radix)               | Client, status, VAT, city                    |
 | Date         | `ui/react/date-picker.tsx`                  | Popover + react-day-picker, Albanian, Mon-first |
 | Slider       | `ui/react/slider.tsx`                       | Logo crop zoom                                |
 | Avatar       | `ui/react/avatar.tsx`                       | Falls back to initials when there's no logo   |

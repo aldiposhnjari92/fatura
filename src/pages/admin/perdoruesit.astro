@@ -10,7 +10,7 @@ export const prerender = false;
 const { supabase, user } = Astro.locals;
 const params = Astro.url.searchParams;
 
-const FILTERS = ['all', 'pro', 'free', 'admin', 'inactive'] as const;
+const FILTERS = ['all', 'paid', 'starter', 'pro', 'free', 'admin', 'inactive'] as const;
 type Filter = (typeof FILTERS)[number];
 
 const rawFilter = params.get('filtri');
@@ -43,6 +43,8 @@ const pendingCount = (pendingResult.data as { total?: number })?.total ?? 0;
 
 const LABELS: Record<Filter, string> = {
   all: 'Të gjitha',
+  paid: 'Me pagesë',
+  starter: 'Starter',
   pro: 'Pro',
   free: 'Falas',
   admin: 'Adminë',
