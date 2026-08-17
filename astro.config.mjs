@@ -8,6 +8,21 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://fatura.co',
   output: 'server',
+  security: {
+    // Astro only trusts `Host`/`X-Forwarded-Host` for hosts listed here; every
+    // other host collapses to `localhost`. Behind Vercel's proxy that made
+    // `Astro.url.origin` "https://localhost", so the built-in origin check saw
+    // the real `Origin` header as cross-site and 403'd every form POST
+    // ("Cross-site POST form submissions are forbidden" on /api/waitlist).
+    allowedDomains: [
+      { hostname: 'fatura.co', protocol: 'https' },
+      { hostname: '**.fatura.co', protocol: 'https' },
+      // Production alias plus every preview/branch deployment.
+      { hostname: '**.vercel.app', protocol: 'https' },
+      // `npm run preview` serves the real Vercel handler over plain HTTP.
+      { hostname: 'localhost' },
+    ],
+  },
   adapter: vercel({
     webAnalytics: { enabled: false },
     imageService: false,
