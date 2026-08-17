@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
+    "build": "rm -rf dist .vercel/output && astro build",
+    "preview": "node scripts/preview.mjs",
     "astro": "astro",
     "typecheck": "astro check",
     "db:push": "node scripts/db-push.mjs",

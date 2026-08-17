@@ -5,6 +5,7 @@ import { useTranslations, type Lang } from '@/lib/i18n';
 import PaidToggle from '@/components/react/PaidToggle';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
+import { NumberInput } from '@/components/ui/react/number-input';
 import { Label } from '@/components/ui/react/label';
 import { Textarea } from '@/components/ui/react/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/react/card';
@@ -49,12 +50,6 @@ function statusOptions(
 
 const emptyItem = (): InvoiceItem => ({ description: '', quantity: 1, price: 0 });
 
-/** Keeps a numeric input usable: empty string while typing, 0 when read. */
-function toInt(value: string): number {
-  const n = Number.parseInt(value.replace(/[^\d-]/g, ''), 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
 export default function InvoiceEditor({
   profile,
   clients: initialClients,
@@ -83,6 +78,7 @@ export default function InvoiceEditor({
   const [vatPercent, setVatPercent] = React.useState<number>(invoice?.vat_percent ?? 20);
   const [discount, setDiscount] = React.useState<number>(invoice?.discount ?? 0);
   const [status, setStatus] = React.useState<InvoiceStatus>(invoice?.status ?? 'draft');
+  const [paidAt, setPaidAt] = React.useState<string | null>(invoice?.paid_at ?? null);
   const [language, setLanguage] = React.useState<InvoiceLanguage>(
     invoice?.language ?? 'sq'
   );
@@ -580,7 +576,7 @@ export default function InvoiceEditor({
                 id="status"
                 value={status}
                 onValueChange={(v) => setStatus(v as InvoiceStatus)}
-                disabled={isEdit && invoice?.status === 'paid'}
+                disabled={isEdit && status === 'paid'}
                 aria-label={t('inv.status')}
                 searchPlaceholder={t('action.search')}
                 emptyText={t('adm.noResults')}
@@ -589,7 +585,7 @@ export default function InvoiceEditor({
                   label: o.label,
                 }))}
               />
-              {isEdit && invoice?.status === 'paid' && (
+              {isEdit && status === 'paid' && (
                 <p className="text-muted-foreground text-xs leading-relaxed">
                   {t('inv.paidLockedHint')}
                 </p>
@@ -689,23 +685,15 @@ export default function InvoiceEditor({
                   />
 
                   <div className="grid grid-cols-2 gap-2 sm:contents">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
+                    <NumberInput
                       value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(index, { quantity: toInt(e.target.value) })
-                      }
+                      onValueChange={(quantity) => updateItem(index, { quantity })}
                       className="sm:text-right"
                       aria-label={t('inv.itemQtyAria', { n: index + 1 })}
                     />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
+                    <NumberInput
                       value={item.price}
-                      onChange={(e) => updateItem(index, { price: toInt(e.target.value) })}
+                      onValueChange={(price) => updateItem(index, { price })}
                       className="sm:text-right"
                       aria-label={t('inv.itemPriceAria', { n: index + 1 })}
                     />
@@ -772,13 +760,10 @@ export default function InvoiceEditor({
                   </Label>
                 </dt>
                 <dd>
-                  <Input
+                  <NumberInput
                     id="discount"
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
                     value={discount}
-                    onChange={(e) => setDiscount(toInt(e.target.value))}
+                    onValueChange={setDiscount}
                     className="h-8 w-28 text-right"
                   />
                 </dd>
@@ -812,9 +797,15 @@ export default function InvoiceEditor({
                 <PaidToggle
                   invoiceId={invoice.id}
                   status={status}
-                  paidAt={invoice.paid_at ?? null}
+                  paidAt={paidAt}
                   lang={lang}
                   variant="panel"
+                  onStatusChange={(nextStatus, nextPaidAt) => {
+                    // Keep the form in step: the status dropdown, its
+                    // paid-lock and the toast all read this state.
+                    setStatus(nextStatus);
+                    setPaidAt(nextPaidAt);
+                  }}
                 />
               </div>
             )}

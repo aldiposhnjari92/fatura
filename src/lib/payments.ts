@@ -11,7 +11,12 @@
 
 export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
 
-export const PRO_MONTHLY_ALL = 990;
+/*
+  Display only. The amount actually charged comes from
+  public.pro_monthly_price() via create_payment() — the server never trusts a
+  price sent by the browser. Keep the two in step when changing it.
+*/
+export const PRO_MONTHLY_ALL = 2000;
 
 export interface PlanOption {
   months: number;

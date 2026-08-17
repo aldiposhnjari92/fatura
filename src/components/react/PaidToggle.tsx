@@ -24,6 +24,15 @@ interface Props {
    * different sources. Owning both here keeps them in step.
    */
   showBadge?: boolean;
+  /**
+   * Told when the payment state actually changes on the server.
+   *
+   * Without this the component was a state island: it flipped its own copy of
+   * `status` and the form around it never heard, so the status dropdown stayed
+   * on "unpaid" after a successful payment — and saving would then try to write
+   * that stale value back, which the database refuses.
+   */
+  onStatusChange?: (status: InvoiceStatus, paidAt: string | null) => void;
 }
 
 /**
@@ -44,10 +53,19 @@ export default function PaidToggle({
   lang,
   variant = 'row',
   showBadge = false,
+  onStatusChange,
 }: Props) {
   const t = useTranslations(lang);
   const [status, setStatus] = React.useState<InvoiceStatus>(initialStatus);
   const [paidAt, setPaidAt] = React.useState<string | null>(initialPaidAt);
+
+  /*
+    Follow the props when a parent owns the value. In the invoice list nothing
+    else renders this row, so the props never change and this is inert; in the
+    editor the parent re-renders with the new status and the two stay in step.
+  */
+  React.useEffect(() => setStatus(initialStatus), [initialStatus]);
+  React.useEffect(() => setPaidAt(initialPaidAt), [initialPaidAt]);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -74,6 +92,7 @@ export default function PaidToggle({
       const row = data as { status: InvoiceStatus; paid_at: string | null };
       setStatus(row.status);
       setPaidAt(row.paid_at);
+      onStatusChange?.(row.status, row.paid_at);
     } catch (err) {
       setStatus(previous.status);
       setPaidAt(previous.paidAt);

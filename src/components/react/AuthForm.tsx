@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
+import { PasswordField } from '@/components/ui/react/password-field';
 import { Label } from '@/components/ui/react/label';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 
@@ -183,21 +184,19 @@ export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="password">Fjalëkalimi</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete={isRegister ? 'new-password' : 'current-password'}
-          placeholder={isRegister ? 'Të paktën 6 karaktere' : '••••••••'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          className="h-11"
-        />
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="Fjalëkalimi"
+        value={password}
+        onChange={setPassword}
+        autoComplete={isRegister ? 'new-password' : 'current-password'}
+        placeholder={isRegister ? 'Të paktën 6 karaktere' : '••••••••'}
+        minLength={6}
+        className="h-11"
+        showLabel="Shfaq fjalëkalimin"
+        hideLabel="Fshih fjalëkalimin"
+      />
 
       <Button type="submit" disabled={loading} className="h-11 w-full text-base">
         {loading && <Loader2 className="animate-spin" />}

@@ -1,6 +1,8 @@
 ---
+import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import ProfileSettings from '@/components/react/ProfileSettings';
+import ChangePassword from '@/components/react/ChangePassword';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { FREE_INVOICE_LIMIT } from '@/lib/types';
@@ -9,7 +11,8 @@ import { formatDate } from '@/lib/utils';
 export const prerender = false;
 
 // Every value here already came from app_bootstrap() in the middleware.
-const { user, profile, invoicesThisMonth } = Astro.locals;
+const { user, profile, invoicesThisMonth, lang } = Astro.locals;
+const t = useTranslations(lang);
 const welcome = Astro.url.searchParams.get('welcome') === '1';
 const isPro = profile?.is_pro ?? false;
 const cancelled = Boolean(profile?.cancelled_at);
@@ -39,13 +42,29 @@ const memberSince = createdAt
   </div>
 
   <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-    <ProfileSettings
-      profile={profile}
-      userId={user!.id}
-      email={user!.email ?? ''}
-      welcome={welcome}
-      client:load
-    />
+    <div class="flex min-w-0 flex-col gap-6">
+      <ProfileSettings
+        profile={profile}
+        userId={user!.id}
+        email={user!.email ?? ''}
+        welcome={welcome}
+        client:load
+      />
+
+      {/*
+        Its own card rather than part of the profile form: saving business
+        details and changing a password are different acts with different
+        consequences, and one Save button for both invites accidents.
+      */}
+      <section class="bg-card ring-border rounded-xl p-5 ring-1 sm:p-6">
+        <h2 class="font-semibold">{t('pw.section')}</h2>
+        <p class="text-muted-foreground mt-1 text-sm">{t('pw.sectionHint')}</p>
+        <div class="mt-5">
+          {/* Below the fold and rarely used — no reason to block first paint. */}
+          <ChangePassword email={user!.email ?? ''} lang={lang} client:idle />
+        </div>
+      </section>
+    </div>
 
     <!-- Side rail -->
     <aside class="flex flex-col gap-6">

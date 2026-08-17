@@ -87,6 +87,11 @@ const nav = [
           */}
           <ActivityStream lang={lang} variant="bell" scope="own" client:idle />
 
+          {/*
+            client:idle, not client:load: this is a dropdown behind the avatar.
+            Hydrating it eagerly put supabase-js on the critical path of every
+            app page for a menu most visits never open.
+          */}
           <UserMenu
             lang={lang}
             pathname={Astro.url.pathname}
@@ -97,7 +102,7 @@ const nav = [
             proEndsOn={profile?.cancelled_at ? (profile?.pro_until ?? null) : null}
             isAdmin={profile?.is_admin ?? false}
             invoicesThisMonth={invoicesThisMonth}
-            client:load
+            client:idle
           />
         </div>
       </div>
@@ -117,14 +122,20 @@ const nav = [
       class="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       aria-label="Navigimi mobil"
     >
-      <div class="grid grid-cols-4">
+      {/*
+        Flex with `flex-1`, not a fixed column count. It was `grid-cols-4` from
+        when Settings lived here too, so after that moved to the account menu
+        the three remaining items sat in three of four columns and looked
+        shunted to the left. This stays centred whatever the list length.
+      */}
+      <div class="flex">
         {
           nav.map((item) => (
             <a
               href={item.href}
               aria-current={active === item.key ? 'page' : undefined}
               class:list={[
-                'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+                'flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
                 active === item.key ? 'text-primary' : 'text-muted-foreground',
               ]}
             >
