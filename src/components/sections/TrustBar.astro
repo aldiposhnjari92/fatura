@@ -7,20 +7,15 @@ import { Icon } from '@/components/ui/icon';
 
   Fatura.co has no customers to name yet, and inventing logos or testimonials
   would be a lie printed on the front page of a product whose entire pitch is
-  that it is trustworthy with your business data. So this states four things
+  that it is trustworthy with your business data. So this states three things
   that are true today and that a small business actually worries about: where
-  the product is from, where the data lives, that the document never leaves the
-  device, and that starting costs nothing.
+  the data lives, that the document never leaves the device, and that starting
+  costs nothing.
 
   When there are real customers, this is the slot that becomes the logo wall.
 */
 
 const signals = [
-  {
-    icon: 'map-pin',
-    title: 'Bërë në Shqipëri',
-    body: 'Ndërtuar në Fier, për mënyrën si faturon një biznes shqiptar.',
-  },
   {
     icon: 'shield-check',
     title: 'Të dhënat në BE',
@@ -41,7 +36,7 @@ const signals = [
 
 <section class="border-y" aria-label="Pse të besosh Fatura.co">
   <div class="container">
-    <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-4" data-stagger>
+    <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-3" data-stagger>
       {
         signals.map((signal) => (
           <div class="group relative py-8 lg:px-7 lg:first:pl-0 lg:last:pr-0">
