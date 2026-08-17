@@ -13,11 +13,32 @@ once:
 
 ## Before they work
 
-1. **Redirect URLs** — Authentication → URL Configuration → Redirect URLs must include
-   `http://localhost:4321/auth/callback` and `https://fatura.co/auth/callback`.
-   `{{ .ConfirmationURL }}` points at whatever `emailRedirectTo` the signup passed, and
-   Supabase refuses any URL not on that allow-list.
-2. **Sender** — the built-in SMTP is rate-limited and lands in spam under Supabase's own
+1. **Site URL** — Authentication → URL Configuration → Site URL must be the production
+   origin (`https://fatura.co`, or `https://fatura-co.vercel.app` until the domain is
+   live). This is not cosmetic: when a requested redirect is not on the allow-list below,
+   Supabase does **not** error — it silently substitutes the Site URL. A Site URL left at
+   `http://localhost:4321` is why confirmation emails arrive pointing at localhost.
+
+2. **Redirect URLs** — Authentication → URL Configuration → Redirect URLs. Every origin
+   users can sign up from needs an entry, each ending in `/**`:
+
+   - `http://localhost:4321/**` — dev
+   - `https://fatura.co/**` and `https://www.fatura.co/**` — production
+   - `https://fatura-co.vercel.app/**` — the Vercel production alias
+   - `https://fatura-co-*.vercel.app/**` — branch/preview deployments
+
+   The `/**` suffix is required, not tidiness. `signUp()` passes
+   `…/auth/callback?next=%2Fapp`, and the allow-list is glob-matched against the whole
+   URL including its query string, so a bare `https://fatura.co/auth/callback` entry does
+   not match and falls back to the Site URL. In Supabase globs `.` and `/` are separators:
+   `*` stops at them, `**` crosses them. Prefer `fatura-co-*.vercel.app` over
+   `*.vercel.app` — the latter would let any Vercel deployment on earth receive your auth
+   codes.
+
+   `{{ .ConfirmationURL }}` points at whatever `emailRedirectTo` the signup passed, so
+   signing up on a preview URL correctly confirms back to that same preview.
+
+3. **Sender** — the built-in SMTP is rate-limited and lands in spam under Supabase's own
    domain. For production add your own SMTP (Authentication → Emails → SMTP Settings) so
    mail comes from `fatura.co` with SPF/DKIM.
 

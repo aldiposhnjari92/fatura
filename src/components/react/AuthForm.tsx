@@ -55,7 +55,7 @@ function translateError(message: string): string {
     and the account itself was usually created fine.
   */
   if (m.includes('email rate limit') || m.includes('over_email_send_rate_limit'))
-    return 'Nuk mundëm të dërgojmë email-in e konfirmimit tani (kufi i përkohshëm i dërgimit). Llogaria mund të jetë krijuar — provo të hysh, ose na shkruaj në pershendetje@fatura.co.';
+    return 'Nuk mundëm të dërgojmë email-in e konfirmimit tani (kufi i përkohshëm i dërgimit). Llogaria mund të jetë krijuar — provo të hysh, ose na shkruaj në aldiposhnjari@gmail.com.';
   if (m.includes('rate limit') || m.includes('too many'))
     return 'Shumë përpjekje. Prit pak dhe provo sërish.';
   if (m.includes('unable to validate email') || m.includes('invalid email'))
