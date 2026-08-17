@@ -90,12 +90,28 @@ rolls anything back.
 > *Row-level-security error on upload* → the bucket exists but its policies do not; the
 > runner prints the exact Dashboard steps.
 
-Then, in **Authentication → URL Configuration**, add the redirect URLs:
+Then, in **Authentication → URL Configuration**:
+
+- **Site URL** — the production origin (`https://fatura.co`, or the Vercel alias until the
+  domain is live). Any redirect that is *not* on the list below is silently replaced with
+  this value, so a Site URL left at Supabase's default `http://localhost:3000` makes every
+  auth email point at localhost.
+- **Redirect URLs** — one `/**` entry per origin users sign in from:
 
 ```
-http://localhost:4321/auth/callback
-https://fatura.co/auth/callback
+http://localhost:4321/**
+https://fatura.co/**
+https://www.fatura.co/**
+https://fatura-co.vercel.app/**
+https://fatura-co-*.vercel.app/**
 ```
+
+And in **Authentication → Sign In / Providers → Email**, leave **Confirm email OFF**.
+Signup then returns a session immediately and sends no mail — deliberate, because
+Supabase's built-in sender allows only a couple of emails an hour project-wide and was
+blocking registration entirely. The trade-off: addresses are unverified, so a typo at
+signup leaves that account with no working password-reset path. Password reset still
+sends mail, so Site URL and custom SMTP matter regardless.
 
 ### 2. Environment
 

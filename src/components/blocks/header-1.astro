@@ -152,6 +152,30 @@ const { class: className, logo, navigation, buttons } = Astro.props
           </nav>
           <div class="mt-auto flex flex-col gap-2">
             <slot />
+            {/*
+              The action buttons were desktop-only, so on mobile the sheet had
+              no way in at all. Same `buttons` array, rendered full-width and
+              dismissing the sheet on tap; `data-auth-show` rides along in the
+              spread so the anon/user swap still works here.
+            */}
+            {
+              buttons.map(({ label, icon, variant, ...button }) => (
+                <Button
+                  data-slot="dialog-close"
+                  as="a"
+                  size="lg"
+                  variant={variant === "ghost" ? "outline" : variant}
+                  class="w-full"
+                  aria-label={label}
+                  target={button.href.startsWith("http") ? "_blank" : undefined}
+                  rel={button.href.startsWith("http") ? "noreferrer" : undefined}
+                  {...button}
+                >
+                  {icon && <Icon name={icon} />}
+                  {label}
+                </Button>
+              ))
+            }
           </div>
         </div>
       </SheetContent>

@@ -11,6 +11,11 @@ once:
 | `confirm-signup.html` | Confirm signup | `Konfirmo llogarinë tënde në Fatura.co` |
 | `reset-password.html` | Reset password | `Rivendos fjalëkalimin — Fatura.co` |
 
+`confirm-signup.html` is currently **unused**: signup confirmation is switched off
+(Authentication → Sign In / Providers → Email → Confirm email), so registration sends no
+mail at all. Keep the template — re-enabling confirmation should not mean rewriting it.
+`reset-password.html` is live, which is why the settings below still matter.
+
 ## Before they work
 
 1. **Site URL** — Authentication → URL Configuration → Site URL must be the production
@@ -27,13 +32,21 @@ once:
    - `https://fatura-co.vercel.app/**` — the Vercel production alias
    - `https://fatura-co-*.vercel.app/**` — branch/preview deployments
 
-   The `/**` suffix is required, not tidiness. `signUp()` passes
-   `…/auth/callback?next=%2Fapp`, and the allow-list is glob-matched against the whole
-   URL including its query string, so a bare `https://fatura.co/auth/callback` entry does
-   not match and falls back to the Site URL. In Supabase globs `.` and `/` are separators:
-   `*` stops at them, `**` crosses them. Prefer `fatura-co-*.vercel.app` over
-   `*.vercel.app` — the latter would let any Vercel deployment on earth receive your auth
-   codes.
+   Matching ignores the query string, so `signUp()` appending `?next=%2Fapp` is harmless.
+   The `/**` suffix is what covers every *path* — in Supabase globs `.` and `/` are
+   separators, so `*` stops at them and only `**` crosses them. Prefer
+   `fatura-co-*.vercel.app` over `*.vercel.app` — the latter would let any Vercel
+   deployment on earth receive your auth codes.
+
+   To check what is actually allow-listed without sending mail, hit the verify endpoint
+   with a junk token and read the `Location` header — an allowed URL comes back as-is, a
+   rejected one comes back as the Site URL:
+
+   ```sh
+   curl -sD - -o /dev/null \
+     "https://<ref>.supabase.co/auth/v1/verify?token=deadbeef&type=signup&redirect_to=<url>" \
+     | grep -i '^location:'
+   ```
 
    `{{ .ConfirmationURL }}` points at whatever `emailRedirectTo` the signup passed, so
    signing up on a preview URL correctly confirms back to that same preview.
