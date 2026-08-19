@@ -24,6 +24,16 @@
 
     var collator = new Intl.Collator('sq', { numeric: true, sensitivity: 'base' });
 
+    /*
+      The idle glyph packs two arrowheads into the same em box as ↑/↓, so at a
+      shared font size it reads noticeably smaller. It gets a step up to look
+      the same weight instead. `leading-none` on both keeps the header height
+      identical across the swap, so clicking never nudges the row.
+    */
+    var ARROW_IDLE = '↕';
+    var ARROW_IDLE_CLASS = 'text-md leading-none opacity-40';
+    var ARROW_ACTIVE_CLASS = 'text-xs leading-none opacity-80';
+
     function cellValue(row, index, type) {
       var cell = row.children[index];
       if (!cell) return type === 'number' ? 0 : '';
@@ -59,8 +69,8 @@
 
         var arrow = document.createElement('span');
         arrow.setAttribute('aria-hidden', 'true');
-        arrow.className = 'opacity-40';
-        arrow.textContent = '↕';
+        arrow.className = ARROW_IDLE_CLASS;
+        arrow.textContent = ARROW_IDLE;
         button.appendChild(arrow);
         th.appendChild(button);
 
@@ -74,8 +84,8 @@
             other.setAttribute('aria-sort', 'none');
             var a = other.querySelector('button > span[aria-hidden]');
             if (a) {
-              a.textContent = '↕';
-              a.className = 'opacity-40';
+              a.textContent = ARROW_IDLE;
+              a.className = ARROW_IDLE_CLASS;
             }
             var b = other.querySelector('button');
             if (b) b.classList.remove('text-foreground', 'font-semibold');
@@ -83,7 +93,7 @@
 
           th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
           arrow.textContent = asc ? '↑' : '↓';
-          arrow.className = 'opacity-80';
+          arrow.className = ARROW_ACTIVE_CLASS;
           button.classList.add('text-foreground', 'font-semibold');
 
           var rows = Array.prototype.slice.call(tbody.rows);

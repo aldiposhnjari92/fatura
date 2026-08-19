@@ -1,0 +1,30 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+
+/*
+  `sortKey` / `sortType` render the `data-sort-*` attributes that TableSort.astro
+  looks for. Naming them as props keeps the contract with that script visible
+  from the call site instead of buried in a loose data attribute.
+*/
+type Props = HTMLAttributes<"th"> & {
+  sortKey?: string
+  sortType?: "text" | "number" | "date"
+}
+
+const { class: className, sortKey, sortType, ...props } = Astro.props
+---
+
+<th
+  data-slot="table-head"
+  data-sort-key={sortKey}
+  data-sort-type={sortType}
+  class={cn(
+    "text-muted-foreground px-5 py-3 text-left text-xs font-medium",
+    className
+  )}
+  {...props}
+>
+  <slot />
+</th>

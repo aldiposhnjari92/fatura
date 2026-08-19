@@ -1,6 +1,14 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import TableSort from '@/components/TableSort.astro';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatALL, formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 
@@ -127,60 +135,58 @@ const LABEL: Record<string, string> = {
           {t('adm.noResults')}
         </p>
       ) : (
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[640px] text-sm" data-sortable>
-            <thead>
-              <tr class="bg-muted/40 border-b">
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="numri">
-                  {t('inv.number')}
-                </th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">
-                  {t('adm.business')}
-                </th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium md:table-cell" data-sort-key="data" data-sort-type="date">
-                  {t('inv.issueDate')}
-                </th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="totali" data-sort-type="number">
-                  {t('inv.total')}
-                </th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="statusi">
-                  {t('inv.status')}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              {list.rows.map((row) => {
-                const shown = row.overdue ? 'overdue' : row.status;
-                return (
-                  <tr class="hover:bg-muted/40 transition-colors">
-                    <td class="px-5 py-3 font-mono text-xs">{row.invoice_number}</td>
-                    <td class="max-w-[16rem] truncate px-5 py-3">
-                      {row.business_name ?? (
-                        <span class="text-muted-foreground italic">{t('adm.noName')}</span>
-                      )}
-                      {row.city && (
-                        <span class="text-muted-foreground text-xs"> · {row.city}</span>
-                      )}
-                    </td>
-                    <td class="text-muted-foreground hidden px-5 py-3 md:table-cell" data-sort-value={row.issue_date}>
-                      {formatDate(row.issue_date)}
-                    </td>
-                    <td class="px-5 py-3 text-right font-medium tabular-nums" data-sort-value={String(row.total)}>
-                      {formatALL(row.total)}
-                    </td>
-                    <td class="px-5 py-3 text-right">
-                      <span
-                        class={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${BADGE[shown]}`}
-                      >
-                        {LABEL[shown]}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table class="min-w-[640px]" data-sortable>
+          <TableHeader>
+            <TableRow>
+              <TableHead sortKey="numri">{t('inv.number')}</TableHead>
+              <TableHead sortKey="biznesi">{t('adm.business')}</TableHead>
+              <TableHead class="hidden md:table-cell" sortKey="data" sortType="date">
+                {t('inv.issueDate')}
+              </TableHead>
+              <TableHead class="text-right" sortKey="totali" sortType="number">
+                {t('inv.total')}
+              </TableHead>
+              <TableHead class="text-right" sortKey="statusi">{t('inv.status')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {list.rows.map((row) => {
+              const shown = row.overdue ? 'overdue' : row.status;
+              return (
+                <TableRow>
+                  <TableCell class="py-3 font-mono text-xs">{row.invoice_number}</TableCell>
+                  <TableCell class="max-w-[16rem] truncate py-3">
+                    {row.business_name ?? (
+                      <span class="text-muted-foreground italic">{t('adm.noName')}</span>
+                    )}
+                    {row.city && (
+                      <span class="text-muted-foreground text-xs"> · {row.city}</span>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    class="text-muted-foreground hidden py-3 md:table-cell"
+                    sortValue={row.issue_date}
+                  >
+                    {formatDate(row.issue_date)}
+                  </TableCell>
+                  <TableCell
+                    class="py-3 text-right font-medium tabular-nums"
+                    sortValue={String(row.total)}
+                  >
+                    {formatALL(row.total)}
+                  </TableCell>
+                  <TableCell class="py-3 text-right">
+                    <span
+                      class={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${BADGE[shown]}`}
+                    >
+                      {LABEL[shown]}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       )
     }
   </div>

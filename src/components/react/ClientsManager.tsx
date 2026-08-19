@@ -11,6 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/react/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/react/table';
 import { formatALL, isValidNipt } from '@/lib/utils';
 import type { Client } from '@/lib/types';
 
@@ -178,88 +186,76 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
         </div>
       ) : (
         <div className="bg-card ring-border overflow-hidden rounded-xl ring-1">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/40 border-b">
-                  <th className="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
-                    Klienti
-                  </th>
-                  <th className="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium md:table-cell">
-                    NIPT
-                  </th>
-                  <th className="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium lg:table-cell">
-                    Kontakt
-                  </th>
-                  <th className="text-muted-foreground px-5 py-3 text-right text-xs font-medium">
-                    Fatura
-                  </th>
-                  <th className="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium sm:table-cell">
-                    Faturuar
-                  </th>
-                  <th className="w-24 px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map((client) => {
-                  const usage = stats[client.id];
-                  return (
-                    <tr key={client.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <p className="font-medium">{client.name}</p>
-                        {client.address && (
-                          <p className="text-muted-foreground max-w-[18rem] truncate text-xs">
-                            {client.address}
-                          </p>
-                        )}
-                      </td>
-                      <td className="text-muted-foreground hidden px-5 py-3.5 font-mono text-xs md:table-cell">
-                        {client.nipt || '—'}
-                      </td>
-                      <td className="text-muted-foreground hidden max-w-[16rem] truncate px-5 py-3.5 lg:table-cell">
-                        {client.email || '—'}
-                      </td>
-                      <td className="px-5 py-3.5 text-right tabular-nums">
-                        {usage?.count ?? 0}
-                      </td>
-                      <td className="hidden px-5 py-3.5 text-right font-medium tabular-nums sm:table-cell">
-                        {formatALL(usage?.total ?? 0)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Ndrysho ${client.name}`}
-                            onClick={() =>
-                              setDraft({
-                                id: client.id,
-                                name: client.name,
-                                nipt: client.nipt ?? '',
-                                email: client.email ?? '',
-                                address: client.address ?? '',
-                              })
-                            }
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Fshi ${client.name}`}
-                            className="text-muted-foreground hover:text-destructive"
-                            onClick={() => setPendingDelete(client)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Klienti</TableHead>
+                <TableHead className="hidden md:table-cell">NIPT</TableHead>
+                <TableHead className="hidden lg:table-cell">Kontakt</TableHead>
+                <TableHead className="text-right">Fatura</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Faturuar</TableHead>
+                <TableHead className="w-24" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((client) => {
+                const usage = stats[client.id];
+                return (
+                  <TableRow key={client.id}>
+                    <TableCell>
+                      <p className="font-medium">{client.name}</p>
+                      {client.address && (
+                        <p className="text-muted-foreground max-w-[18rem] truncate text-xs">
+                          {client.address}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden font-mono text-xs md:table-cell">
+                      {client.nipt || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden max-w-[16rem] truncate lg:table-cell">
+                      {client.email || '—'}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {usage?.count ?? 0}
+                    </TableCell>
+                    <TableCell className="hidden text-right font-medium tabular-nums sm:table-cell">
+                      {formatALL(usage?.total ?? 0)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Ndrysho ${client.name}`}
+                          onClick={() =>
+                            setDraft({
+                              id: client.id,
+                              name: client.name,
+                              nipt: client.nipt ?? '',
+                              email: client.email ?? '',
+                              address: client.address ?? '',
+                            })
+                          }
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Fshi ${client.name}`}
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => setPendingDelete(client)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 

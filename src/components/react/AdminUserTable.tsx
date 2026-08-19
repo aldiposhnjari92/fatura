@@ -28,6 +28,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/react/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/react/table';
 import { formatALL, formatDate } from '@/lib/utils';
 import { PAID_PLANS, planOf, type PaidPlanId, type PlanId } from '@/lib/plans';
 
@@ -231,182 +239,168 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
         </p>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/40 border-b">
-              <th className="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
-                Biznesi
-              </th>
-              <th className="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium lg:table-cell">
-                Kontakt
-              </th>
-              <th className="text-muted-foreground px-5 py-3 text-left text-xs font-medium">
-                Plani
-              </th>
-              <th className="text-muted-foreground px-5 py-3 text-right text-xs font-medium">
-                Fatura
-              </th>
-              <th className="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell">
-                Paguar
-              </th>
-              <th className="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium xl:table-cell">
-                Regjistruar
-              </th>
-              <th className="w-14 px-5 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {rows.map((row) => {
-              const isPro = proActive(row);
-              const rowPlan = planOfRow(row);
-              return (
-                <tr key={row.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="max-w-[14rem] truncate font-medium">
-                        {row.business_name ?? (
-                          <span className="text-muted-foreground italic">pa emër</span>
-                        )}
-                      </span>
-                      {row.is_admin && (
-                        <span
-                          className="bg-ink text-brand rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                          title="Administrator"
-                        >
-                          ADMIN
-                        </span>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Biznesi</TableHead>
+            <TableHead className="hidden lg:table-cell">Kontakt</TableHead>
+            <TableHead>Plani</TableHead>
+            <TableHead className="text-right">Fatura</TableHead>
+            <TableHead className="hidden text-right md:table-cell">Paguar</TableHead>
+            <TableHead className="hidden text-right xl:table-cell">Regjistruar</TableHead>
+            <TableHead className="w-14" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => {
+            const isPro = proActive(row);
+            const rowPlan = planOfRow(row);
+            return (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="max-w-[14rem] truncate font-medium">
+                      {row.business_name ?? (
+                        <span className="text-muted-foreground italic">pa emër</span>
                       )}
-                    </div>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      {row.city ?? '—'}
-                      {row.nipt ? ` · ${row.nipt}` : ''}
-                    </p>
-                  </td>
-
-                  <td className="text-muted-foreground hidden max-w-[15rem] truncate px-5 py-3.5 lg:table-cell">
-                    {row.email}
-                  </td>
-
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={[
-                        'rounded-full px-2 py-0.5 text-[11px] font-bold',
-                        isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      {planOf(rowPlan).badge}
                     </span>
-                    {isPro && row.pro_until && (
-                      <p className="text-muted-foreground mt-0.5 text-[11px]">
-                        deri {formatDate(row.pro_until)}
-                      </p>
+                    {row.is_admin && (
+                      <span
+                        className="bg-ink text-brand rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        title="Administrator"
+                      >
+                        ADMIN
+                      </span>
                     )}
-                  </td>
+                  </div>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {row.city ?? '—'}
+                    {row.nipt ? ` · ${row.nipt}` : ''}
+                  </p>
+                </TableCell>
 
-                  <td className="px-5 py-3.5 text-right tabular-nums">
-                    {row.invoice_count}
-                    <span className="text-muted-foreground"> / {row.client_count} kl.</span>
-                  </td>
+                <TableCell className="text-muted-foreground hidden max-w-[15rem] truncate lg:table-cell">
+                  {row.email}
+                </TableCell>
 
-                  <td className="hidden px-5 py-3.5 text-right font-medium tabular-nums md:table-cell">
-                    {formatALL(row.paid_total)}
-                  </td>
+                <TableCell>
+                  <span
+                    className={[
+                      'rounded-full px-2 py-0.5 text-[11px] font-bold',
+                      isPro ? 'bg-brand/15 text-primary' : 'bg-muted text-muted-foreground',
+                    ].join(' ')}
+                  >
+                    {planOf(rowPlan).badge}
+                  </span>
+                  {isPro && row.pro_until && (
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
+                      deri {formatDate(row.pro_until)}
+                    </p>
+                  )}
+                </TableCell>
 
-                  <td className="text-muted-foreground hidden px-5 py-3.5 text-right xl:table-cell">
-                    {formatDate(row.created_at)}
-                  </td>
+                <TableCell className="text-right tabular-nums">
+                  {row.invoice_count}
+                  <span className="text-muted-foreground"> / {row.client_count} kl.</span>
+                </TableCell>
 
-                  <td className="px-5 py-3.5 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={busy === row.id}>
-                          {busy === row.id ? (
-                            <Loader2 className="animate-spin" />
-                          ) : (
-                            <ChevronDown />
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
+                <TableCell className="hidden text-right font-medium tabular-nums md:table-cell">
+                  {formatALL(row.paid_total)}
+                </TableCell>
 
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel className="truncate text-xs">
-                          {row.business_name ?? row.email}
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
+                <TableCell className="text-muted-foreground hidden text-right xl:table-cell">
+                  {formatDate(row.created_at)}
+                </TableCell>
 
-                        {PAID_PLANS.map((p) => (
-                          <React.Fragment key={p.id}>
-                            <DropdownMenuLabel className="text-muted-foreground text-[11px]">
-                              {p.name}
-                            </DropdownMenuLabel>
-                            {[1, 3, 12].map((m) => (
-                              <DropdownMenuItem
-                                key={`${p.id}-${m}`}
-                                onSelect={() => grantPlan(row, p.id as PaidPlanId, m)}
-                              >
-                                <Sparkles /> Jep {p.name} — {m} muaj
-                              </DropdownMenuItem>
-                            ))}
-                          </React.Fragment>
-                        ))}
-
-                        {isPro && (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => revokePro(row)}
-                          >
-                            <X /> Hiq planin me pagesë
-                          </DropdownMenuItem>
-                        )}
-
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem
-                          disabled={row.id === currentAdminId || previewing === row.id}
-                          className="text-destructive focus:text-destructive"
-                          onSelect={(event) => {
-                            event.preventDefault();
-                            openDelete(row);
-                          }}
-                        >
-                          <Trash2 /> Fshi biznesin
-                        </DropdownMenuItem>
-
-                        <DropdownMenuSeparator />
-
-                        {/*
-                          There is exactly one admin, enforced in the database.
-                          Staff are appointed as managers instead, so the admin
-                          toggle is not offered for anyone else at all.
-                        */}
-                        {row.is_admin ? (
-                          <DropdownMenuItem disabled>
-                            <ShieldCheck /> Admin
-                          </DropdownMenuItem>
-                        ) : row.is_manager ? (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => setManager(row, false)}
-                          >
-                            <ShieldOff /> Hiq nga menaxher
-                          </DropdownMenuItem>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" disabled={busy === row.id}>
+                        {busy === row.id ? (
+                          <Loader2 className="animate-spin" />
                         ) : (
-                          <DropdownMenuItem onSelect={() => setManager(row, true)}>
-                            <ShieldCheck /> Bëje menaxher
-                          </DropdownMenuItem>
+                          <ChevronDown />
                         )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                      </Button>
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="truncate text-xs">
+                        {row.business_name ?? row.email}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      {PAID_PLANS.map((p) => (
+                        <React.Fragment key={p.id}>
+                          <DropdownMenuLabel className="text-muted-foreground text-[11px]">
+                            {p.name}
+                          </DropdownMenuLabel>
+                          {[1, 3, 12].map((m) => (
+                            <DropdownMenuItem
+                              key={`${p.id}-${m}`}
+                              onSelect={() => grantPlan(row, p.id as PaidPlanId, m)}
+                            >
+                              <Sparkles /> Jep {p.name} — {m} muaj
+                            </DropdownMenuItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
+
+                      {isPro && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => revokePro(row)}
+                        >
+                          <X /> Hiq planin me pagesë
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem
+                        disabled={row.id === currentAdminId || previewing === row.id}
+                        className="text-destructive focus:text-destructive"
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          openDelete(row);
+                        }}
+                      >
+                        <Trash2 /> Fshi biznesin
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      {/*
+                        There is exactly one admin, enforced in the database.
+                        Staff are appointed as managers instead, so the admin
+                        toggle is not offered for anyone else at all.
+                      */}
+                      {row.is_admin ? (
+                        <DropdownMenuItem disabled>
+                          <ShieldCheck /> Admin
+                        </DropdownMenuItem>
+                      ) : row.is_manager ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setManager(row, false)}
+                        >
+                          <ShieldOff /> Hiq nga menaxher
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onSelect={() => setManager(row, true)}>
+                          <ShieldCheck /> Bëje menaxher
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
       {/* Delete confirmation */}
       <Dialog

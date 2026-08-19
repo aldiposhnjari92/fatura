@@ -2,6 +2,14 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import TableSort from '@/components/TableSort.astro';
 import { Icon } from '@/components/ui/icon';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 
 export const prerender = false;
@@ -51,50 +59,48 @@ const waLink = (raw: string | null) => {
           </p>
         </div>
       ) : (
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm" data-sortable>
-            <thead>
-              <tr class="bg-muted/40 border-b">
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">Biznesi</th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="whatsapp">WhatsApp</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="qyteti">Qyteti</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="data" data-sort-type="date">Data</th>
-                <th class="w-32 px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              {rows.map((r) => {
-                const link = waLink(r.whatsapp);
-                return (
-                  <tr class="hover:bg-muted/40 transition-colors">
-                    <td class="max-w-[16rem] truncate px-5 py-3.5 font-medium">
-                      {r.business_name ?? '—'}
-                    </td>
-                    <td class="px-5 py-3.5 font-mono text-xs">{r.whatsapp ?? '—'}</td>
-                    <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
-                      {r.city ?? '—'}
-                    </td>
-                    <td class="text-muted-foreground px-5 py-3.5 text-right">
-                      {formatDate(r.created_at)}
-                    </td>
-                    <td class="px-5 py-3.5 text-right">
-                      {link && (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          class="text-primary inline-flex items-center gap-1.5 text-xs font-medium hover:underline"
-                        >
-                          <Icon name="message-circle" class="size-3.5" /> Shkruaj
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table data-sortable>
+          <TableHeader>
+            <TableRow>
+              <TableHead sortKey="biznesi">Biznesi</TableHead>
+              <TableHead sortKey="whatsapp">WhatsApp</TableHead>
+              <TableHead class="hidden sm:table-cell" sortKey="qyteti">Qyteti</TableHead>
+              <TableHead class="text-right" sortKey="data" sortType="date">Data</TableHead>
+              <TableHead class="w-32" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => {
+              const link = waLink(r.whatsapp);
+              return (
+                <TableRow>
+                  <TableCell class="max-w-[16rem] truncate font-medium">
+                    {r.business_name ?? '—'}
+                  </TableCell>
+                  <TableCell class="font-mono text-xs">{r.whatsapp ?? '—'}</TableCell>
+                  <TableCell class="text-muted-foreground hidden sm:table-cell">
+                    {r.city ?? '—'}
+                  </TableCell>
+                  <TableCell class="text-muted-foreground text-right">
+                    {formatDate(r.created_at)}
+                  </TableCell>
+                  <TableCell class="text-right">
+                    {link && (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        class="text-primary inline-flex items-center gap-1.5 text-xs font-medium hover:underline"
+                      >
+                        <Icon name="message-circle" class="size-3.5" /> Shkruaj
+                      </a>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       )
     }
   </section>

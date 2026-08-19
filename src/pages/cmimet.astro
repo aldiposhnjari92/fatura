@@ -5,6 +5,14 @@ import Cta1 from '@/components/blocks/cta-1.astro';
 import { Section, SectionContainer } from '@/components/ui/section';
 import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Icon } from '@/components/ui/icon';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export const prerender = true;
 
@@ -116,48 +124,61 @@ const rows = [
         description="I njëjti dokument në të tre planet. Ndryshon vetëm sa fatura mund të lëshosh."
       />
 
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[620px] border-collapse text-sm">
-          <thead>
-            <tr class="border-b">
-              <th class="py-3 text-left font-semibold">Veçoria</th>
-              <th class="w-28 py-3 text-center font-semibold">Falas</th>
-              <th class="w-28 py-3 text-center font-semibold">Starter</th>
-              <th class="text-primary w-28 py-3 text-center font-semibold">Pro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              rows.map((row) => (
-                <tr class="border-b">
-                  <td class="text-muted-foreground py-3 pr-4">{row.label}</td>
-                  {/*
-                    Same cell three times, so the tick/dash rendering cannot
-                    drift between columns as the table grows.
-                  */}
-                  {([row.free, row.starter, row.pro] as (string | boolean)[]).map(
-                    (value, index) => (
-                      <td
-                        class:list={['py-3 text-center', index === 2 && 'font-medium']}
-                      >
-                        {typeof value === 'boolean' ? (
-                          value ? (
-                            <Icon name="check" class="text-primary inline-block size-4" />
-                          ) : (
-                            <span class="text-muted-foreground">—</span>
-                          )
+      {/*
+        A comparison grid, not a data list: no zebra fill, no row hover, and a
+        rule under every row including the last — hence the overrides.
+      */}
+      <Table class="min-w-[620px] border-collapse">
+        <TableHeader class="bg-transparent">
+          <TableRow class="hover:bg-transparent">
+            <TableHead class="text-foreground px-0 py-3 text-sm font-semibold">
+              Veçoria
+            </TableHead>
+            <TableHead class="text-foreground w-28 px-0 py-3 text-center text-sm font-semibold">
+              Falas
+            </TableHead>
+            <TableHead class="text-foreground w-28 px-0 py-3 text-center text-sm font-semibold">
+              Starter
+            </TableHead>
+            <TableHead class="text-primary w-28 px-0 py-3 text-center text-sm font-semibold">
+              Pro
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody class="divide-y-0">
+          {
+            rows.map((row) => (
+              <TableRow class="border-b hover:bg-transparent">
+                <TableCell class="text-muted-foreground py-3 pr-4 pl-0">{row.label}</TableCell>
+                {/*
+                  Same cell three times, so the tick/dash rendering cannot
+                  drift between columns as the table grows.
+                */}
+                {([row.free, row.starter, row.pro] as (string | boolean)[]).map(
+                  (value, index) => (
+                    <TableCell
+                      class:list={[
+                        'px-0 py-3 text-center',
+                        index === 2 && 'font-medium',
+                      ]}
+                    >
+                      {typeof value === 'boolean' ? (
+                        value ? (
+                          <Icon name="check" class="text-primary inline-block size-4" />
                         ) : (
-                          value
-                        )}
-                      </td>
-                    )
-                  )}
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
-      </div>
+                          <span class="text-muted-foreground">—</span>
+                        )
+                      ) : (
+                        value
+                      )}
+                    </TableCell>
+                  )
+                )}
+              </TableRow>
+            ))
+          }
+        </TableBody>
+      </Table>
 
       <div class="grid gap-4 sm:grid-cols-3" data-stagger>
         {

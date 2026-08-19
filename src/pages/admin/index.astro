@@ -3,6 +3,14 @@ import { useTranslations } from '@/lib/i18n';
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import TableSort from '@/components/TableSort.astro';
 import { Icon } from '@/components/ui/icon';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import PaymentQueue from '@/components/react/PaymentQueue';
 import { formatALL, formatDate, groupThousands } from '@/lib/utils';
 import { planOf } from '@/lib/plans';
@@ -226,59 +234,57 @@ const chartMax = Math.max(maxSignups, maxInvoices);
               {t('adm.noBusinesses')}
             </p>
           ) : (
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm" data-sortable>
-                <thead>
-                  <tr class="bg-muted/40 border-b">
-                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">
-                      {t('adm.business')}
-                    </th>
-                    <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="qyteti">
-                      {t('adm.city')}
-                    </th>
-                    <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="plani">
-                      {t('set.plan')}
-                    </th>
-                    <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="fatura" data-sort-type="number">
-                      {t('inv.title')}
-                    </th>
-                    <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell" data-sort-key="regjistruar" data-sort-type="date">
-                      {t('adm.registered')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y">
-                  {businesses.map((b) => (
-                    <tr class="hover:bg-muted/40 transition-colors">
-                      <td class="max-w-[16rem] truncate px-5 py-3 font-medium">
-                        {b.business_name ?? (
-                          <span class="text-muted-foreground italic">{t('adm.noName')}</span>
-                        )}
-                      </td>
-                      <td class="text-muted-foreground hidden px-5 py-3 sm:table-cell">
-                        {b.city ?? '—'}
-                      </td>
-                      <td class="px-5 py-3">
-                        <span
-                          class:list={[
-                            'rounded-full px-2 py-0.5 text-[11px] font-bold',
-                            b.is_pro
-                              ? 'bg-brand/15 text-primary'
-                              : 'bg-muted text-muted-foreground',
-                          ]}
-                        >
-                          {b.is_pro ? planOf(b.plan ?? 'pro').badge : t('plan.freeBadge')}
-                        </span>
-                      </td>
-                      <td class="px-5 py-3 text-right tabular-nums">{b.invoice_count}</td>
-                      <td class="text-muted-foreground hidden px-5 py-3 text-right md:table-cell">
-                        {formatDate(b.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table data-sortable>
+              <TableHeader>
+                <TableRow>
+                  <TableHead sortKey="biznesi">{t('adm.business')}</TableHead>
+                  <TableHead class="hidden sm:table-cell" sortKey="qyteti">
+                    {t('adm.city')}
+                  </TableHead>
+                  <TableHead sortKey="plani">{t('set.plan')}</TableHead>
+                  <TableHead class="text-right" sortKey="fatura" sortType="number">
+                    {t('inv.title')}
+                  </TableHead>
+                  <TableHead
+                    class="hidden text-right md:table-cell"
+                    sortKey="regjistruar"
+                    sortType="date"
+                  >
+                    {t('adm.registered')}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {businesses.map((b) => (
+                  <TableRow>
+                    <TableCell class="max-w-[16rem] truncate py-3 font-medium">
+                      {b.business_name ?? (
+                        <span class="text-muted-foreground italic">{t('adm.noName')}</span>
+                      )}
+                    </TableCell>
+                    <TableCell class="text-muted-foreground hidden py-3 sm:table-cell">
+                      {b.city ?? '—'}
+                    </TableCell>
+                    <TableCell class="py-3">
+                      <span
+                        class:list={[
+                          'rounded-full px-2 py-0.5 text-[11px] font-bold',
+                          b.is_pro
+                            ? 'bg-brand/15 text-primary'
+                            : 'bg-muted text-muted-foreground',
+                        ]}
+                      >
+                        {b.is_pro ? planOf(b.plan ?? 'pro').badge : t('plan.freeBadge')}
+                      </span>
+                    </TableCell>
+                    <TableCell class="py-3 text-right tabular-nums">{b.invoice_count}</TableCell>
+                    <TableCell class="text-muted-foreground hidden py-3 text-right md:table-cell">
+                      {formatDate(b.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )
         }
       </section>

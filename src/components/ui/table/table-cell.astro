@@ -1,0 +1,21 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+
+type Props = HTMLAttributes<"td"> & {
+  /* Raw comparable value for TableSort.astro when the visible text is not. */
+  sortValue?: string
+}
+
+const { class: className, sortValue, ...props } = Astro.props
+---
+
+<td
+  data-slot="table-cell"
+  data-sort-value={sortValue}
+  class={cn("px-5 py-3.5 align-middle", className)}
+  {...props}
+>
+  <slot />
+</td>

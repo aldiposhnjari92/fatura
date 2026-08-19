@@ -4,6 +4,14 @@ import TableSort from '@/components/TableSort.astro';
 import PaymentQueue from '@/components/react/PaymentQueue';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatALL, formatDate } from '@/lib/utils';
 import { planOf } from '@/lib/plans';
 
@@ -120,48 +128,48 @@ const kpis: { label: string; value: string; hint?: string }[] = [
           Asnjë pagesë në këtë filtër.
         </p>
       ) : (
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm" data-sortable>
-            <thead>
-              <tr class="bg-muted/40 border-b">
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="referenca">Referenca</th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="biznesi">Biznesi</th>
-                <th class="text-muted-foreground px-5 py-3 text-left text-xs font-medium" data-sort-key="plani">Plani</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-left text-xs font-medium sm:table-cell" data-sort-key="menyra">Mënyra</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="shuma" data-sort-type="number">Shuma</th>
-                <th class="text-muted-foreground px-5 py-3 text-right text-xs font-medium" data-sort-key="statusi">Statusi</th>
-                <th class="text-muted-foreground hidden px-5 py-3 text-right text-xs font-medium md:table-cell" data-sort-key="data" data-sort-type="date">Data</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              {rows.map((r) => (
-                <tr class="hover:bg-muted/40 transition-colors">
-                  <td class="px-5 py-3.5 font-mono text-xs">{r.reference}</td>
-                  <td class="max-w-[14rem] truncate px-5 py-3.5">{r.business_name ?? '—'}</td>
-                  <td class="px-5 py-3.5">
-                    <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
-                      {planOf(r.plan ?? 'pro').name}
-                    </span>
-                  </td>
-                  <td class="text-muted-foreground hidden px-5 py-3.5 sm:table-cell">
-                    {METHOD[r.method] ?? r.method} · {r.months} muaj
-                  </td>
-                  <td class="px-5 py-3.5 text-right font-medium tabular-nums">
-                    {formatALL(r.amount)}
-                  </td>
-                  <td class="px-5 py-3.5 text-right">
-                    <span class={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[r.status] ?? ''}`}>
-                      {LABELS[r.status as Status] ?? r.status}
-                    </span>
-                  </td>
-                  <td class="text-muted-foreground hidden px-5 py-3.5 text-right md:table-cell">
-                    {formatDate(r.decided_at ?? r.created_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table data-sortable>
+          <TableHeader>
+            <TableRow>
+              <TableHead sortKey="referenca">Referenca</TableHead>
+              <TableHead sortKey="biznesi">Biznesi</TableHead>
+              <TableHead sortKey="plani">Plani</TableHead>
+              <TableHead class="hidden sm:table-cell" sortKey="menyra">Mënyra</TableHead>
+              <TableHead class="text-right" sortKey="shuma" sortType="number">Shuma</TableHead>
+              <TableHead class="text-right" sortKey="statusi">Statusi</TableHead>
+              <TableHead class="hidden text-right md:table-cell" sortKey="data" sortType="date">
+                Data
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => (
+              <TableRow>
+                <TableCell class="font-mono text-xs">{r.reference}</TableCell>
+                <TableCell class="max-w-[14rem] truncate">{r.business_name ?? '—'}</TableCell>
+                <TableCell>
+                  <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                    {planOf(r.plan ?? 'pro').name}
+                  </span>
+                </TableCell>
+                <TableCell class="text-muted-foreground hidden sm:table-cell">
+                  {METHOD[r.method] ?? r.method} · {r.months} muaj
+                </TableCell>
+                <TableCell class="text-right font-medium tabular-nums">
+                  {formatALL(r.amount)}
+                </TableCell>
+                <TableCell class="text-right">
+                  <span class={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[r.status] ?? ''}`}>
+                    {LABELS[r.status as Status] ?? r.status}
+                  </span>
+                </TableCell>
+                <TableCell class="text-muted-foreground hidden text-right md:table-cell">
+                  {formatDate(r.decided_at ?? r.created_at)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )
     }
   </section>

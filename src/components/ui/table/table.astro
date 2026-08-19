@@ -1,0 +1,26 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+
+type Props = HTMLAttributes<"table"> & {
+  /*
+    The scroll container is part of the component, not the call site, so no
+    table can ship without one. `containerClass` is how a page still controls
+    that wrapper — e.g. hiding the table below `sm` in favour of a card list.
+  */
+  containerClass?: string
+}
+
+const { class: className, containerClass, ...props } = Astro.props
+---
+
+<div data-slot="table-container" class={cn("w-full overflow-x-auto", containerClass)}>
+  <table
+    data-slot="table"
+    class={cn("w-full caption-bottom text-sm", className)}
+    {...props}
+  >
+    <slot />
+  </table>
+</div>

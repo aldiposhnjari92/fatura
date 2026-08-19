@@ -1,0 +1,17 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+
+type Props = HTMLAttributes<"tr">
+
+const { class: className, ...props } = Astro.props
+---
+
+<tr
+  data-slot="table-row"
+  class={cn("hover:bg-muted/40 transition-colors", className)}
+  {...props}
+>
+  <slot />
+</tr>

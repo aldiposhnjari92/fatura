@@ -1,0 +1,13 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+import { cn } from "@/lib/utils"
+
+type Props = HTMLAttributes<"tbody">
+
+const { class: className, ...props } = Astro.props
+---
+
+<tbody data-slot="table-body" class={cn("divide-y", className)} {...props}>
+  <slot />
+</tbody>
