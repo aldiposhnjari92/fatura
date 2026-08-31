@@ -2,6 +2,7 @@
 import MarketingLayout from '@/layouts/MarketingLayout.astro';
 import Pricing2 from '@/components/blocks/pricing-2.astro';
 import Cta1 from '@/components/blocks/cta-1.astro';
+import { TERM_CHOICES } from '@/lib/payments';
 import { Section, SectionContainer } from '@/components/ui/section';
 import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Icon } from '@/components/ui/icon';
@@ -114,6 +115,7 @@ const rows = [
     title="Çmime pa surpriza"
     description="Fillo falas sot. Paguaj vetëm kur fatura e gjashtë e muajit të bëhet e nevojshme."
     plans={plans}
+    terms={TERM_CHOICES}
   />
 
   <Section class="bg-muted/40">
@@ -190,7 +192,7 @@ const rows = [
             },
             {
               icon: 'calendar-check',
-              title: '1, 6 ose 12 muaj',
+              title: '1, 3, 6 ose 12 muaj',
               body: 'Paguaj për sa muaj të duash me një transfertë të vetme. Koha e re i shtohet asaj ekzistuese.',
             },
             {

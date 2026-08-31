@@ -20,8 +20,8 @@ export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
 */
 export const PRO_MONTHLY_ALL = PLANS.pro.monthlyALL;
 
-/** Terms on offer. The same three for every plan; only the total differs. */
-export const TERM_MONTHS = [1, 6, 12] as const;
+/** Terms on offer. The same four for every plan; only the total differs. */
+export const TERM_MONTHS = [1, 3, 6, 12] as const;
 
 export interface TermOption {
   months: number;
@@ -35,6 +35,7 @@ export interface TermOption {
 
 const TERM_META: Record<number, { label: string; note?: string; best?: boolean }> = {
   1: { label: '1 muaj' },
+  3: { label: '3 muaj', note: 'tremujor' },
   6: { label: '6 muaj', note: 'gjysmë viti' },
   12: { label: '12 muaj', note: 'një vit', best: true },
 };
@@ -48,6 +49,15 @@ export function termOptions(plan: PaidPlanId | string): TermOption[] {
     ...TERM_META[months],
   }));
 }
+
+/**
+ * The terms without a price attached, for the marketing pages. Those cards
+ * carry their own prices (they are prerendered and must not import the plan
+ * table into the client bundle), so they only need the months and the label.
+ */
+export const TERM_CHOICES: { months: number; label: string }[] = TERM_MONTHS.map(
+  (months) => ({ months, label: TERM_META[months].label })
+);
 
 export function isTermMonths(value: unknown): boolean {
   return TERM_MONTHS.includes(Number(value) as (typeof TERM_MONTHS)[number]);

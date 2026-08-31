@@ -10,6 +10,7 @@ import Cta1 from '@/components/blocks/cta-1.astro';
 import ProblemSection from '@/components/sections/ProblemSection.astro';
 import StepsSection from '@/components/sections/StepsSection.astro';
 import WaitlistSection from '@/components/sections/WaitlistSection.astro';
+import { TERM_CHOICES } from '@/lib/payments';
 
 // Fully static: no session lookup, no JS shipped, cached at the edge.
 export const prerender = true;
@@ -185,6 +186,7 @@ const appJsonLd = {
     title="Çmime të thjeshta"
     description="Fillo falas. Paguaj vetëm kur biznesi rritet."
     plans={plans}
+    terms={TERM_CHOICES}
   />
 
   <WaitlistSection />
