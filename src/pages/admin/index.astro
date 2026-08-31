@@ -133,7 +133,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {
       headline.map((kpi) => (
-        <div class="bg-card ring-border rounded-xl p-5 ring-1">
+        <div class="bg-card shadow-card rounded-2xl p-6">
           <div class="flex items-center justify-between">
             <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {kpi.label}
@@ -152,7 +152,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
   <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
     <div class="flex flex-col gap-6">
       <!-- 30-day activity -->
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+      <section class="bg-card shadow-card rounded-2xl p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-sm font-semibold">{t('adm.activity30d')}</h2>
           <div class="flex items-center gap-4 text-xs">
@@ -202,7 +202,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       </section>
 
       <!-- Payment approvals -->
-      <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+      <section class="bg-card shadow-card overflow-hidden rounded-2xl">
         <div class="flex items-center justify-between border-b px-5 py-4">
           <h2 class="text-sm font-semibold">{t('adm.pendingPayments')}</h2>
           {
@@ -217,7 +217,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
       </section>
 
       <!-- Recent businesses -->
-      <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+      <section class="bg-card shadow-card overflow-hidden rounded-2xl">
         <!-- Stacks on a phone: side by side, the hint collided with the heading. -->
         <div
           class="flex flex-col gap-1 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
@@ -292,7 +292,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
 
     <!-- Side rail -->
     <aside class="flex flex-col gap-6">
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+      <section class="bg-card shadow-card rounded-2xl p-6">
         <h2 class="text-sm font-semibold">{t('adm.otherNumbers')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           {
@@ -306,7 +306,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
         </dl>
       </section>
 
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+      <section class="bg-card shadow-card rounded-2xl p-6">
         <h2 class="text-sm font-semibold">{t('adm.revenueSection')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           {
@@ -320,7 +320,7 @@ const chartMax = Math.max(maxSignups, maxInvoices);
         </dl>
       </section>
 
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
+      <section class="bg-card shadow-card rounded-2xl p-6">
         <h2 class="text-sm font-semibold">{t('adm.growth')}</h2>
         <dl class="mt-4 flex flex-col gap-3 text-sm">
           <div class="flex items-center justify-between">

@@ -31,62 +31,81 @@ const { class: className, title, description, faqs, buttons } = Astro.props
 
 <Section class={cn("", className)}>
   {/*
-    Two columns rather than a centred heading above a narrow accordion.
+    A centred heading over two columns of independent cards, which is how the
+    reference design lays this out.
 
-    The heading and the "still stuck?" escape hatch hold the left rail and stay
-    put while the questions scroll past on the right — so help is always in
-    view, and the section stops looking like a FAQ bolted onto the bottom of
-    the page.
+    This replaced a sticky left rail beside a single tall accordion. The rail
+    kept the contact card permanently in view, but it also forced eight
+    questions into one narrow column and left the section nearly a full screen
+    taller than it needed to be. Two columns halve that, and the contact card
+    moves to the foot of the band where a reader arrives at it having actually
+    read the questions.
+
+    `Accordion` defaults to `flex-col`; the grid classes here override that
+    through `cn`'s tailwind-merge, so the items keep their keyboard behaviour
+    while laying out in two columns.
   */}
   <SectionContainer>
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-16">
-      <div class="lg:sticky lg:top-24 lg:self-start" data-reveal>
-        <SectionHeading eyebrow="Pyetje" title={title} description={description} align="start" />
+    <div data-reveal>
+      <SectionHeading eyebrow="Pyetje" title={title} description={description} />
+    </div>
 
-        <div class="border-primary/20 bg-accent/40 mt-8 rounded-2xl border p-5">
-          <p class="text-sm font-semibold">Nuk e gjete përgjigjen?</p>
-          <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-            Shkruaj dhe të kthejmë përgjigje brenda ditës.
-          </p>
-          <a
-            href="mailto:aldiposhnjari@gmail.com"
-            class="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+    <Accordion
+      collapsible
+      class="mx-auto grid max-w-5xl gap-3 md:grid-cols-2 md:items-start"
+      data-reveal
+    >
+      {
+        faqs.map((item) => (
+          <AccordionItem
+            value={item.id}
+            class="bg-card shadow-card rounded-2xl px-5 not-last:border-b-0"
           >
-            aldiposhnjari@gmail.com
-          </a>
-        </div>
+            <AccordionTrigger class="py-4 font-semibold hover:no-underline">
+              {item.question}
+            </AccordionTrigger>
+            <AccordionContent class="text-muted-foreground pb-4 text-sm leading-relaxed">
+              {item.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))
+      }
+    </Accordion>
 
-        {
-          buttons?.length && (
-            <div class="mt-6 flex flex-wrap gap-3">
-              {buttons.map(({ href, label, ...button }, index) => (
-                <Button
-                  as="a"
-                  href={href}
-                  size="lg"
-                  class="press"
-                  variant={button.variant ?? (index === 0 ? "default" : "secondary")}
-                  {...button}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )
-        }
+    <div
+      class="border-primary/20 bg-accent/40 mx-auto flex w-full max-w-5xl flex-col items-center gap-4 rounded-2xl border p-6 text-center sm:flex-row sm:justify-between sm:text-left"
+      data-reveal
+    >
+      <div>
+        <p class="text-sm font-semibold">Nuk e gjete përgjigjen?</p>
+        <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+          Shkruaj dhe të kthejmë përgjigje brenda ditës.
+        </p>
       </div>
 
-      <div data-reveal>
-        <Accordion collapsible>
-          {
-            faqs.map((item) => (
-              <AccordionItem value={item.id}>
-                <AccordionTrigger>{item.question}</AccordionTrigger>
-                <AccordionContent>{item.answer}</AccordionContent>
-              </AccordionItem>
-            ))
-          }
-        </Accordion>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        {
+          buttons?.map(({ href, label, ...button }, index) => (
+            <Button
+              as="a"
+              href={href}
+              size="lg"
+              class="press rounded-full px-6"
+              variant={button.variant ?? (index === 0 ? "default" : "secondary")}
+              {...button}
+            >
+              {label}
+            </Button>
+          ))
+        }
+        <Button
+          as="a"
+          href="mailto:aldiposhnjari@gmail.com"
+          size="lg"
+          class="press rounded-full px-6"
+        >
+          Na shkruaj
+        </Button>
       </div>
     </div>
   </SectionContainer>

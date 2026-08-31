@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { formatALL, formatDate } from '@/lib/utils';
 import type { InvoiceStatus, InvoiceWithClient } from '@/lib/types';
+import { applyInvoiceSearch, matchingClientIds, normalizeQuery } from '@/lib/search';
 
 export const prerender = false;
 
@@ -26,7 +27,7 @@ const rawStatus = params.get('statusi');
 const status = VALID_STATUSES.includes(rawStatus as InvoiceStatus)
   ? (rawStatus as InvoiceStatus)
   : null;
-const search = (params.get('kerko') ?? '').trim().slice(0, 60);
+const search = normalizeQuery(params.get('kerko'));
 
 const PAGE_SIZE = 25;
 const page = Math.max(1, Number.parseInt(params.get('faqe') ?? '1', 10) || 1);
@@ -61,8 +62,14 @@ if (status === 'overdue') {
 } else if (status) {
   query = query.eq('status', status);
 }
-// postgrest-js sends this as a bound value, not concatenated SQL.
-if (search) query = query.ilike('invoice_number', `%${search}%`);
+/*
+  Matches the invoice number *or* the client it is billed to — the same rule
+  the shell's global search uses, so a term typed up there and then narrowed
+  here does not silently change meaning. `matchingClientIds` runs only when
+  there is a term to match.
+*/
+const searchClientIds = search ? await matchingClientIds(supabase, user!.id, search) : [];
+query = applyInvoiceSearch(query, search, searchClientIds);
 
 const { data, error, count } = await query;
 const invoices = (data ?? []) as unknown as InvoiceWithClient[];
@@ -117,7 +124,7 @@ const hasFilter = Boolean(status || search);
 
   <!-- Toolbar -->
   <div
-    class="bg-card ring-border mb-4 flex flex-col gap-3 rounded-xl p-3 ring-1 lg:flex-row lg:items-center lg:justify-between"
+    class="bg-card shadow-card mb-4 flex flex-col gap-3 rounded-2xl p-3 lg:flex-row lg:items-center lg:justify-between"
   >
     <div class="flex flex-wrap gap-1.5">
       {
@@ -170,7 +177,7 @@ const hasFilter = Boolean(status || search);
 
   {
     invoices.length === 0 ? (
-      <div class="bg-card ring-border rounded-xl px-6 py-16 text-center ring-1">
+      <div class="bg-card shadow-card rounded-2xl px-6 py-16 text-center">
         <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
           <Icon name="file-text" class="text-muted-foreground size-5" />
         </div>
@@ -187,7 +194,7 @@ const hasFilter = Boolean(status || search);
         </Button>
       </div>
     ) : (
-      <div class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+      <div class="bg-card shadow-card overflow-hidden rounded-2xl">
         {/*
           Same reasoning as the dashboard: below `sm` the table becomes one row
           per invoice, because six columns on a 360px screen wraps the number

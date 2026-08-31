@@ -4,11 +4,14 @@ import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import UserMenu from '@/components/react/UserMenu';
 import ActivityStream from '@/components/react/ActivityStream';
+import GlobalSearch from '@/components/react/GlobalSearch';
+import { normalizeQuery } from '@/lib/search';
+import { Icon } from '@/components/ui/icon';
 
 export interface Props {
   title: string;
   heading?: string;
-  active?: 'dashboard' | 'invoices' | 'clients' | 'settings';
+  active?: 'dashboard' | 'invoices' | 'new' | 'clients' | 'search' | 'settings';
 }
 
 const { title, heading, active = 'dashboard' } = Astro.props;
@@ -19,116 +22,225 @@ const t = useTranslations();
 
 // For an admin, bare /app redirects to the console — so the in-app "Paneli"
 // link carries the escape param and stays where the user already is.
+/*
+  On the results page the shell's field is the page's field — there is no
+  second one below it — so it has to open carrying the term being shown.
+*/
+const searchQuery =
+  Astro.url.pathname === '/app/kerko' ? normalizeQuery(Astro.url.searchParams.get('q')) : '';
+
 const isAdmin = profile?.is_admin ?? false;
 const dashboardHref = isAdmin ? '/app?klient=1' : '/app';
 
 /*
-  Settings deliberately lives only in the account dropdown, not here.
+  A persistent left rail rather than a top bar.
 
-  It was in both, and the navbar is for the things a business does daily —
-  invoices and clients. Settings is a set-once-and-forget screen, so it belongs
-  with the account, which is also where a user goes looking for it.
+  The destinations are the same three as before plus the compose action; what
+  changed is that they now sit in a labelled column, grouped by what the user
+  is doing — the invoicing run, then the supporting records. A top bar has to
+  hold everything on one line, so it flattens that distinction and caps the
+  list at whatever fits beside the logo. The rail also frees the full width of
+  the page header for the search field and the page's own actions.
 
-  Reachable on mobile too: the dropdown is on the avatar in the top bar, and
-  the bottom nav below is built from this same list.
+  Settings still lives only in the account dropdown, not here. It is a
+  set-once-and-forget screen, so it belongs with the account, which is also
+  where a user goes looking for it.
+
+  Below `lg` the rail is not rendered at all: a phone keeps the top bar and the
+  bottom nav it already had, both built from this same list.
 */
 const nav = [
-  { key: 'dashboard', href: dashboardHref, label: t('nav.dashboard'), icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
   {
-    key: 'invoices',
-    href: '/app/faturat',
-    label: t('nav.invoices'),
-    icon: 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h7M9 17h5',
+    group: null,
+    items: [
+      {
+        key: 'dashboard',
+        href: dashboardHref,
+        label: t('nav.dashboard'),
+        icon: 'layout-dashboard',
+      },
+    ],
   },
   {
-    key: 'clients',
-    href: '/app/klientet',
-    label: t('nav.clients'),
-    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM3 21v-2a6 6 0 016-6h6a6 6 0 016 6v2',
+    group: 'Faturimi',
+    items: [
+      { key: 'invoices', href: '/app/faturat', label: t('nav.invoices'), icon: 'file-text' },
+      {
+        key: 'new',
+        href: '/app/faturat/e-re',
+        label: t('nav.newInvoice'),
+        icon: 'square-pen',
+      },
+    ],
+  },
+  {
+    group: 'Regjistrat',
+    items: [
+      { key: 'clients', href: '/app/klientet', label: t('nav.clients'), icon: 'users' },
+    ],
   },
 ] as const;
+
+// The three destinations the phone's bottom bar carries — compose has its own
+// floating button down there, so it is left out.
+const mobileNav = [
+  { key: 'dashboard', href: dashboardHref, label: t('nav.dashboard'), icon: 'layout-dashboard' },
+  { key: 'invoices', href: '/app/faturat', label: t('nav.invoices'), icon: 'file-text' },
+  { key: 'clients', href: '/app/klientet', label: t('nav.clients'), icon: 'users' },
+] as const;
+
+const railLink =
+  'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
+const railActive = 'bg-accent text-accent-foreground font-semibold';
+const railIdle = 'text-muted-foreground hover:bg-muted hover:text-foreground';
 ---
 
 <BaseLayout title={title} noindex={true}>
-  <div class="flex min-h-screen flex-col bg-muted/40">
-    <header class="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md">
-      <div class="container flex h-16 items-center justify-between gap-4">
-        <div class="flex items-center gap-8">
-          <a href={dashboardHref} aria-label="Fatura.co — paneli"><Logo /></a>
+  <div class="bg-ground flex min-h-screen">
+    {/* ---------- Desktop: persistent left rail ---------- */}
+    <aside
+      class="bg-card sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 px-3 py-4 lg:flex"
+    >
+      <a href={dashboardHref} class="px-2.5 py-1" aria-label="Fatura.co — paneli"><Logo /></a>
 
-          <nav
-            class="hidden items-center gap-1 md:flex"
-            aria-label="Navigimi i aplikacionit"
-          >
-            {
-              nav.map((item) => (
+      <nav class="flex flex-col gap-3" aria-label="Navigimi i aplikacionit">
+        {
+          nav.map((section) => (
+            <div class="flex flex-col gap-1">
+              {section.group && (
+                <p class="text-muted-foreground/70 px-2.5 pt-1 pb-0.5 text-[10px] font-bold tracking-[0.12em] uppercase">
+                  {section.group}
+                </p>
+              )}
+              {section.items.map((item) => (
                 <a
                   href={item.href}
                   aria-current={active === item.key ? 'page' : undefined}
-                  class:list={[
-                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    active === item.key
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  ]}
+                  class:list={[railLink, active === item.key ? railActive : railIdle]}
                 >
+                  <span
+                    class:list={[
+                      'flex size-6 shrink-0 items-center justify-center rounded-md transition-colors',
+                      active === item.key
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground group-hover:bg-background',
+                    ]}
+                  >
+                    <Icon name={item.icon} class="size-3.5" />
+                  </span>
                   {item.label}
                 </a>
-              ))
-            }
-          </nav>
-        </div>
+              ))}
+            </div>
+          ))
+        }
+      </nav>
 
+      {/*
+        The help card the reference design parks at the foot of the rail. It
+        replaces nothing — support was previously reachable only from the
+        marketing footer, which a signed-in user never sees.
+      */}
+      <div class="bg-ground mt-auto rounded-xl p-3.5">
         <div class="flex items-center gap-2">
-          {/*
-            The bell replaces the new-invoice button here. Creating an invoice
-            is still one tap away: the floating action button on mobile, and the
-            primary CTA on the dashboard and invoice list on desktop.
-          */}
-          <ActivityStream variant="bell" scope="own" client:idle />
-
-          {/*
-            client:idle, not client:load: this is a dropdown behind the avatar.
-            Hydrating it eagerly put supabase-js on the critical path of every
-            app page for a menu most visits never open.
-          */}
-          <UserMenu
-            businessName={profile?.business_name ?? null}
-            email={user?.email ?? ''}
-            logoUrl={profile?.logo_url ?? null}
-            plan={plan}
-            proEndsOn={profile?.cancelled_at ? (profile?.pro_until ?? null) : null}
-            isAdmin={profile?.is_admin ?? false}
-            invoicesThisMonth={invoicesThisMonth}
-            client:idle
-          />
+          <span class="bg-card text-primary flex size-6 items-center justify-center rounded-full">
+            <Icon name="life-buoy" class="size-3.5" />
+          </span>
+          <p class="text-sm font-semibold">Të duhet ndihmë?</p>
         </div>
+        <a
+          href="mailto:aldiposhnjari@gmail.com"
+          class="text-primary mt-1.5 inline-block text-xs font-semibold underline underline-offset-4"
+        >
+          aldiposhnjari@gmail.com
+        </a>
       </div>
-    </header>
+    </aside>
 
-    <main class="container flex-1 py-8 pb-28 md:pb-10">
-      {
-        heading && (
-          <h1 class="mb-6 text-2xl font-bold tracking-[-0.02em] sm:text-3xl">{heading}</h1>
-        )
-      }
-      <slot />
-    </main>
+    <div class="flex min-w-0 flex-1 flex-col">
+      {/* ---------- Top bar: search, notifications, account ---------- */}
+      <header class="bg-ground/85 sticky top-0 z-40 backdrop-blur-md">
+        <div class="flex h-16 items-center gap-3 px-4 sm:px-6">
+          <a href={dashboardHref} class="lg:hidden" aria-label="Fatura.co — paneli">
+            <Logo />
+          </a>
+
+          {/*
+            The global filter. An instant-search combobox: it queries
+            /app/kerko.json as you type and drops a categorised panel under the
+            field, with /app/kerko as the full-results page behind it.
+
+            It used to point straight at the invoice list, whose filter only
+            ever matched `invoice_number` — so searching a customer's name, the
+            obvious thing to type, returned nothing, and searching from the
+            clients page navigated away from clients.
+
+            client:idle, not client:load: the island's own markup is a real GET
+            form, so the field is usable the moment it paints and keeps working
+            with JavaScript unavailable. Hydration only upgrades it to preview
+            results inline, which is never on the critical path of a page load.
+          */}
+          <GlobalSearch initialQuery={searchQuery} client:idle />
+
+          <div class="ml-auto flex items-center gap-2">
+            {/*
+              The instant-search field is desktop-only — a dropdown over a
+              390px viewport covers the page it is meant to help you navigate.
+              A phone gets this instead: the same search, on its own page,
+              which is where /app/kerko already renders its own field.
+            */}
+            <a
+              href="/app/kerko"
+              class="hover:bg-muted text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-full transition-colors md:hidden"
+              aria-label="Kërko"
+            >
+              <Icon name="search" class="size-5" />
+            </a>
+
+            {/*
+              The bell replaces the new-invoice button here. Creating an invoice
+              is still one tap away: the floating action button on mobile, the
+              rail item on desktop.
+            */}
+            <ActivityStream variant="bell" scope="own" client:idle />
+
+            {/*
+              client:idle, not client:load: this is a dropdown behind the avatar.
+              Hydrating it eagerly put supabase-js on the critical path of every
+              app page for a menu most visits never open.
+            */}
+            <UserMenu
+              businessName={profile?.business_name ?? null}
+              email={user?.email ?? ''}
+              logoUrl={profile?.logo_url ?? null}
+              plan={plan}
+              proEndsOn={profile?.cancelled_at ? (profile?.pro_until ?? null) : null}
+              isAdmin={profile?.is_admin ?? false}
+              invoicesThisMonth={invoicesThisMonth}
+              client:idle
+            />
+          </div>
+        </div>
+      </header>
+
+      <main class="min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 md:pb-10">
+        {
+          heading && (
+            <h1 class="mb-6 text-2xl font-bold tracking-[-0.02em] sm:text-3xl">{heading}</h1>
+          )
+        }
+        <slot />
+      </main>
+    </div>
 
     <!-- Mobile bottom nav: this product lives on phones. -->
     <nav
-      class="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      class="bg-card/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       aria-label="Navigimi mobil"
     >
-      {/*
-        Flex with `flex-1`, not a fixed column count. It was `grid-cols-4` from
-        when Settings lived here too, so after that moved to the account menu
-        the three remaining items sat in three of four columns and looked
-        shunted to the left. This stays centred whatever the list length.
-      */}
       <div class="flex">
         {
-          nav.map((item) => (
+          mobileNav.map((item) => (
             <a
               href={item.href}
               aria-current={active === item.key ? 'page' : undefined}
@@ -137,19 +249,7 @@ const nav = [
                 active === item.key ? 'text-primary' : 'text-muted-foreground',
               ]}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.9"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d={item.icon} />
-              </svg>
+              <Icon name={item.icon} class="size-5" />
               {item.label}
             </a>
           ))
@@ -160,10 +260,11 @@ const nav = [
     <!-- Floating compose button, mobile only -->
     <a
       href="/app/faturat/e-re"
-      class="fixed bottom-20 right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl font-light text-primary-foreground shadow-lg transition-transform hover:scale-105 md:hidden"
-      aria-label={t("nav.newInvoice")}
+      class="bg-primary text-primary-foreground fixed right-4 bottom-20 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light shadow-lg transition-transform hover:scale-105 lg:hidden"
+      aria-label={t('nav.newInvoice')}
     >
       +
     </a>
   </div>
+
 </BaseLayout>

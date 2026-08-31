@@ -64,7 +64,7 @@ const plans = [
   },
   {
     name: 'Pro',
-    description: 'Anulo kur të duash.',
+    description: 'Për biznese që faturojnë çdo ditë.',
     price: 2000,
     currency: 'ALL',
     unit: 'muaj',
@@ -118,7 +118,7 @@ const rows = [
     terms={TERM_CHOICES}
   />
 
-  <Section class="bg-muted/40">
+  <Section class="bg-ground">
     <SectionContainer class="max-w-5xl gap-6" data-reveal>
       <SectionHeading
         eyebrow="Krahasimi"
@@ -201,7 +201,7 @@ const rows = [
               body: 'Pas anulimit plani vazhdon deri në fund të periudhës së paguar, pastaj kthehesh te falas.',
             },
           ].map((item) => (
-            <div class="bg-card ring-border lift rounded-2xl p-5 ring-1">
+            <div class="bg-card shadow-card lift rounded-2xl p-6">
               <span class="bg-accent text-primary flex size-9 items-center justify-center rounded-lg">
                 <Icon name={item.icon} class="size-[1.05rem]" />
               </span>
@@ -225,7 +225,7 @@ const rows = [
   </Section>
 
   <Cta1
-    class="dark bg-ink"
+    class="bg-brand-deep"
     title="Fillo sot, paguaj kur të rritesh"
     description="Krijo llogarinë falas dhe shkarko faturën e parë brenda pak minutash."
     buttons={[

@@ -1,0 +1,218 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import StatusBadge from '@/components/StatusBadge.astro';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { displayStatus } from '@/lib/types';
+import { formatALL, formatDate } from '@/lib/utils';
+import type { Client, InvoiceWithClient } from '@/lib/types';
+import {
+  applyInvoiceSearch,
+  matchingClientIds,
+  normalizeQuery,
+  SEARCH_MAX_LENGTH,
+} from '@/lib/search';
+
+export const prerender = false;
+
+const { supabase, user } = Astro.locals;
+const query = normalizeQuery(Astro.url.searchParams.get('q'));
+
+/*
+  One destination for the shell's search field, across both record types the
+  app holds. Sending it to the invoice list instead meant a client's name — the
+  thing people actually search for — returned "no invoices found", and a search
+  started from the clients page navigated away from clients entirely.
+
+  Results are capped rather than paged: this is a jump-to, not a report. The
+  per-section "see all" links hand off to the real list when a term matches
+  more than fits here.
+*/
+const RESULT_LIMIT = 8;
+
+let invoices: InvoiceWithClient[] = [];
+let clients: Client[] = [];
+let invoiceCount = 0;
+let clientCount = 0;
+
+if (query) {
+  const clientIds = await matchingClientIds(supabase, user!.id, query);
+
+  const [invoiceResult, clientResult] = await Promise.all([
+    applyInvoiceSearch(
+      supabase
+        .from('invoices')
+        .select(
+          'id, invoice_number, issue_date, due_date, total, status, clients(name)',
+          { count: 'exact' }
+        )
+        .eq('owner_id', user!.id)
+        .order('issue_date', { ascending: false })
+        .limit(RESULT_LIMIT),
+      query,
+      clientIds
+    ),
+    supabase
+      .from('clients')
+      .select('id, name, email, nipt, address', { count: 'exact' })
+      .eq('owner_id', user!.id)
+      .in('id', clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
+      .order('name')
+      .limit(RESULT_LIMIT),
+  ]);
+
+  invoices = (invoiceResult.data ?? []) as unknown as InvoiceWithClient[];
+  clients = (clientResult.data ?? []) as unknown as Client[];
+  invoiceCount = invoiceResult.count ?? 0;
+  clientCount = clientResult.count ?? 0;
+}
+
+const totalCount = invoiceCount + clientCount;
+---
+
+<AppLayout title={query ? `“${query}” — Kërkim` : 'Kërkim — Fatura.co'} active="search">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">Kërkim</h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {
+        query
+          ? `${totalCount} ${totalCount === 1 ? 'rezultat' : 'rezultate'} për “${query}”`
+          : 'Shkruaj te fusha e kërkimit lart — numër fature, emër klienti, NIPT ose email.'
+      }
+    </p>
+  </div>
+
+  {/*
+    Phone only. On a desktop the shell's field sits directly above this page
+    and is already carrying the term, so a second field here put two searches
+    on one screen — the reader has to work out which one is live before typing
+    into either. Below `md` the shell hides its field (a dropdown over a 390px
+    viewport covers the page it is meant to help you navigate), and this is
+    what stands in for it.
+  */}
+  <form
+    action="/app/kerko"
+    method="get"
+    role="search"
+    class="bg-card shadow-card ring-border/60 focus-within:ring-ring mb-6 flex h-12 items-center gap-3 rounded-full px-5 ring-1 focus-within:ring-2 md:hidden"
+  >
+    <Icon name="search" class="text-muted-foreground size-4 shrink-0" />
+    <input
+      type="search"
+      name="q"
+      value={query}
+      maxlength={SEARCH_MAX_LENGTH}
+      autofocus={!query}
+      placeholder="Kërko"
+      aria-label="Kërko fatura dhe klientë"
+      class="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
+    />
+    <Button type="submit" size="sm" class="shrink-0 rounded-full px-4">Kërko</Button>
+  </form>
+
+  {
+    !query ? null : totalCount === 0 ? (
+      <section class="bg-card shadow-card rounded-2xl px-6 py-14 text-center">
+        <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
+          <Icon name="search-x" class="text-muted-foreground size-5" />
+        </div>
+        <h2 class="mt-4 text-sm font-semibold">Asnjë rezultat për “{query}”</h2>
+        <p class="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">
+          Provo numrin e faturës (p.sh. FAT-2026-014), emrin e klientit ose NIPT-in.
+        </p>
+      </section>
+    ) : (
+      <div class="flex flex-col gap-5">
+        {invoices.length > 0 && (
+          <section class="bg-card shadow-card overflow-hidden rounded-2xl">
+            <div class="flex items-center justify-between gap-3 px-6 py-5">
+              <div class="flex items-center gap-2.5">
+                <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+                  <Icon name="file-text" class="size-4" />
+                </span>
+                <h2 class="font-semibold tracking-tight">
+                  Faturat
+                  <span class="text-muted-foreground ml-1 font-normal">({invoiceCount})</span>
+                </h2>
+              </div>
+              {invoiceCount > invoices.length && (
+                <a
+                  href={`/app/faturat?kerko=${encodeURIComponent(query)}`}
+                  class="text-primary text-sm font-medium hover:underline"
+                >
+                  Shiko të gjitha
+                </a>
+              )}
+            </div>
+
+            <ul class="divide-y border-t">
+              {invoices.map((invoice) => (
+                <li>
+                  <a
+                    href={`/app/faturat/${invoice.id}`}
+                    class="hover:bg-muted/40 flex items-center justify-between gap-3 px-6 py-3.5 transition-colors"
+                  >
+                    <span class="min-w-0 flex-1">
+                      <span class="text-primary block truncate font-medium">
+                        {invoice.invoice_number}
+                      </span>
+                      <span class="text-muted-foreground block truncate text-xs">
+                        {invoice.clients?.name ?? '—'} · {formatDate(invoice.issue_date)}
+                      </span>
+                    </span>
+                    <span class="flex shrink-0 items-center gap-3">
+                      <span class="font-medium whitespace-nowrap tabular-nums">
+                        {formatALL(invoice.total)}
+                      </span>
+                      <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {clients.length > 0 && (
+          <section class="bg-card shadow-card overflow-hidden rounded-2xl">
+            <div class="flex items-center justify-between gap-3 px-6 py-5">
+              <div class="flex items-center gap-2.5">
+                <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+                  <Icon name="users" class="size-4" />
+                </span>
+                <h2 class="font-semibold tracking-tight">
+                  Klientët
+                  <span class="text-muted-foreground ml-1 font-normal">({clientCount})</span>
+                </h2>
+              </div>
+              <a href="/app/klientet" class="text-primary text-sm font-medium hover:underline">
+                Shiko të gjithë
+              </a>
+            </div>
+
+            <ul class="divide-y border-t">
+              {clients.map((client) => (
+                <li>
+                  <a
+                    href="/app/klientet"
+                    class="hover:bg-muted/40 flex items-center justify-between gap-3 px-6 py-3.5 transition-colors"
+                  >
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate font-medium">{client.name}</span>
+                      <span class="text-muted-foreground block truncate text-xs">
+                        {[client.nipt && `NIPT: ${client.nipt}`, client.email]
+                          .filter(Boolean)
+                          .join(' · ') || '—'}
+                      </span>
+                    </span>
+                    <Icon name="chevron-right" class="text-muted-foreground size-4 shrink-0" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    )
+  }
+</AppLayout>

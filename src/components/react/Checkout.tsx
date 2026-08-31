@@ -260,7 +260,7 @@ export default function Checkout({
         // read light on the ink surface instead of dark-on-dark.
         proActive
           ? 'dark bg-ink text-mist shadow-2xl ring-1 ring-white/10'
-          : 'bg-card ring-border text-foreground ring-1',
+          : 'bg-card shadow-card ring-border/60 text-foreground ring-1',
       ].join(' ')}
     >
       {proActive && (
@@ -523,7 +523,7 @@ export default function Checkout({
       {errorBanner}
 
       {/* Plan */}
-      <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+      <section className="bg-card shadow-card rounded-2xl p-6">
         <h2 className="font-semibold">Zgjidh planin</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           I njëjti dokument në të dyja planet. Ndryshon vetëm sa fatura mund të lëshosh
@@ -587,7 +587,7 @@ export default function Checkout({
       </section>
 
       {/* Term */}
-      <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+      <section className="bg-card shadow-card rounded-2xl p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-semibold">
@@ -661,7 +661,7 @@ export default function Checkout({
       </section>
 
       {/* Method */}
-      <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+      <section className="bg-card shadow-card rounded-2xl p-6">
         <h2 className="font-semibold">Mënyra e pagesës</h2>
         <div className="mt-5 flex flex-col gap-3">
           {methods.map((m) => {
@@ -715,7 +715,7 @@ export default function Checkout({
 
       {/* Bank transfer instructions */}
       {method === 'bank_transfer' && (
-        <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+        <section className="bg-card shadow-card rounded-2xl p-6">
           <h2 className="font-semibold">Të dhënat e transfertës</h2>
 
           {!bankConfigured && (
@@ -827,7 +827,7 @@ export default function Checkout({
 
       {/* Card / PayPal */}
       {(method === 'card' || method === 'paypal') && (
-        <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+        <section className="bg-card shadow-card rounded-2xl p-6">
           <h2 className="font-semibold">{activeMethod?.label}</h2>
 
           {activeMethod?.available && paypalClientId ? (
@@ -880,7 +880,7 @@ export default function Checkout({
           {buying ? (
             purchase
           ) : (
-            <section className="bg-card ring-border rounded-2xl p-5 ring-1 sm:p-6">
+            <section className="bg-card shadow-card rounded-2xl p-6">
               <h2 className="font-semibold">Detajet e abonimit</h2>
               <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
                 {[

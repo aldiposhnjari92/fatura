@@ -140,7 +140,7 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="bg-card ring-border flex flex-col gap-3 rounded-xl p-3 ring-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="bg-card shadow-card flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative sm:w-72">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
@@ -166,7 +166,7 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-card ring-border rounded-xl px-6 py-16 text-center ring-1">
+        <div className="bg-card shadow-card rounded-2xl px-6 py-16 text-center">
           <div className="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
             <Users className="text-muted-foreground size-5" />
           </div>
@@ -185,7 +185,7 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
           )}
         </div>
       ) : (
-        <div className="bg-card ring-border overflow-hidden rounded-xl ring-1">
+        <div className="bg-card shadow-card overflow-hidden rounded-2xl">
           <Table>
             <TableHeader>
               <TableRow>

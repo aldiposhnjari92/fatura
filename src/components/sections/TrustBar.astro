@@ -12,7 +12,8 @@ import { Icon } from '@/components/ui/icon';
   the data lives, that the document never leaves the device, and that starting
   costs nothing.
 
-  When there are real customers, this is the slot that becomes the logo wall.
+  When there are real customers, this is the slot that becomes the logo wall —
+  which is what the reference design puts here, in the same band.
 */
 
 const signals = [
@@ -34,19 +35,20 @@ const signals = [
 ];
 ---
 
-<section class="border-y" aria-label="Pse të besosh Fatura.co">
-  <div class="container">
-    <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-3" data-stagger>
+<section class="bg-ground border-y" aria-label="Pse të besosh Fatura.co">
+  <div class="container py-14 sm:py-16">
+    <p class="text-muted-foreground text-center text-sm">
+      Ndërtuar mbi tri premtime që i mbajmë nga dita e parë
+    </p>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-stagger>
       {
         signals.map((signal) => (
-          <div class="group relative py-8 lg:px-7 lg:first:pl-0 lg:last:pr-0">
-            {/* Hairline between columns, only where columns actually sit side by side. */}
-            <span
-              class="bg-border absolute top-8 bottom-8 -left-px hidden w-px lg:block lg:group-first:hidden"
-              aria-hidden="true"
-            />
-            <Icon name={signal.icon} class="text-primary size-5" />
-            <h3 class="mt-3.5 text-sm font-semibold tracking-tight">{signal.title}</h3>
+          <div class="bg-card shadow-card rounded-2xl p-6">
+            <div class="bg-accent text-primary flex size-10 items-center justify-center rounded-full">
+              <Icon name={signal.icon} class="size-5" />
+            </div>
+            <h3 class="mt-4 text-sm font-semibold tracking-tight">{signal.title}</h3>
             <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed text-pretty">
               {signal.body}
             </p>

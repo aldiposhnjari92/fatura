@@ -40,13 +40,14 @@ const steps = [
     <ol class="grid gap-6 md:grid-cols-3" data-stagger>
       {
         steps.map((step) => (
-          <li class="bg-card ring-border/70 lift flex flex-col rounded-2xl p-6 ring-1">
-            <div class="flex items-center gap-3">
-              <span class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg text-xs font-bold tabular-nums">
-                {step.n}
-              </span>
-              <h3 class="text-base font-semibold tracking-tight">{step.title}</h3>
-            </div>
+          <li class="bg-card shadow-card lift flex flex-col rounded-2xl p-6">
+            {/* The reference design labels each card "Step 1 / 2 / 3" above the
+                title rather than badging it beside — the label reads as an
+                ordinal, the title stays the heading. */}
+            <span class="text-primary text-[11px] font-bold tracking-[0.14em] uppercase">
+              Hapi {Number(step.n)}
+            </span>
+            <h3 class="mt-2 text-base font-semibold tracking-tight">{step.title}</h3>
 
             <p class="text-muted-foreground mt-3 text-sm leading-relaxed text-pretty">
               {step.body}
@@ -121,7 +122,12 @@ const steps = [
     </ol>
 
     <div class="mt-12 flex justify-center">
-      <Button as="a" href="/regjistrohu" size="lg" class="press">
+      <Button
+        as="a"
+        href="/regjistrohu"
+        size="lg"
+        class="press rounded-full px-6"
+      >
         Provo tani — falas
       </Button>
     </div>

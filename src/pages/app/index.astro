@@ -62,21 +62,21 @@ const kpis = [
   {
     label: 'Faturuar këtë muaj',
     value: formatALL(monthTotal),
-    icon: 'trending-up',
-    delta
+    hint: 'Vlera e të gjitha faturave të lëshuara nga 1 i muajit deri sot.',
+    delta,
   },
   {
     label: 'Të arkëtuara',
     value: formatALL(Number(stats.paid_total ?? 0)),
-    icon: 'circle-check-big',
+    hint: 'Totali i faturave që i ke shënuar si të paguara.',
     tone: 'text-success',
   },
   {
     label: "Për t'u arkëtuar",
     value: formatALL(Number(stats.outstanding_total ?? 0)),
-    icon: 'clock',
+    hint: "Faturat e dërguara që ende nuk janë paguar.",
     tone: 'text-warning',
-    hint:
+    note:
       Number(stats.overdue_count ?? 0) > 0
         ? `${stats.overdue_count} të vonuara`
         : undefined,
@@ -84,9 +84,15 @@ const kpis = [
   {
     label: 'Klientë',
     value: String(stats.client_count ?? 0),
-    icon: 'users',
+    hint: 'Klientët e ruajtur në regjistrin tënd.',
   },
 ];
+
+const today = new Intl.DateTimeFormat('sq-AL', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date());
 
 // Use the whole business name — splitting on whitespace turns
 // "Bar Kafe Vlora" into "Bar".
@@ -95,19 +101,19 @@ const businessName = profile?.business_name?.trim() ?? '';
 
 <AppLayout title="Paneli — Fatura.co" active="dashboard">
   <!-- Page header -->
-  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="text-muted-foreground text-sm font-medium">Paneli</p>
-      <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
         Mirë se erdhe{businessName ? `, ${businessName}` : ''}
       </h1>
+      <p class="text-muted-foreground mt-1 text-sm">Përditësuar më {today}</p>
     </div>
 
     <div class="flex items-center gap-2">
-      <Button as="a" href="/app/klientet" variant="outline">
+      <Button as="a" href="/app/klientet" variant="outline" class="rounded-full px-4">
         <Icon name="users" /> Klientët
       </Button>
-      <Button as="a" href="/app/faturat/e-re">
+      <Button as="a" href="/app/faturat/e-re" class="rounded-full px-4">
         <Icon name="plus" /> Faturë e re
       </Button>
     </div>
@@ -115,7 +121,7 @@ const businessName = profile?.business_name?.trim() ?? '';
 
   {
     limitReached && (
-      <div class="border-warning/40 bg-warning/10 mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border px-5 py-4">
+      <div class="border-warning/40 bg-warning/10 mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-4">
         <div class="flex items-start gap-3">
           <Icon name="triangle-alert" class="text-warning mt-0.5 shrink-0" />
           <div>
@@ -125,33 +131,56 @@ const businessName = profile?.business_name?.trim() ?? '';
             </p>
           </div>
         </div>
-        <Button as="a" href="/app/abonimi" size="sm">Shiko planin Pro</Button>
+        <Button as="a" href="/app/abonimi" size="sm" class="rounded-full px-4">
+          Shiko planin Pro
+        </Button>
       </div>
     )
   }
 
-  <!-- KPI row -->
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    {
-      kpis.map((kpi) => (
-        <div class="bg-card ring-border rounded-xl p-5 ring-1">
-          <div class="flex items-center justify-between">
-            <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+  {/*
+    One card holding every headline number, split by hairlines, rather than
+    four separate tiles. Four tiles gave each number its own box and so its own
+    visual weight; these four belong to one statement about the month, and
+    reading them as a row is the point. The rules collapse at the breakpoints
+    where the columns stack.
+  */}
+  <section class="bg-card shadow-card rounded-2xl p-6">
+    <div class="flex items-center gap-2.5">
+      <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+        <Icon name="chart-no-axes-column" class="size-4" />
+      </span>
+      <h2 class="font-semibold tracking-tight">Përmbledhje financiare</h2>
+    </div>
+
+    <dl class="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-y-8 lg:grid-cols-4 lg:gap-0">
+      {
+        kpis.map((kpi, index) => (
+          <div
+            class:list={[
+              'lg:px-6 lg:first:pl-0 lg:last:pr-0',
+              index > 0 && 'lg:border-l',
+            ]}
+          >
+            <dt class="text-muted-foreground flex items-center gap-1.5 text-sm">
               {kpi.label}
-            </p>
-            <Icon name={kpi.icon} class="text-muted-foreground/60 size-4" />
-          </div>
+              <span title={kpi.hint} class="cursor-help">
+                <Icon name="info" class="text-muted-foreground/50 size-3.5" />
+                <span class="sr-only">{kpi.hint}</span>
+              </span>
+            </dt>
 
-          <p class={`mt-3 text-2xl font-semibold tracking-tight tabular-nums ${kpi.tone ?? ''}`}>
-            {kpi.value}
-          </p>
+            <dd class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span
+                class={`text-2xl font-bold tracking-[-0.03em] tabular-nums ${kpi.tone ?? ''}`}
+              >
+                {kpi.value}
+              </span>
 
-          <div class="mt-1.5 flex items-center gap-1.5 text-xs">
-            {
-              kpi.delta !== null && kpi.delta !== undefined && (
+              {kpi.delta !== null && kpi.delta !== undefined && (
                 <span
                   class:list={[
-                    'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-semibold',
+                    'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
                     kpi.delta >= 0
                       ? 'bg-success/10 text-success'
                       : 'bg-destructive/10 text-destructive',
@@ -159,20 +188,28 @@ const businessName = profile?.business_name?.trim() ?? '';
                 >
                   {kpi.delta >= 0 ? '↑' : '↓'} {Math.abs(kpi.delta)}%
                 </span>
-              )
-            }
-            {kpi.hint && <span class="text-muted-foreground">{kpi.hint}</span>}
-          </div>
-        </div>
-      ))
-    }
-  </div>
+              )}
 
-  <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+              {kpi.note && (
+                <span class="text-muted-foreground text-xs">{kpi.note}</span>
+              )}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <div class="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
     <!-- Recent invoices -->
-    <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
-      <div class="flex items-center justify-between border-b px-5 py-4">
-        <h2 class="text-sm font-semibold">Faturat e fundit</h2>
+    <section class="bg-card shadow-card overflow-hidden rounded-2xl">
+      <div class="flex items-center justify-between gap-3 px-6 py-5">
+        <div class="flex items-center gap-2.5">
+          <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+            <Icon name="file-text" class="size-4" />
+          </span>
+          <h2 class="font-semibold tracking-tight">Faturat e fundit</h2>
+        </div>
         <a
           href="/app/faturat"
           class="text-primary text-sm font-medium hover:underline"
@@ -183,7 +220,7 @@ const businessName = profile?.business_name?.trim() ?? '';
 
       {
         recent.length === 0 ? (
-          <div class="px-5 py-14 text-center">
+          <div class="px-6 pt-4 pb-14 text-center">
             <div class="bg-muted mx-auto flex size-12 items-center justify-center rounded-full">
               <Icon name="file-text" class="text-muted-foreground size-5" />
             </div>
@@ -191,7 +228,7 @@ const businessName = profile?.business_name?.trim() ?? '';
             <p class="text-muted-foreground mx-auto mt-1 max-w-xs text-sm">
               Krijo faturën e parë — të merr më pak se 2 minuta.
             </p>
-            <Button as="a" href="/app/faturat/e-re" class="mt-5">
+            <Button as="a" href="/app/faturat/e-re" class="mt-5 rounded-full px-5">
               Krijo faturën e parë
             </Button>
           </div>
@@ -204,7 +241,7 @@ const businessName = profile?.business_name?.trim() ?? '';
               identity on the left, money on the right — and the table returns
               once there is width for it.
             */}
-            <ul class="divide-y sm:hidden">
+            <ul class="divide-y border-t sm:hidden">
               {recent.map((invoice) => (
                 <a
                   href={`/app/faturat/${invoice.id}`}
@@ -228,22 +265,22 @@ const businessName = profile?.business_name?.trim() ?? '';
               ))}
             </ul>
 
-            <Table containerClass="hidden sm:block">
+            <Table containerClass="hidden border-t sm:block">
               {/* No `bg-muted/40` here: this card already sits on a tinted
                   surface, so the default header fill would read as a band. */}
               <TableHeader class="bg-transparent">
                 <TableRow class="hover:bg-transparent">
-                  <TableHead class="py-2.5">Numri</TableHead>
+                  <TableHead class="py-2.5 pl-6">Numri</TableHead>
                   <TableHead class="py-2.5">Klienti</TableHead>
                   <TableHead class="hidden py-2.5 sm:table-cell">Data</TableHead>
                   <TableHead class="py-2.5 text-right">Totali</TableHead>
-                  <TableHead class="py-2.5 text-right">Statusi</TableHead>
+                  <TableHead class="py-2.5 pr-6 text-right">Statusi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recent.map((invoice) => (
                   <TableRow>
-                    <TableCell class="py-3">
+                    <TableCell class="py-3 pl-6">
                       <a
                         href={`/app/faturat/${invoice.id}`}
                         class="text-primary font-medium whitespace-nowrap hover:underline"
@@ -260,7 +297,7 @@ const businessName = profile?.business_name?.trim() ?? '';
                     <TableCell class="py-3 text-right font-medium whitespace-nowrap tabular-nums">
                       {formatALL(invoice.total)}
                     </TableCell>
-                    <TableCell class="py-3 text-right">
+                    <TableCell class="py-3 pr-6 text-right">
                       <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
                     </TableCell>
                   </TableRow>
@@ -273,16 +310,21 @@ const businessName = profile?.business_name?.trim() ?? '';
     </section>
 
     <!-- Side rail -->
-    <div class="flex flex-col gap-6">
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold">Plani</h2>
+    <div class="flex flex-col gap-5">
+      <section class="bg-card shadow-card rounded-2xl p-6">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+              <Icon name="gauge" class="size-4" />
+            </span>
+            <h2 class="font-semibold tracking-tight">Plani</h2>
+          </div>
           <span
             class:list={[
-              'rounded-full px-2 py-0.5 text-[11px] font-bold',
+              'rounded-full px-2.5 py-0.5 text-[11px] font-bold',
               plan === 'free'
                 ? 'bg-muted text-muted-foreground'
-                : 'bg-brand/15 text-primary',
+                : 'bg-accent text-primary',
             ]}
           >
             {planSpec.badge}
@@ -291,25 +333,47 @@ const businessName = profile?.business_name?.trim() ?? '';
 
         {
           unlimited ? (
-            <p class="text-muted-foreground mt-3 text-sm">
+            <p class="text-muted-foreground mt-4 text-sm">
               Fatura të palimituara. Faleminderit që na mbështet.
             </p>
           ) : (
             <>
-              <div class="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
-                <div
+              {/*
+                The meter is the design's: a rounded track with a knob riding
+                the leading edge, and the count stated above it rather than
+                below, so the number and the bar read as one unit.
+              */}
+              <p class="mt-5 flex items-baseline justify-between text-sm">
+                <span class="text-muted-foreground">Fatura këtë muaj</span>
+                <span class="font-semibold tabular-nums">
+                  {invoicesThisMonth}/{invoiceLimit}
+                </span>
+              </p>
+
+              <div
+                class="meter mt-2.5"
+                role="progressbar"
+                aria-valuenow={invoicesThisMonth}
+                aria-valuemin={0}
+                aria-valuemax={invoiceLimit ?? undefined}
+                aria-label="Fatura të përdorura këtë muaj"
+              >
+                <span
                   class:list={[
-                    'h-full rounded-full transition-all',
+                    'meter-fill',
                     limitReached ? 'bg-warning' : 'bg-primary',
                   ]}
                   style={`width:${usedPct}%`}
                 />
               </div>
-              <p class="text-muted-foreground mt-2 text-sm">
-                <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
-                {invoiceLimit} fatura këtë muaj
-              </p>
-              <Button as="a" href="/app/abonimi" variant="outline" size="sm" class="mt-4 w-full">
+
+              <Button
+                as="a"
+                href="/app/abonimi"
+                variant="outline"
+                size="sm"
+                class="mt-6 w-full rounded-full"
+              >
                 {plan === 'free'
                   ? `Kalo në ${PLANS.starter.name}`
                   : `Kalo në ${PLANS.pro.name}`}
@@ -319,22 +383,27 @@ const businessName = profile?.business_name?.trim() ?? '';
         }
       </section>
 
-      <section class="bg-card ring-border rounded-xl p-5 ring-1">
-        <h2 class="text-sm font-semibold">Përmbledhje</h2>
-        <dl class="mt-4 flex flex-col gap-3 text-sm">
+      <section class="bg-card shadow-card rounded-2xl p-6">
+        <div class="flex items-center gap-2.5">
+          <span class="bg-accent text-primary flex size-8 items-center justify-center rounded-full">
+            <Icon name="list" class="size-4" />
+          </span>
+          <h2 class="font-semibold tracking-tight">Përmbledhje</h2>
+        </div>
+        <dl class="mt-5 flex flex-col gap-3.5 text-sm">
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">Fatura gjithsej</dt>
-            <dd class="font-medium tabular-nums">{stats.total_invoices ?? 0}</dd>
+            <dd class="font-semibold tabular-nums">{stats.total_invoices ?? 0}</dd>
           </div>
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">Draft</dt>
-            <dd class="font-medium tabular-nums">{stats.draft_count ?? 0}</dd>
+            <dd class="font-semibold tabular-nums">{stats.draft_count ?? 0}</dd>
           </div>
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">Të vonuara</dt>
             <dd
               class:list={[
-                'font-medium tabular-nums',
+                'font-semibold tabular-nums',
                 Number(stats.overdue_count ?? 0) > 0 && 'text-destructive',
               ]}
             >
@@ -346,7 +415,7 @@ const businessName = profile?.business_name?.trim() ?? '';
 
       {
         (!profile?.nipt || !profile?.logo_url) && (
-          <section class="border-primary/25 bg-accent/40 rounded-xl border p-5">
+          <section class="border-primary/25 bg-accent/40 rounded-2xl border p-6">
             <h2 class="text-sm font-semibold">Plotëso profilin</h2>
             <p class="text-muted-foreground mt-1 text-sm">
               {!profile?.nipt && !profile?.logo_url
@@ -355,7 +424,13 @@ const businessName = profile?.business_name?.trim() ?? '';
                   ? 'NIPT-i mungon në faturat e tua.'
                   : 'Logoja mungon në faturat e tua.'}
             </p>
-            <Button as="a" href="/app/cilesimet" size="sm" variant="outline" class="mt-4 w-full">
+            <Button
+              as="a"
+              href="/app/cilesimet"
+              size="sm"
+              variant="outline"
+              class="mt-4 w-full rounded-full"
+            >
               Shko te cilësimet
             </Button>
           </section>

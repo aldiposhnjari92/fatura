@@ -238,7 +238,7 @@ export default function ActivityStream({
           return (
             <div
               key={row.id}
-              className="bg-card ring-border animate-rise pointer-events-auto flex items-start gap-3 rounded-xl p-3.5 shadow-xl ring-1"
+              className="bg-card shadow-card ring-border/60 animate-rise pointer-events-auto flex items-start gap-3 rounded-xl p-3.5 shadow-xl ring-1"
             >
               <span className="bg-accent text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
                 <Bell className="size-4" />
@@ -280,7 +280,7 @@ export default function ActivityStream({
         </span>
       </div>
 
-      <div className="bg-card ring-border overflow-hidden rounded-xl ring-1">
+      <div className="bg-card shadow-card overflow-hidden rounded-2xl">
         {rows.length === 0 ? (
           <p className="text-muted-foreground px-5 py-12 text-center text-sm">
             {t('adm.noResults')}

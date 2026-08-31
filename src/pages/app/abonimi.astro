@@ -177,7 +177,7 @@ const railFeatures = PLAN_FEATURES[railPlan];
     fromSignup={fromSignup}
     client:load
   >
-    <section class="bg-card ring-border rounded-2xl p-5 ring-1">
+    <section class="bg-card shadow-card rounded-2xl p-6">
       <h2 class="text-sm font-semibold">Çfarë përfshin {PLANS[railPlan].name}</h2>
       <ul class="mt-4 flex flex-col gap-3 text-sm">
         {
@@ -195,7 +195,7 @@ const railFeatures = PLAN_FEATURES[railPlan];
 
     {
       history.length > 0 && (
-        <section class="bg-card ring-border overflow-hidden rounded-2xl ring-1">
+        <section class="bg-card shadow-card overflow-hidden rounded-2xl">
           <h2 class="border-b px-5 py-4 text-sm font-semibold">Historiku i pagesave</h2>
           <ul class="divide-y">
             {history.map((p) => {

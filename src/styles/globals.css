@@ -41,11 +41,20 @@
   --brand: hsl(183 100% 35%);
   --brand-foreground: hsl(216 18% 16%);
 
-  --secondary: hsl(0 0% 93%);
+  --secondary: hsl(220 16% 95%);
   --secondary-foreground: hsl(216 18% 16%);
 
-  --muted: hsl(0 0% 93%);
-  --muted-foreground: hsl(217 10% 34%);
+  --muted: hsl(220 16% 95%);
+  --muted-foreground: hsl(217 10% 40%);
+
+  /*
+    The page ground. Both reference designs sit their white cards on a cool
+    light grey rather than on white — that single move is what makes a card
+    read as a raised object instead of a bordered rectangle. Every shell
+    (marketing bands, the app, the admin console) paints this and lets the
+    cards be the white.
+  */
+  --ground: hsl(220 20% 96.5%);
 
   --accent: hsl(183 60% 94%);
   --accent-foreground: hsl(183 100% 20%);
@@ -56,8 +65,8 @@
   --success: hsl(168 84% 24%);
   --warning: hsl(32 80% 34%);
 
-  --border: hsl(216 14% 88%);
-  --input: hsl(216 14% 84%);
+  --border: hsl(216 16% 91%);
+  --input: hsl(216 14% 86%);
   --ring: hsl(183 100% 25%);
 
   /* Fixed palette values — for sections that stay dark in both themes. */
@@ -65,16 +74,33 @@
   --slate: #393e46;
   --mist: #eeeeee;
 
-  --radius: 0.75rem;
+  /*
+    The deepened teal as a *fixed* value, not a themed one.
 
-  --shadow-2xs: 0 1px 3px 0px hsl(216 18% 16% / 0.04);
-  --shadow-xs: 0 1px 3px 0px hsl(216 18% 16% / 0.05);
-  --shadow-sm: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 1px 2px -1px hsl(216 18% 16% / 0.1);
-  --shadow: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 1px 2px -1px hsl(216 18% 16% / 0.1);
-  --shadow-md: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 2px 4px -1px hsl(216 18% 16% / 0.1);
-  --shadow-lg: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 4px 6px -1px hsl(216 18% 16% / 0.1);
-  --shadow-xl: 0 1px 3px 0px hsl(216 18% 16% / 0.1), 0 8px 10px -1px hsl(216 18% 16% / 0.1);
-  --shadow-2xl: 0 1px 3px 0px hsl(216 18% 16% / 0.25);
+    `--primary` is deepened on light and raised back to #00ADB5 on dark, which
+    is correct everywhere it is read against the page. But a surface that is
+    brand-filled in both themes — the pricing table's featured plan, the
+    closing CTA band — sets `dark` on itself so its nested primitives read
+    light, and that flip also swapped its own fill to #00ADB5, on which white
+    measures 2.75:1. This token does not flip: white on it is 5.23:1.
+  */
+  --brand-deep: #007980;
+
+  --radius: 1rem;
+
+  --shadow-2xs: 0 1px 2px 0px hsl(216 18% 16% / 0.04);
+  --shadow-xs: 0 1px 2px 0px hsl(216 18% 16% / 0.05);
+  --shadow-sm: 0 1px 2px 0px hsl(216 18% 16% / 0.05), 0 4px 12px -6px hsl(216 18% 16% / 0.08);
+  --shadow: 0 1px 2px 0px hsl(216 18% 16% / 0.05), 0 6px 18px -8px hsl(216 18% 16% / 0.1);
+  --shadow-md: 0 1px 2px 0px hsl(216 18% 16% / 0.05), 0 10px 26px -10px hsl(216 18% 16% / 0.12);
+  --shadow-lg: 0 2px 4px 0px hsl(216 18% 16% / 0.05), 0 18px 40px -14px hsl(216 18% 16% / 0.14);
+  --shadow-xl: 0 2px 6px 0px hsl(216 18% 16% / 0.05), 0 30px 60px -20px hsl(216 18% 16% / 0.16);
+  --shadow-2xl: 0 3px 8px 0px hsl(216 18% 16% / 0.06), 0 44px 84px -28px hsl(216 18% 16% / 0.22);
+
+  /* The card elevation both designs use: a hairline lift plus a wide, very
+     soft ambient pool. Never a visible edge. */
+  --elevation-card: 0 1px 2px hsl(216 18% 16% / 0.04), 0 8px 24px -12px hsl(216 18% 16% / 0.1);
+  --elevation-card-lg: 0 1px 3px hsl(216 18% 16% / 0.05), 0 20px 48px -20px hsl(216 18% 16% / 0.16);
 }
 
 .dark {
@@ -93,6 +119,8 @@
 
   --brand: hsl(183 100% 35%);
   --brand-foreground: hsl(216 18% 16%);
+
+  --ground: hsl(216 18% 13%);
 
   --secondary: hsl(217 10% 25%);
   --secondary-foreground: hsl(0 0% 93%);
@@ -138,6 +166,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-ground: var(--ground);
+
+  /* Real Tailwind utilities: `shadow-card`, `shadow-card-lg`. */
+  --shadow-card: var(--elevation-card);
+  --shadow-card-lg: var(--elevation-card-lg);
+
+  --color-brand-deep: var(--brand-deep);
 
   --color-ink: var(--ink);
   --color-slate: var(--slate);
@@ -276,6 +312,83 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+}
+
+/* ===================================================================
+   Surface system
+
+   Both reference designs are built from one repeated object: a white panel
+   with a generous radius, no visible border, and a wide soft shadow, sitting
+   on a cool grey ground. Everything else — sidebar, KPI tile, pricing card,
+   FAQ row — is that object at a different size. Defining it once here is what
+   keeps the marketing site and the panel looking like one product.
+   =================================================================== */
+
+/*
+  Section eyebrow, pill form.
+
+  The reference site labels every band with a small outlined pill — a dot, then
+  the label — rather than bare uppercase text. It gives each section a visible
+  starting point and is the single most recognisable detail of that layout.
+*/
+@utility eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  border-radius: var(--radius-4xl, 9999px);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-card);
+  padding-inline: calc(var(--spacing) * 3);
+  padding-block: calc(var(--spacing) * 1.5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-2xs);
+}
+
+/*
+  Metered progress bar, as drawn in the panel design: a rounded track with a
+  rounded fill and a small knob riding the leading edge.
+*/
+@utility meter {
+  position: relative;
+  height: 0.5rem;
+  width: 100%;
+  overflow: visible;
+  border-radius: 9999px;
+  background-color: var(--color-muted);
+}
+
+@utility meter-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.9s var(--ease-out-quint);
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    height: 0.875rem;
+    width: 0.875rem;
+    translate: 50% -50%;
+    border-radius: 9999px;
+    background-color: inherit;
+    box-shadow: 0 0 0 3px var(--color-card);
+  }
+}
+
+/*
+  The oversized, barely-there wordmark the reference footer sits on. Clipped by
+  the footer's own overflow so it bleeds off the bottom edge.
+*/
+@utility wordmark {
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.78;
+  font-size: clamp(4rem, 18vw, 15rem);
+  user-select: none;
 }
 
 /*

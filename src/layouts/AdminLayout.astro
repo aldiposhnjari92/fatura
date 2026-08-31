@@ -22,33 +22,33 @@ const t = useTranslations();
 /*
   A separate shell from /app on purpose. The client dashboard and the operator
   console have different jobs, and rendering the admin tools inside the customer
-  chrome makes it far too easy to ship a control to the wrong audience. Dark
-  chrome so it is never mistaken for the customer view.
+  chrome makes it far too easy to ship a control to the wrong audience.
 
-  Mobile used to get the desktop sidebar stacked on top of the page: a tall ink
-  block, a horizontally scrolling row of tabs, and — because the footer was
-  `hidden lg:block` — no way at all to sign out or return to the app from a
-  phone. It is now a compact bar that opens an off-canvas drawer.
+  The console used to signal that with wholesale dark chrome. It now shares the
+  customer shell's surface language — white rail on a grey ground, soft cards,
+  grouped nav — so the two read as one product, and the "you are operating on
+  other people's data" signal is carried by the one element that cannot be
+  missed or scrolled away: the ink brand block pinned at the top of the rail,
+  badged ADMIN or MENAXHER. That is a stronger cue than a dark background,
+  which a reader stops seeing within a minute.
 
   The nav loop is written twice, once per breakpoint, because the two shells
   are genuinely different elements rather than one restyled: a fixed sliding
   sheet on a phone, a static column on a desktop. The data is declared once
   here, so only the markup repeats.
-*/
-/*
-  A manager only ever sees the invoice-activity item. The middleware and the
+
+  A manager only ever sees the invoice-activity items. The middleware and the
   RPCs both enforce this independently; hiding the links is the courtesy layer,
   not the control.
 */
 const isAdmin = Boolean(profile?.is_admin);
 
-const adminNav = [
-  { key: 'overview', href: '/admin', label: t('adm.overview'), icon: 'layout-dashboard' },
-  { key: 'users', href: '/admin/perdoruesit', label: t('adm.users'), icon: 'users' },
-  { key: 'payments', href: '/admin/pagesat', label: t('adm.payments'), icon: 'credit-card' },
-  { key: 'waitlist', href: '/admin/lista', label: t('adm.waitlist'), icon: 'clipboard-list' },
-  { key: 'audit', href: '/admin/regjistri', label: t('adm.audit'), icon: 'scroll-text' },
-] as const;
+const overviewItem = {
+  key: 'overview',
+  href: '/admin',
+  label: t('adm.overview'),
+  icon: 'layout-dashboard',
+} as const;
 
 const activityItem = {
   key: 'activity',
@@ -65,19 +65,49 @@ const invoicesItem = {
 } as const;
 
 const nav = isAdmin
-  ? [adminNav[0], activityItem, invoicesItem, ...adminNav.slice(1)]
-  : [invoicesItem, activityItem];
+  ? [
+      { group: null, items: [overviewItem] },
+      { group: 'Aktiviteti', items: [activityItem, invoicesItem] },
+      {
+        group: 'Administrimi',
+        items: [
+          { key: 'users', href: '/admin/perdoruesit', label: t('adm.users'), icon: 'users' },
+          {
+            key: 'payments',
+            href: '/admin/pagesat',
+            label: t('adm.payments'),
+            icon: 'credit-card',
+          },
+          {
+            key: 'waitlist',
+            href: '/admin/lista',
+            label: t('adm.waitlist'),
+            icon: 'clipboard-list',
+          },
+          {
+            key: 'audit',
+            href: '/admin/regjistri',
+            label: t('adm.audit'),
+            icon: 'scroll-text',
+          },
+        ],
+      },
+    ]
+  : [{ group: null, items: [invoicesItem, activityItem] }];
 
-const navLink =
-  'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors';
-const navActive = 'bg-brand/15 text-brand';
-const navIdle = 'text-mist/65 hover:bg-white/5 hover:text-mist';
+const railLink =
+  'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
+const railActive = 'bg-accent text-accent-foreground font-semibold';
+const railIdle = 'text-muted-foreground hover:bg-muted hover:text-foreground';
+const railChip = 'flex size-6 shrink-0 items-center justify-center rounded-md transition-colors';
+const railChipActive = 'bg-primary text-primary-foreground';
+const railChipIdle = 'bg-muted text-muted-foreground group-hover:bg-background';
 const footerLink =
-  'text-mist/65 hover:text-mist flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5';
+  'text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
 ---
 
 <BaseLayout title={title} noindex={true}>
-  <div class="flex min-h-screen flex-col lg:flex-row">
+  <div class="bg-ground flex min-h-screen flex-col lg:flex-row">
     {/*
       Mobile: a real off-canvas drawer.
 
@@ -88,23 +118,17 @@ const footerLink =
       checkbox, which is what gives us tap-outside-to-close without a handler.
 
       The bar is a fixed `h-14`, not content-sized, because the content header
-      below sticks at exactly that offset. Both were pinned to top-0 before, so
-      the heading slid underneath the bar on scroll.
+      below sticks at exactly that offset.
     */}
-    <input
-      id="admin-nav"
-      type="checkbox"
-      class="peer sr-only"
-      aria-label={t('nav.menu')}
-    />
+    <input id="admin-nav" type="checkbox" class="peer sr-only" aria-label={t('nav.menu')} />
 
     <div
-      class="bg-ink text-mist sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 px-4 lg:hidden"
+      class="bg-card sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:hidden"
     >
-      <a href="/admin" class="flex items-center gap-2.5">
-        <Logo invert />
+      <a href="/admin" class="flex items-center gap-2">
+        <Logo />
         <span
-          class="bg-brand/15 text-brand rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
+          class="bg-ink text-mist rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
         >
           {isAdmin ? 'ADMIN' : 'MENAXHER'}
         </span>
@@ -113,17 +137,15 @@ const footerLink =
       <span class="flex items-center gap-2">
         {
           pendingCount > 0 && (
-            <span class="bg-brand text-ink rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+            <span class="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-bold">
               {pendingCount}
             </span>
           )
         }
-        <span class="text-mist">
-          <ActivityStream variant="bell" client:idle />
-        </span>
+        <ActivityStream variant="bell" client:idle />
         <label
           for="admin-nav"
-          class="cursor-pointer rounded-lg p-1.5 hover:bg-white/5"
+          class="hover:bg-muted cursor-pointer rounded-lg p-1.5"
           aria-label={t('nav.menu')}
         >
           <Icon name="menu" class="size-5" />
@@ -135,60 +157,71 @@ const footerLink =
     <label
       for="admin-nav"
       aria-hidden="true"
-      class="pointer-events-none fixed inset-0 z-40 bg-black/60 opacity-0 transition-opacity duration-300 peer-checked:pointer-events-auto peer-checked:opacity-100 lg:hidden"
+      class="pointer-events-none fixed inset-0 z-40 bg-black/50 opacity-0 transition-opacity duration-300 peer-checked:pointer-events-auto peer-checked:opacity-100 lg:hidden"
     ></label>
 
     <aside
-      class="bg-ink text-mist fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col overflow-y-auto shadow-2xl transition-transform duration-300 ease-out peer-checked:translate-x-0 lg:hidden"
+      class="bg-card fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] -translate-x-full flex-col gap-4 overflow-y-auto p-3 shadow-2xl transition-transform duration-300 ease-out peer-checked:translate-x-0 lg:hidden"
     >
-      <div class="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
-        <span class="flex items-center gap-2.5">
+      <div class="bg-ink flex items-center justify-between gap-2 rounded-xl px-3 py-2.5">
+        <span class="flex items-center gap-2">
           <Logo invert />
-          <span
-            class="bg-brand/15 text-brand rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
-          >
-            ADMIN
-          </span>
         </span>
         <label
           for="admin-nav"
-          class="cursor-pointer rounded-lg p-1.5 hover:bg-white/5"
+          class="text-mist cursor-pointer rounded-lg p-1 hover:bg-white/10"
           aria-label={t('nav.close')}
         >
-          <Icon name="x" class="size-5" />
+          <Icon name="x" class="size-4" />
         </label>
       </div>
 
-      <nav class="flex flex-col gap-1 border-t border-white/10 px-3 pt-3">
+      <nav class="flex flex-col gap-3">
         {
-          nav.map((item) => (
-            <a
-              href={item.href}
-              aria-current={active === item.key ? 'page' : undefined}
-              class:list={[navLink, active === item.key ? navActive : navIdle]}
-            >
-              <Icon name={item.icon} class="size-4 shrink-0" />
-              <span>{item.label}</span>
-              {item.key === 'payments' && pendingCount > 0 && (
-                <span class="bg-brand text-ink ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                  {pendingCount}
-                </span>
+          nav.map((section) => (
+            <div class="flex flex-col gap-1">
+              {section.group && (
+                <p class="text-muted-foreground/70 px-2.5 pt-1 pb-0.5 text-[10px] font-bold tracking-[0.12em] uppercase">
+                  {section.group}
+                </p>
               )}
-            </a>
+              {section.items.map((item) => (
+                <a
+                  href={item.href}
+                  aria-current={active === item.key ? 'page' : undefined}
+                  class:list={[railLink, active === item.key ? railActive : railIdle]}
+                >
+                  <span
+                    class:list={[
+                      railChip,
+                      active === item.key ? railChipActive : railChipIdle,
+                    ]}
+                  >
+                    <Icon name={item.icon} class="size-3.5" />
+                  </span>
+                  <span>{item.label}</span>
+                  {item.key === 'payments' && pendingCount > 0 && (
+                    <span class="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                      {pendingCount}
+                    </span>
+                  )}
+                </a>
+              ))}
+            </div>
           ))
         }
       </nav>
 
-      <div class="mt-auto border-t border-white/10 p-3">
-        <div class="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
+      <div class="mt-auto flex flex-col gap-1 border-t pt-3">
+        <div class="flex items-center gap-2.5 px-2.5 py-1.5">
           <span
-            class="bg-brand/15 text-brand flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+            class="bg-accent text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
           >
             {initials(profile?.business_name ?? user?.email)}
           </span>
           <div class="min-w-0 flex-1">
             <p class="truncate text-xs font-medium">{profile?.business_name}</p>
-            <p class="text-mist/45 truncate text-[11px]">{user?.email}</p>
+            <p class="text-muted-foreground truncate text-[11px]">{user?.email}</p>
           </div>
         </div>
 
@@ -205,58 +238,81 @@ const footerLink =
       </div>
     </aside>
 
-    {/* ---------- Desktop: persistent sidebar ---------- */}
+    {/* ---------- Desktop: persistent rail ---------- */}
     <aside
-      class="bg-ink text-mist hidden shrink-0 flex-col lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64"
+      class="bg-card sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 p-3 lg:flex"
     >
-      <div class="flex items-center justify-between gap-3 px-5 py-5">
-        <a href="/admin" class="flex items-center gap-2.5" aria-label={t('adm.console')}>
-          <Logo invert />
-        </a>
+      {/*
+        The operator marker. Ink, so it reads as a different mode of the same
+        product at a glance, and pinned above the nav so it is never scrolled
+        out of view.
+      */}
+      <a
+        href="/admin"
+        class="bg-ink flex items-center justify-between gap-2 rounded-xl px-3 py-2.5"
+        aria-label={t('adm.console')}
+      >
+        <Logo invert />
         <span
-          class="bg-brand/15 text-brand rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
+          class="bg-brand/20 text-brand rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wide"
         >
           {isAdmin ? 'ADMIN' : 'MENAXHER'}
         </span>
-      </div>
+      </a>
 
-      <nav class="flex flex-col gap-1 px-3 pb-3">
+      <nav class="flex flex-col gap-3" aria-label={t('adm.console')}>
         {
-          nav.map((item) => (
-            <a
-              href={item.href}
-              aria-current={active === item.key ? 'page' : undefined}
-              class:list={[navLink, active === item.key ? navActive : navIdle]}
-            >
-              <Icon name={item.icon} class="size-4 shrink-0" />
-              <span>{item.label}</span>
-              {item.key === 'payments' && pendingCount > 0 && (
-                <span class="bg-brand text-ink ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                  {pendingCount}
-                </span>
+          nav.map((section) => (
+            <div class="flex flex-col gap-1">
+              {section.group && (
+                <p class="text-muted-foreground/70 px-2.5 pt-1 pb-0.5 text-[10px] font-bold tracking-[0.12em] uppercase">
+                  {section.group}
+                </p>
               )}
-            </a>
+              {section.items.map((item) => (
+                <a
+                  href={item.href}
+                  aria-current={active === item.key ? 'page' : undefined}
+                  class:list={[railLink, active === item.key ? railActive : railIdle]}
+                >
+                  <span
+                    class:list={[
+                      railChip,
+                      active === item.key ? railChipActive : railChipIdle,
+                    ]}
+                  >
+                    <Icon name={item.icon} class="size-3.5" />
+                  </span>
+                  <span>{item.label}</span>
+                  {item.key === 'payments' && pendingCount > 0 && (
+                    <span class="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                      {pendingCount}
+                    </span>
+                  )}
+                </a>
+              ))}
+            </div>
           ))
         }
       </nav>
 
-      <div class="mt-auto border-t border-white/10 p-3">
-        <a href="/app?klient=1" class={footerLink}>
-          <Icon name="arrow-left" class="size-4" />
-          {t('nav.backToApp')}
-        </a>
-
-        <div class="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5">
+      <div class="mt-auto flex flex-col gap-1 border-t pt-3">
+        <div class="flex items-center gap-2.5 px-2.5 py-1.5">
           <span
-            class="bg-brand/15 text-brand flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+            class="bg-accent text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
           >
             {initials(profile?.business_name ?? user?.email)}
           </span>
           <div class="min-w-0 flex-1">
             <p class="truncate text-xs font-medium">{profile?.business_name}</p>
-            <p class="text-mist/45 truncate text-[11px]">{user?.email}</p>
+            <p class="text-muted-foreground truncate text-[11px]">{user?.email}</p>
           </div>
         </div>
+
+        <a href="/app?klient=1" class={footerLink}>
+          <Icon name="arrow-left" class="size-4" />
+          {t('nav.backToApp')}
+        </a>
 
         <form method="POST" action="/auth/signout">
           <button type="submit" class={footerLink}>
@@ -267,20 +323,16 @@ const footerLink =
     </aside>
 
     {/* ---------- Content ---------- */}
-    <div class="bg-muted/40 flex min-w-0 flex-1 flex-col">
-      <header class="bg-background/85 sticky top-14 z-30 border-b backdrop-blur-md lg:top-0">
+    <div class="flex min-w-0 flex-1 flex-col">
+      <header class="bg-ground/85 sticky top-14 z-30 backdrop-blur-md lg:top-0">
         <div
-          class="flex flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex-row md:flex-wrap md:items-end md:justify-between"
+          class="flex flex-col gap-3 px-4 py-5 sm:px-6 md:flex-row md:flex-wrap md:items-end md:justify-between"
         >
           <div class="min-w-0">
-            <h1 class="truncate text-lg font-semibold tracking-tight sm:text-2xl">
+            <h1 class="truncate text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
               {heading}
             </h1>
-            {
-              subheading && (
-                <p class="text-muted-foreground mt-1 text-sm">{subheading}</p>
-              )
-            }
+            {subheading && <p class="text-muted-foreground mt-1 text-sm">{subheading}</p>}
           </div>
           <div class="flex items-center gap-2">
             <span class="hidden lg:block">
@@ -291,7 +343,7 @@ const footerLink =
         </div>
       </header>
 
-      <main class="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
+      <main class="min-w-0 flex-1 px-4 pb-8 sm:px-6">
         <slot />
       </main>
 

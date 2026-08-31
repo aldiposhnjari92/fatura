@@ -100,7 +100,7 @@ const LABEL: Record<string, string> = {
   <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {
       kpis.map((kpi) => (
-        <div class="bg-card ring-border rounded-xl p-5 ring-1">
+        <div class="bg-card shadow-card rounded-2xl p-6">
           <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {kpi.label}
           </p>
@@ -128,7 +128,7 @@ const LABEL: Record<string, string> = {
     }
   </div>
 
-  <div class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+  <div class="bg-card shadow-card overflow-hidden rounded-2xl">
     {
       list.rows.length === 0 ? (
         <p class="text-muted-foreground px-5 py-12 text-center text-sm">

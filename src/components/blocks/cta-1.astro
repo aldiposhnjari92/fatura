@@ -45,13 +45,20 @@ const {
 
 <Section variant="floating" class={cn("", className)}>
   {/*
-    The closing band carries the same aurora + grid as the hero, so the page
-    opens and shuts on the same note instead of ending on a flat dark rectangle.
-    Both layers are decorative and sit behind the content.
+    The closing band of the reference design is a single filled rectangle with
+    a generous radius — the one place on the page where the brand colour takes
+    the whole surface. The caller supplies the fill (`class="bg-primary"`); the
+    type here is stated in white rather than in tokens, because a token that
+    resolves correctly on ink does not necessarily clear AA on brand teal.
+
+    The soft light behind the copy is decorative and sits under the content.
   */}
-  <SectionContainer class="relative isolate items-center overflow-hidden text-center" data-reveal="scale">
-    <div class="bg-aurora pointer-events-none absolute inset-0 -z-10 opacity-70" aria-hidden="true"></div>
-    <div class="bg-grid pointer-events-none absolute inset-0 -z-10 opacity-40" aria-hidden="true"></div>
+  <SectionContainer class="relative isolate items-center overflow-hidden py-6 text-center" data-reveal="scale">
+    <div
+      class="pointer-events-none absolute inset-x-0 -top-32 -z-10 mx-auto size-[28rem] rounded-full bg-white/10 blur-3xl"
+      aria-hidden="true"
+    >
+    </div>
 
     {
       socialProof && (
@@ -66,15 +73,15 @@ const {
           </AvatarGroup>
           <div class="flex items-center gap-2">
             <Rating value={socialProof.rating} />
-            <span class="text-muted-foreground text-sm">{socialProof.text}</span>
+            <span class="text-sm text-white/85">{socialProof.text}</span>
           </div>
         </div>
       )
     }
 
     <div class="flex max-w-2xl flex-col items-center gap-5">
-      <h2 class="text-section text-foreground text-balance">{title}</h2>
-      <p class="text-muted-foreground text-lead text-balance">{description}</p>
+      <h2 class="text-section text-balance text-white">{title}</h2>
+      <p class="text-lead text-balance text-white/85">{description}</p>
     </div>
 
     {
@@ -85,7 +92,7 @@ const {
               as="a"
               href={href}
               size="lg"
-              class="press"
+              class="press text-brand-deep rounded-full bg-white px-7 shadow-lg hover:bg-white/90"
               variant={button.variant ?? (index === 0 ? "default" : "secondary")}
               {...button}
             >

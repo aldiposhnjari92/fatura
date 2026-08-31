@@ -49,7 +49,7 @@ const supporting = [
 */
 ---
 
-<Section id="vecorite" class={`bg-muted/40 ${className}`}>
+<Section id="vecorite" class={`bg-ground ${className}`}>
   <SectionContainer data-reveal>
     <SectionHeading
       eyebrow="Veçoritë"
@@ -62,7 +62,7 @@ const supporting = [
     <div class="grid gap-4 md:grid-cols-6 md:grid-rows-3" data-stagger>
       <!-- Lead tile: the branded PDF -->
       <article
-        class="bg-card ring-border/70 group relative overflow-hidden rounded-2xl p-7 ring-1 md:col-span-4 md:row-span-1"
+        class="bg-card shadow-card group relative overflow-hidden rounded-2xl p-7 md:col-span-4 md:row-span-1"
       >
         <div class="relative flex flex-col gap-4 md:flex-row md:items-start md:gap-7">
           <div class="flex-1">
@@ -137,7 +137,7 @@ const supporting = [
       <!-- Supporting tiles -->
       {
         supporting.map((feature) => (
-          <article class="bg-card ring-border/70 group lift rounded-2xl p-6 ring-1 md:col-span-2">
+          <article class="bg-card shadow-card group lift rounded-2xl p-6 md:col-span-2">
             <div class="bg-accent ring-primary/10 flex size-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105">
               <Icon name={feature.icon} class="text-primary size-5" />
             </div>
@@ -151,10 +151,22 @@ const supporting = [
     </div>
 
     <div class="flex justify-center">
-      <Button as="a" href="/regjistrohu" size="lg" data-auth-show="anon">
+      <Button
+        as="a"
+        href="/regjistrohu"
+        size="lg"
+        class="press rounded-full px-6"
+        data-auth-show="anon"
+      >
         Fillo falas
       </Button>
-      <Button as="a" href="/app" size="lg" data-auth-show="user">
+      <Button
+        as="a"
+        href="/app"
+        size="lg"
+        class="press rounded-full px-6"
+        data-auth-show="user"
+      >
         Shko te paneli
       </Button>
     </div>

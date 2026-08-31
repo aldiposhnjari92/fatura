@@ -80,7 +80,7 @@ const hrefFor = (next: Partial<{ filtri: string; kerko: string; faqe: number }>)
   }
 
   <div
-    class="bg-card ring-border mb-4 flex flex-col gap-3 rounded-xl p-3 ring-1 xl:flex-row xl:items-center xl:justify-between"
+    class="bg-card shadow-card mb-4 flex flex-col gap-3 rounded-2xl p-3 xl:flex-row xl:items-center xl:justify-between"
   >
     <div class="flex flex-wrap gap-1.5">
       {
@@ -123,7 +123,7 @@ const hrefFor = (next: Partial<{ filtri: string; kerko: string; faqe: number }>)
     </form>
   </div>
 
-  <div class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+  <div class="bg-card shadow-card overflow-hidden rounded-2xl">
     <AdminUserTable rows={rows} currentAdminId={user!.id} client:load />
 
     {

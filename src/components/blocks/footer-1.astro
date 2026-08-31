@@ -38,24 +38,37 @@ const {
 } = Astro.props
 ---
 
-<footer class={cn("", className)}>
+<footer class={cn("relative isolate overflow-hidden", className)}>
   {/*
     The page's last impression, so it gets the same care as the first: a brand
     column that says what this is and who it is for, link columns headed with
     the same eyebrow treatment used by every section above, and a bottom bar
     that separates the legal line from the navigation.
+
+    Underneath it all, the oversized wordmark from the reference design —
+    clipped by the footer's own overflow so it bleeds off the bottom edge. It
+    is decorative and `aria-hidden`; the accessible brand name is the logo link
+    at the top of the column, which it must never compete with, hence the very
+    low contrast.
+
+    The footer runs light now rather than on ink. The closing CTA directly
+    above it is a filled brand rectangle, and two saturated dark bands stacked
+    on each other read as one heavy block that swallows the whole end of the
+    page.
   */}
-  <Section class="py-16 lg:py-24">
+  <span
+    class="wordmark text-foreground/[0.045] pointer-events-none absolute inset-x-0 -bottom-6 -z-10 text-center whitespace-nowrap"
+    aria-hidden="true"
+  >
+    {brandName}
+  </span>
+
+  <Section class="bg-transparent py-16 lg:py-24">
     <SectionContainer>
       <div class="grid gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:gap-16">
         <div class="flex flex-col gap-5">
-          {/*
-            The project's own logo, not Fulldev's LogoText — that one renders
-            unstyled text which disappeared entirely against the ink footer.
-            `invert` is the same variant the admin sidebar uses on dark.
-          */}
           <a href={brandHref} class="w-fit" aria-label={brandName}>
-            <Logo invert />
+            <Logo />
           </a>
           <p class="text-muted-foreground max-w-xs text-sm leading-relaxed text-pretty">
             {description}
@@ -74,7 +87,7 @@ const {
                 {socials.map((social) => (
                   <a
                     href={social.href}
-                    class="text-muted-foreground hover:text-foreground hover:border-foreground/30 flex size-9 items-center justify-center rounded-lg border transition-colors"
+                    class="text-muted-foreground hover:text-foreground bg-card shadow-card flex size-9 items-center justify-center rounded-full transition-colors"
                     aria-label={social.label}
                     target="_blank"
                     rel="noreferrer"
@@ -117,7 +130,7 @@ const {
         and running them together made the brand name appear twice in a row.
       */}
       <div
-        class="mt-14 flex flex-col gap-2 border-t pt-6 sm:flex-row sm:items-center sm:justify-between"
+        class="mt-14 flex flex-col gap-2 border-t pt-6 pb-16 sm:flex-row sm:items-center sm:justify-between sm:pb-24"
       >
         <p class="text-muted-foreground text-sm">{copyright}</p>
         {signature && <p class="text-muted-foreground text-sm">{signature}</p>}

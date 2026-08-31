@@ -11,10 +11,15 @@ import SectionHeading from '@/components/sections/SectionHeading.astro';
   Fulldev's stock pricing-2 renders every plan as a flat `border-none
   shadow-none` card, which reads as a spec sheet rather than an offer. This
   version keeps the same props (plus `featured`, `badge`, `note`) but gives the
-  recommended plan real weight: ink surface, teal accents, a glow and a lift.
+  recommended plan real weight, the way the reference design does: the whole
+  card filled with the brand colour, white type, a white button, and a lift
+  above the plain cards on either side.
 
-  Colour rule from the design system holds — on the dark card the exact #00ADB5
-  is used (5.40:1 on ink); on light cards the deepened teal carries text.
+  Colour rule from the design system holds — the fill is `--brand-deep`, the
+  deepened teal pinned to a fixed value, on which white measures 5.23:1. It is
+  deliberately not `bg-primary`: the card sets `dark` on itself so the nested
+  Fulldev primitives read light, and that flip would also raise `--primary`
+  back to #00ADB5, where white falls to 2.75:1.
 */
 
 type Props = {
@@ -76,12 +81,32 @@ const hasFeatured = plans.some((plan) => plan.featured);
 const hasTerms = terms.length > 1;
 
 /*
+  The recommended plan takes the middle column.
+
+  The centre of a three-up table is the position the eye lands on first, and
+  the reference design puts its highlighted plan there. Reordering here rather
+  than in each page's `plans` array keeps the rule in one place — and because
+  it reorders the source list, not just the painted columns, tab order and
+  screen-reader order follow the layout instead of contradicting it.
+
+  Only a three-plan table is touched, and only when the featured plan is not
+  already central.
+*/
+const ordered = (() => {
+  if (plans.length !== 3) return plans;
+  const at = plans.findIndex((plan) => plan.featured);
+  if (at === -1 || at === 1) return plans;
+  const rest = plans.filter((_, index) => index !== at);
+  return [rest[0], plans[at], rest[1]];
+})();
+
+/*
   Every term's price is formatted here and shipped in the HTML, with all but
   the first hidden. Reformatting in the browser instead would risk a different
   Intl result than the prerender produced (Node and the browser can disagree on
   sq-AL), and switching a term would visibly reflow the number.
 */
-const cards = plans.map((plan) => {
+const cards = ordered.map((plan) => {
   const termed = hasTerms && plan.price > 0;
   const monthly = formatPriceValue(plan.price, { currency: plan.currency, locale });
   return {
@@ -160,38 +185,23 @@ const isTrio = plans.length > 2;
               // (PriceValue writes text-foreground on an inner span) read light
               // on the ink surface instead of dark-on-dark.
               plan.featured
-                ? 'dark bg-ink text-mist shadow-2xl ring-1 ring-white/10 lg:-my-6 lg:scale-[1.04]'
-                : 'bg-card ring-border/70 ring-1'
+                ? 'dark bg-brand-deep text-white shadow-2xl lg:-my-6 lg:scale-[1.04]'
+                : 'bg-card shadow-card ring-border/60 ring-1'
             )}
           >
-            {plan.featured && (
-              <>
-                <div
-                  class="pointer-events-none absolute -top-px right-10 left-10 h-px bg-gradient-to-r from-transparent via-[#00ADB5] to-transparent"
-                  aria-hidden="true"
-                />
-                {/*
-                  The glow lives in its own clipping layer. Putting
-                  overflow-hidden on the card itself sliced the ribbon above it
-                  clean in half.
-                */}
-                <div
-                  class="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-2xl"
-                  aria-hidden="true"
-                >
-                  <div
-                    class="absolute -top-20 -right-16 size-56 rounded-full bg-[#00ADB5]/20 blur-3xl"
-                  />
-                </div>
-              </>
-            )}
-
+            {/*
+              No glow layer and no lit top edge. The featured card in the
+              reference design is one flat colour, and the blurred white pool
+              that used to sit behind this one lightened the top-right corner
+              enough to read as a gradient — which made the fill look uneven
+              rather than deliberate, and muddied the white type over it.
+            */}
             {plan.badge && (
               <span
                 class={cn(
-                  'absolute -top-3 left-8 z-10 rounded-full px-3 py-1 text-xs font-semibold tracking-wide',
+                  'absolute -top-3 left-1/2 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide whitespace-nowrap',
                   plan.featured
-                    ? 'bg-brand text-ink shadow-lg'
+                    ? 'bg-white text-brand-deep shadow-lg'
                     : 'bg-secondary text-secondary-foreground'
                 )}
               >
@@ -203,7 +213,7 @@ const isTrio = plans.length > 2;
               <h3
                 class={cn(
                   'text-xs font-bold tracking-[0.14em] uppercase',
-                  plan.featured ? 'text-brand' : 'text-muted-foreground'
+                  plan.featured ? 'text-white/85' : 'text-muted-foreground'
                 )}
               >
                 {plan.name}
@@ -211,7 +221,7 @@ const isTrio = plans.length > 2;
               <p
                 class={cn(
                   'text-sm',
-                  plan.featured ? 'text-mist/60' : 'text-muted-foreground'
+                  plan.featured ? 'text-white/85' : 'text-muted-foreground'
                 )}
               >
                 {plan.description}
@@ -229,13 +239,13 @@ const isTrio = plans.length > 2;
                         locale={locale}
                         class={cn(
                           'text-4xl font-bold tracking-tight tabular-nums sm:text-[2.75rem]',
-                          plan.featured ? 'text-mist' : 'text-foreground'
+                          plan.featured ? 'text-white' : 'text-foreground'
                         )}
                       />
                       <PriceUnit
                         class={cn(
                           'text-sm font-medium',
-                          plan.featured ? 'text-mist/50' : 'text-muted-foreground'
+                          plan.featured ? 'text-white/85' : 'text-muted-foreground'
                         )}
                       >
                         {/* PriceUnit already renders the leading slash. */}
@@ -245,7 +255,7 @@ const isTrio = plans.length > 2;
                     <p
                       class={cn(
                         'mt-1.5 text-xs',
-                        plan.featured ? 'text-mist/50' : 'text-muted-foreground'
+                        plan.featured ? 'text-white/85' : 'text-muted-foreground'
                       )}
                     >
                       {entry.sub}
@@ -262,13 +272,13 @@ const isTrio = plans.length > 2;
                       locale={locale}
                       class={cn(
                         'text-4xl font-bold tracking-tight tabular-nums sm:text-[2.75rem]',
-                        plan.featured ? 'text-mist' : 'text-foreground'
+                        plan.featured ? 'text-white' : 'text-foreground'
                       )}
                     />
                     <PriceUnit
                       class={cn(
                         'text-sm font-medium',
-                        plan.featured ? 'text-mist/50' : 'text-muted-foreground'
+                        plan.featured ? 'text-white/85' : 'text-muted-foreground'
                       )}
                     >
                       {/* PriceUnit already renders the leading slash. */}
@@ -288,33 +298,18 @@ const isTrio = plans.length > 2;
               )}
             </div>
 
-            <div
-              class={cn(
-                'my-7 h-px w-full',
-                plan.featured ? 'bg-white/10' : 'bg-border'
-              )}
-              aria-hidden="true"
-            />
+            {/*
+              Order: price, then the button, then what you get.
 
-            <ul class="flex flex-1 flex-col gap-4">
-              {plan.features.map((feature) => (
-                <li class="flex items-start gap-3 text-sm">
-                  <span
-                    class={cn(
-                      'mt-px flex size-5 shrink-0 items-center justify-center rounded-full',
-                      plan.featured ? 'bg-brand/20 text-brand' : 'bg-accent text-primary'
-                    )}
-                  >
-                    <Icon name="check" class="size-3.5" />
-                  </span>
-                  <span class={plan.featured ? 'text-mist/85' : 'text-foreground/85'}>
-                    {feature}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <div class="mt-8 flex flex-col gap-3">
+              The button used to sit at the very bottom, under the feature
+              list, which on the tallest card put the one thing the section
+              exists for below the fold on a laptop. This is the reference
+              design's order — decide on the price, act, and read the detail
+              only if you want it — and it also stops the lists of different
+              lengths from pushing the three buttons to three different
+              heights.
+            */}
+            <div class="mt-7 flex flex-col gap-3">
               <Button
                 as="a"
                 href={plan.button.href}
@@ -323,9 +318,9 @@ const isTrio = plans.length > 2;
                 data-auth-show={plan.authedButton ? 'anon' : undefined}
                 data-term-link={termed ? '' : undefined}
                 class={cn(
-                  'w-full',
+                  'w-full rounded-full',
                   plan.featured &&
-                    'bg-brand text-ink hover:bg-brand/90 border-transparent shadow-lg'
+                    'bg-white text-brand-deep hover:bg-white/90 border-transparent shadow-lg'
                 )}
               >
                 {plan.button.label}
@@ -343,9 +338,9 @@ const isTrio = plans.length > 2;
                     data-auth-show="user"
                     data-term-link={termed ? '' : undefined}
                     class={cn(
-                      'w-full',
+                      'w-full rounded-full',
                       plan.featured &&
-                        'bg-brand text-ink hover:bg-brand/90 border-transparent shadow-lg'
+                        'bg-white text-brand-deep hover:bg-white/90 border-transparent shadow-lg'
                     )}
                   >
                     {plan.authedButton.label}
@@ -357,13 +352,50 @@ const isTrio = plans.length > 2;
                 <p
                   class={cn(
                     'text-center text-xs',
-                    plan.featured ? 'text-mist/45' : 'text-muted-foreground'
+                    plan.featured ? 'text-white/85' : 'text-muted-foreground'
                   )}
                 >
                   {plan.note}
                 </p>
               )}
             </div>
+
+            <div
+              class={cn(
+                'my-7 h-px w-full',
+                plan.featured ? 'bg-white/25' : 'bg-border'
+              )}
+              aria-hidden="true"
+            />
+
+            <p
+              class={cn(
+                'text-xs font-semibold',
+                plan.featured ? 'text-white/85' : 'text-muted-foreground'
+              )}
+            >
+              {plan.price === 0
+                ? 'Çfarë përfshihet:'
+                : `Çfarë përfshin plani ${plan.name}:`}
+            </p>
+
+            <ul class="mt-4 flex flex-1 flex-col gap-3.5">
+              {plan.features.map((feature) => (
+                <li class="flex items-start gap-3 text-sm">
+                  <span
+                    class={cn(
+                      'mt-px flex size-5 shrink-0 items-center justify-center rounded-full',
+                      plan.featured ? 'bg-white text-brand-deep' : 'bg-accent text-primary'
+                    )}
+                  >
+                    <Icon name="check" class="size-3.5" />
+                  </span>
+                  <span class={plan.featured ? 'text-white' : 'text-foreground/85'}>
+                    {feature}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         ))
       }

@@ -4,14 +4,14 @@ import { Icon } from '@/components/ui/icon';
 import InvoicePanel from '@/components/sections/InvoicePanel.astro';
 
 /*
-  Replaces Fulldev's hero-1, which centres everything and drops a screenshot
-  underneath — the arrangement every template ships with, and the main reason
-  the page read as "assembled" rather than designed.
+  The centred hero from the reference design: an announcement pill, one large
+  claim, the two CTAs, a line of reassurance, then the product held below on
+  the page's centre line inside a framed, glowing bezel.
 
-  This is the split hero instead: copy holds the left rail at a fixed measure,
-  the product holds the right and is allowed to run past the container edge on
-  large screens. The asymmetry is the point; it gives the eye a path (headline →
-  CTA → product) instead of a stack of centred blocks.
+  This replaced a split hero (copy left, product right). The split gave the eye
+  a diagonal path, but it also capped the product at half the fold — and the
+  product is the argument. Centred, the panel gets the full container width and
+  lands as the first thing a visitor actually looks at.
 
   The product panel is built in markup rather than shipped as a screenshot: it
   stays in step with the design tokens, works in dark mode, is sharp at any
@@ -31,78 +31,106 @@ const proofPoints = [
   <div class="bg-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
 
   <div class="container">
-    <div
-      class="grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10 lg:py-28"
-    >
-      <!-- Copy -->
-      <div class="max-w-xl">
-        <h1
-          class="text-display text-foreground animate-rise text-balance"
-          style="animation-delay: 70ms"
-        >
-          Fatura profesionale në
-          <span class="text-primary whitespace-nowrap">2 minuta</span>, jo 2 orë.
-        </h1>
+    <div class="flex flex-col items-center pt-14 pb-16 text-center sm:pt-20 lg:pt-24">
+      <!-- Announcement pill -->
+      <a
+        href="#si-funksionon"
+        class="eyebrow-pill text-muted-foreground hover:text-foreground animate-rise group"
+      >
+        <span class="bg-brand size-1.5 rounded-full" aria-hidden="true"></span>
+        <span class="text-foreground font-semibold">E re</span>
+        <span aria-hidden="true" class="bg-border h-3 w-px"></span>
+        Fatura me TVSH dhe logo, në 2 minuta
+        <Icon
+          name="arrow-right"
+          class="size-3.5 transition-transform group-hover:translate-x-0.5"
+        />
+      </a>
 
-        <p
-          class="text-lead text-muted-foreground animate-rise mt-6 max-w-lg text-pretty"
-          style="animation-delay: 140ms"
-        >
-          Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e
-          gatshme për t'u dërguar në WhatsApp, në sekonda.
-        </p>
+      <h1
+        class="text-display text-foreground animate-rise mt-7 max-w-3xl text-balance"
+        style="animation-delay: 70ms"
+      >
+        Fatura profesionale në
+        <span class="text-primary whitespace-nowrap">2 minuta</span>, jo 2 orë.
+      </h1>
 
-        <div
-          class="animate-rise mt-9 flex flex-col gap-3 sm:flex-row"
-          style="animation-delay: 210ms"
-        >
-          <Button as="a" href="/regjistrohu" size="lg" class="press" data-auth-show="anon">
-            Fillo falas
-            <Icon name="arrow-right" class="size-4" />
-          </Button>
-          <Button as="a" href="/app" size="lg" class="press" data-auth-show="user">
-            Shko te paneli
-            <Icon name="arrow-right" class="size-4" />
-          </Button>
-          <Button
-            as="a"
-            href="#si-funksionon"
-            size="lg"
-            variant="outline"
-            class="press bg-background/60 backdrop-blur-sm"
-          >
-            Shiko si funksionon
-          </Button>
-        </div>
+      <p
+        class="text-lead text-muted-foreground animate-rise mt-6 max-w-xl text-pretty"
+        style="animation-delay: 140ms"
+      >
+        Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e
+        gatshme për t'u dërguar në WhatsApp, në sekonda.
+      </p>
 
-        <!-- Structured microcopy under the CTA: the three objections a small
-             business raises before signing up, answered in one line. -->
-        <ul
-          class="text-muted-foreground animate-rise mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs"
-          style="animation-delay: 280ms"
+      <div
+        class="animate-rise mt-9 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row"
+        style="animation-delay: 210ms"
+      >
+        <Button
+          as="a"
+          href="/regjistrohu"
+          size="lg"
+          class="press rounded-full px-6"
+          data-auth-show="anon"
         >
-          {
-            proofPoints.map((point) => (
-              <li class="flex items-center gap-1.5">
-                <Icon name="check" class="text-primary size-3.5 shrink-0" />
-                {point}
-              </li>
-            ))
-          }
-        </ul>
+          Fillo falas
+          <Icon name="arrow-right" class="size-4" />
+        </Button>
+        <Button
+          as="a"
+          href="/app"
+          size="lg"
+          class="press rounded-full px-6"
+          data-auth-show="user"
+        >
+          Shko te paneli
+          <Icon name="arrow-right" class="size-4" />
+        </Button>
+        <Button
+          as="a"
+          href="#si-funksionon"
+          size="lg"
+          variant="outline"
+          class="press bg-card/70 rounded-full px-6 backdrop-blur-sm"
+        >
+          Shiko si funksionon
+        </Button>
       </div>
 
-      <!-- Product -->
-      {/*
-        Capped and inset rather than bled to the viewport edge: at full width the
-        card lost its shadow to the section's overflow clip and crowded the
-        headline. It still sits slightly right of its column to keep the
-        asymmetry.
-      */}
-      <div
-        class="animate-rise relative mx-auto w-full max-w-[34rem] lg:mr-0 lg:ml-auto"
-        style="animation-delay: 260ms"
+      <!-- Structured microcopy under the CTA: the three objections a small
+           business raises before signing up, answered in one line. -->
+      <ul
+        class="text-muted-foreground animate-rise mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"
+        style="animation-delay: 280ms"
       >
+        {
+          proofPoints.map((point) => (
+            <li class="flex items-center gap-1.5">
+              <Icon name="check" class="text-primary size-3.5 shrink-0" />
+              {point}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <!-- Product, framed -->
+  {/*
+    The bezel is the reference design's: a wide brand glow pooled beneath the
+    panel, then a translucent frame one step outside the card itself, so the
+    product reads as a screen rather than as another section of the page.
+  */}
+  <div class="container pb-16 sm:pb-20 lg:pb-24">
+    <div class="animate-rise relative mx-auto max-w-4xl" style="animation-delay: 260ms">
+      <div
+        class="bg-brand/25 pointer-events-none absolute -inset-x-10 -top-6 bottom-10 -z-10 rounded-[3rem] blur-3xl"
+        aria-hidden="true"
+      >
+      </div>
+
+      <div class="border-border/60 bg-card/60 rounded-[calc(var(--radius)+1rem)] border p-2 shadow-card-lg backdrop-blur-sm sm:p-3">
         <InvoicePanel />
       </div>
     </div>

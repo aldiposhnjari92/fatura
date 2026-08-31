@@ -77,7 +77,7 @@ const kpis: { label: string; value: string; hint?: string }[] = [
   <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {
       kpis.map((k) => (
-        <div class="bg-card ring-border rounded-xl p-5 ring-1">
+        <div class="bg-card shadow-card rounded-2xl p-6">
           <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {k.label}
           </p>
@@ -90,7 +90,7 @@ const kpis: { label: string; value: string; hint?: string }[] = [
 
   {
     pending.length > 0 && (
-      <section class="bg-card ring-border mb-6 overflow-hidden rounded-xl ring-1">
+      <section class="bg-card shadow-card mb-6 overflow-hidden rounded-2xl">
         <div class="flex items-center justify-between border-b px-5 py-4">
           <h2 class="text-sm font-semibold">Kërkojnë veprim</h2>
           <span class="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-[11px] font-bold">
@@ -102,7 +102,7 @@ const kpis: { label: string; value: string; hint?: string }[] = [
     )
   }
 
-  <div class="bg-card ring-border mb-4 flex flex-wrap gap-1.5 rounded-xl p-3 ring-1">
+  <div class="bg-card shadow-card mb-4 flex flex-wrap gap-1.5 rounded-2xl p-3">
     {
       STATUSES.map((st) => (
         <Button
@@ -117,7 +117,7 @@ const kpis: { label: string; value: string; hint?: string }[] = [
     }
   </div>
 
-  <section class="bg-card ring-border overflow-hidden rounded-xl ring-1">
+  <section class="bg-card shadow-card overflow-hidden rounded-2xl">
     <h2 class="border-b px-5 py-4 text-sm font-semibold">
       Historiku ({payload.total ?? 0})
     </h2>
