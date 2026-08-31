@@ -21,14 +21,6 @@ zero.
 
 ---
 
-## Getting started
-
-```bash
-npm install
-cp .env.example .env      # fill in your Supabase project values
-npm run dev               # http://localhost:4321
-```
-
 ### 1. Supabase setup
 
 Create a project, then apply the schema with the deploy script — no SQL editor,
@@ -36,12 +28,6 @@ no manual steps:
 
 ```bash
 npm run db:push
-```
-
-It needs one extra variable, the **database** connection string (not the anon key):
-
-```env
-SUPABASE_DB_URL=postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres
 ```
 
 Get it from **Dashboard → Connect → Connection string → URI**, choosing *Session pooler*
@@ -112,15 +98,6 @@ Supabase's built-in sender allows only a couple of emails an hour project-wide a
 blocking registration entirely. The trade-off: addresses are unverified, so a typo at
 signup leaves that account with no working password-reset path. Password reset still
 sends mail, so Site URL and custom SMTP matter regardless.
-
-### 2. Environment
-
-```env
-PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
-```
-
-Both are browser-safe — RLS is what protects the data, not key secrecy.
 
 ### 3. Deploy to Vercel
 
