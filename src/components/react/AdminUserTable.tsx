@@ -259,7 +259,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
               <TableRow key={row.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="max-w-[14rem] truncate font-medium">
+                    <span className="max-w-56 truncate font-medium">
                       {row.business_name ?? (
                         <span className="text-muted-foreground italic">pa emër</span>
                       )}
@@ -279,7 +279,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                   </p>
                 </TableCell>
 
-                <TableCell className="text-muted-foreground hidden max-w-[15rem] truncate lg:table-cell">
+                <TableCell className="text-muted-foreground hidden max-w-60 truncate lg:table-cell">
                   {row.email}
                 </TableCell>
 
