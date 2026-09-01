@@ -32,11 +32,17 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import {
+  RadioGroup,
+  RadioGroupCard,
+  RadioGroupCardIndicator,
+} from '@/components/ui/react/radio-group';
+import {
   termOptions,
   type BankDetails,
   type MethodInfo,
   type PaymentMethod,
 } from '@/lib/payments';
+import { notify } from '@/lib/toast';
 
 interface PendingPayment {
   id: string;
@@ -188,8 +194,14 @@ export default function Checkout({
       if (rpcError) throw rpcError;
       setCancelled((data as { cancelled_at: string }).cancelled_at);
       setShowCancel(false);
+      notify.success(
+        'Abonimi u anulua.',
+        'Mbetet aktiv deri në fund të periudhës që ke paguar.'
+      );
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Anulimi dështoi', message);
     } finally {
       setCancelBusy(false);
     }
@@ -202,20 +214,26 @@ export default function Checkout({
       const { error: rpcError } = await supabase.rpc('resume_subscription');
       if (rpcError) throw rpcError;
       setCancelled(null);
+      notify.success('Abonimi u rikthye.', 'Rinovimi automatik është sërish aktiv.');
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Rikthimi dështoi', message);
     } finally {
       setCancelBusy(false);
     }
   }
 
-  async function copy(text: string, key: string) {
+  /** `label` is the row's own name — the toast says which field was copied. */
+  async function copy(text: string, key: string, label: string) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(key);
+      notify.success('U kopjua.', `${label} u ruajt në kujtesën e pajisjes.`);
       setTimeout(() => setCopied(null), 1800);
     } catch {
       setError('Kopjimi dështoi. Zgjidhe dhe kopjoje manualisht.');
+      notify.error('Kopjimi dështoi', 'Zgjidhe tekstin dhe kopjoje manualisht.');
     }
   }
 
@@ -231,8 +249,14 @@ export default function Checkout({
       });
       if (rpcError) throw rpcError;
       setOrder(data as PendingPayment);
+      notify.success(
+        'Referenca e pagesës u krijua.',
+        'Vendose në përshkrimin e transfertës që ta gjejmë pagesën.'
+      );
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Pagesa nuk u nis', message);
     } finally {
       setBusy(false);
     }
@@ -530,35 +554,19 @@ export default function Checkout({
           në muaj.
         </p>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <RadioGroup
+          value={plan}
+          onValueChange={(value) => setPlan(value as PaidPlanId)}
+          aria-label="Plani"
+          className="mt-5 grid gap-3 sm:grid-cols-2"
+        >
           {PAID_PLANS.map((option) => {
-            const isSelected = plan === option.id;
             const limit = option.invoiceLimit;
             return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setPlan(option.id as PaidPlanId)}
-                aria-pressed={isSelected}
-                className={[
-                  'press relative rounded-xl border p-4 text-left',
-                  isSelected
-                    ? 'border-primary bg-accent/50 ring-primary/25 ring-2'
-                    : 'hover:border-input hover:bg-muted/50',
-                ].join(' ')}
-              >
+              <RadioGroupCard key={option.id} value={option.id}>
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold">{option.name}</span>
-                  <span
-                    className={[
-                      'flex size-4 shrink-0 items-center justify-center rounded-full border',
-                      isSelected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-input',
-                    ].join(' ')}
-                  >
-                    {isSelected && <Check className="size-2.5" strokeWidth={3.5} />}
-                  </span>
+                  <RadioGroupCardIndicator />
                 </span>
                 <span className="mt-2 block text-lg font-bold tabular-nums">
                   {formatALL(option.monthlyALL)}
@@ -572,10 +580,10 @@ export default function Checkout({
                     Plani yt
                   </span>
                 )}
-              </button>
+              </RadioGroupCard>
             );
           })}
-        </div>
+        </RadioGroup>
 
         {isDowngrade && (
           <p className="border-warning/40 bg-warning/10 mt-4 rounded-lg border px-3 py-2 text-xs leading-relaxed">
@@ -600,34 +608,29 @@ export default function Checkout({
             </p>
           </div>
           {proActive && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setBuying(false)}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground -mr-1 shrink-0 rounded-lg p-2"
+              className="text-muted-foreground hover:text-foreground -mr-1 shrink-0 rounded-lg"
               aria-label="Mbyll"
             >
               <X className="size-4" />
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Four terms: two rows on a phone, one row once the column is wide. */}
-        <div className="mt-5 grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <RadioGroup
+          value={String(months)}
+          onValueChange={(value) => setMonths(Number(value))}
+          aria-label="Kohëzgjatja"
+          className="mt-5 grid gap-3 grid-cols-2 lg:grid-cols-4"
+        >
           {terms.map((option) => {
-            const isSelected = months === option.months;
             return (
-              <button
-                key={option.months}
-                type="button"
-                onClick={() => setMonths(option.months)}
-                aria-pressed={isSelected}
-                className={[
-                  'press relative rounded-xl border p-4 text-left',
-                  isSelected
-                    ? 'border-primary bg-accent/50 ring-primary/25 ring-2'
-                    : 'hover:border-input hover:bg-muted/50',
-                ].join(' ')}
-              >
+              <RadioGroupCard key={option.months} value={String(option.months)}>
                 {option.best && (
                   <span className="bg-brand text-ink absolute -top-2 right-3 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm">
                     Më i mirë
@@ -635,16 +638,7 @@ export default function Checkout({
                 )}
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold">{option.label}</span>
-                  <span
-                    className={[
-                      'flex size-4 shrink-0 items-center justify-center rounded-full border',
-                      isSelected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-input',
-                    ].join(' ')}
-                  >
-                    {isSelected && <Check className="size-2.5" strokeWidth={3.5} />}
-                  </span>
+                  <RadioGroupCardIndicator />
                 </span>
                 <span className="mt-2 block text-lg font-bold tabular-nums">
                   {formatALL(option.total)}
@@ -654,44 +648,31 @@ export default function Checkout({
                     {option.note}
                   </span>
                 )}
-              </button>
+              </RadioGroupCard>
             );
           })}
-        </div>
+        </RadioGroup>
       </section>
 
       {/* Method */}
       <section className="bg-card shadow-card rounded-2xl p-6">
         <h2 className="font-semibold">Mënyra e pagesës</h2>
-        <div className="mt-5 flex flex-col gap-3">
+        <RadioGroup
+          value={method}
+          onValueChange={(value) => setMethod(value as PaymentMethod)}
+          aria-label="Mënyra e pagesës"
+          className="mt-5 flex flex-col gap-3"
+        >
           {methods.map((m) => {
             const Icon = ICONS[m.icon] ?? Landmark;
-            const isSelected = method === m.id;
             return (
-              <button
+              <RadioGroupCard
                 key={m.id}
-                type="button"
+                value={m.id}
                 disabled={!m.available}
-                onClick={() => setMethod(m.id)}
-                aria-pressed={isSelected}
-                className={[
-                  'press flex items-start gap-3 rounded-xl border p-4 text-left',
-                  !m.available && 'cursor-not-allowed opacity-55',
-                  isSelected && m.available
-                    ? 'border-primary bg-accent/50 ring-primary/25 ring-2'
-                    : m.available && 'hover:border-input hover:bg-muted/50',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                className="flex items-start gap-3"
               >
-                <span
-                  className={[
-                    'flex size-10 shrink-0 items-center justify-center rounded-lg',
-                    isSelected && m.available
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground',
-                  ].join(' ')}
-                >
+                <span className="bg-muted text-muted-foreground group-data-[state=checked]/radio-card:bg-primary group-data-[state=checked]/radio-card:text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
                   <Icon className="size-[1.1rem]" />
                 </span>
                 <span className="flex-1">
@@ -707,10 +688,10 @@ export default function Checkout({
                     {m.description}
                   </span>
                 </span>
-              </button>
+              </RadioGroupCard>
             );
           })}
-        </div>
+        </RadioGroup>
       </section>
 
       {/* Bank transfer instructions */}
@@ -779,10 +760,12 @@ export default function Checkout({
                         {row.v}
                       </span>
                       {row.copyKey && (
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => copy(String(row.v), row.copyKey!)}
-                          className="text-muted-foreground hover:text-foreground press shrink-0 rounded p-1"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copy(String(row.v), row.copyKey!, row.k)}
+                          className="text-muted-foreground hover:text-foreground press size-7 shrink-0 rounded"
                           aria-label={`Kopjo ${row.k}`}
                         >
                           {copied === row.copyKey ? (
@@ -790,7 +773,7 @@ export default function Checkout({
                           ) : (
                             <Copy className="size-3.5" />
                           )}
-                        </button>
+                        </Button>
                       )}
                     </dd>
                   </div>

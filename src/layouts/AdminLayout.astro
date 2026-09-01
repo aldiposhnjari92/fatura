@@ -2,7 +2,10 @@
 import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import ActivityStream from '@/components/react/ActivityStream';
+import { Toaster } from '@/components/ui/react/sonner';
 import { Icon } from '@/components/ui/icon';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { initials } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 
@@ -103,7 +106,7 @@ const railChip = 'flex size-6 shrink-0 items-center justify-center rounded-md tr
 const railChipActive = 'bg-primary text-primary-foreground';
 const railChipIdle = 'bg-muted text-muted-foreground group-hover:bg-background';
 const footerLink =
-  'text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
+  'text-muted-foreground hover:bg-muted hover:text-foreground flex h-auto w-full items-center justify-start gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
 ---
 
 <BaseLayout title={title} noindex={true}>
@@ -145,7 +148,10 @@ const footerLink =
         <ActivityStream variant="bell" client:idle />
         <label
           for="admin-nav"
-          class="hover:bg-muted cursor-pointer rounded-lg p-1.5"
+          class={cn(
+            buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+            'cursor-pointer rounded-lg'
+          )}
           aria-label={t('nav.menu')}
         >
           <Icon name="menu" class="size-5" />
@@ -169,7 +175,10 @@ const footerLink =
         </span>
         <label
           for="admin-nav"
-          class="text-mist cursor-pointer rounded-lg p-1 hover:bg-white/10"
+          class={cn(
+            buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
+            'text-mist hover:text-mist cursor-pointer rounded-lg hover:bg-white/10'
+          )}
           aria-label={t('nav.close')}
         >
           <Icon name="x" class="size-4" />
@@ -225,15 +234,15 @@ const footerLink =
           </div>
         </div>
 
-        <a href="/app?klient=1" class={footerLink}>
+        <Button as="a" href="/app?klient=1" variant="ghost" class={footerLink}>
           <Icon name="arrow-left" class="size-4" />
           {t('nav.backToApp')}
-        </a>
+        </Button>
 
         <form method="POST" action="/auth/signout">
-          <button type="submit" class={footerLink}>
+          <Button type="submit" variant="ghost" class={footerLink}>
             <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
-          </button>
+          </Button>
         </form>
       </div>
     </aside>
@@ -309,15 +318,15 @@ const footerLink =
           </div>
         </div>
 
-        <a href="/app?klient=1" class={footerLink}>
+        <Button as="a" href="/app?klient=1" variant="ghost" class={footerLink}>
           <Icon name="arrow-left" class="size-4" />
           {t('nav.backToApp')}
-        </a>
+        </Button>
 
         <form method="POST" action="/auth/signout">
-          <button type="submit" class={footerLink}>
+          <Button type="submit" variant="ghost" class={footerLink}>
             <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
-          </button>
+          </Button>
         </form>
       </div>
     </aside>
@@ -350,6 +359,10 @@ const footerLink =
       {/* Live notifications, console-wide. The table's RLS is manager-only, so
           the subscription yields nothing to anyone else. */}
       <ActivityStream variant="toast" client:idle />
+
+      {/* Feedback for the operator's own actions, distinct from the realtime
+          feed above: that reports what the platform did, this what they did. */}
+      <Toaster client:idle />
     </div>
   </div>
 </BaseLayout>

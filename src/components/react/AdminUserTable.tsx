@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  BadgeCheck,
   ChevronDown,
   Loader2,
   ShieldCheck,
@@ -20,6 +19,8 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import { Input } from '@/components/ui/react/input';
+import { Label } from '@/components/ui/react/label';
+import { notify } from '@/lib/toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,20 +100,13 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
   const [rows, setRows] = React.useState(initial);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [toast, setToast] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   async function run(
     id: string,
     fn: string,
     args: Record<string, unknown>,
     patch: (row: AdminUserRow, data: any) => AdminUserRow,
-    message: string
+    title: string,
+    description: string
   ) {
     setBusy(id);
     setError(null);
@@ -120,16 +114,16 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       const { data, error: rpcError } = await supabase.rpc(fn, args);
       if (rpcError) throw rpcError;
       setRows((prev) => prev.map((r) => (r.id === id ? patch(r, data) : r)));
-      setToast(message);
+      notify.success(title, description);
     } catch (err) {
       const raw = (err as Error).message;
-      setError(
-        /CANNOT_DEMOTE_SELF/.test(raw)
-          ? 'Nuk mund të heqësh vetes të drejtat e adminit.'
-          : /LAST_ADMIN/.test(raw)
-            ? 'Duhet të mbetet të paktën një admin.'
-            : raw
-      );
+      const failure = /CANNOT_DEMOTE_SELF/.test(raw)
+        ? 'Nuk mund të heqësh vetes të drejtat e adminit.'
+        : /LAST_ADMIN/.test(raw)
+          ? 'Duhet të mbetet të paktën një admin.'
+          : raw;
+      setError(failure);
+      notify.error('Veprimi dështoi', failure);
     } finally {
       setBusy(null);
     }
@@ -146,7 +140,8 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
         plan: (d?.plan as PlanId) ?? plan,
         pro_until: d?.pro_until ?? r.pro_until,
       }),
-      `${planOf(plan).name} u aktivizua për ${months} muaj.`
+      `${planOf(plan).name} u aktivizua.`,
+      `${months} muaj për ${row.business_name ?? row.email}.`
     );
 
   const revokePro = (row: AdminUserRow) =>
@@ -155,7 +150,8 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       'admin_set_pro',
       { p_user: row.id, p_months: 1, p_revoke: true },
       (r) => ({ ...r, is_pro: false, plan: 'free' as PlanId, pro_until: null }),
-      'Plani me pagesë u hoq.'
+      'Plani me pagesë u hoq.',
+      `${row.business_name ?? row.email} kaloi në planin falas.`
     );
 
   /* Staff are appointed as managers; the single admin is fixed. */
@@ -165,7 +161,10 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       'admin_set_manager',
       { p_user: row.id, p_manager: value },
       (r) => ({ ...r, is_manager: value }),
-      value ? 'U bë menaxher.' : 'Të drejtat e menaxherit u hoqën.'
+      value ? 'U bë menaxher.' : 'Të drejtat e menaxherit u hoqën.',
+      value
+        ? `${row.business_name ?? row.email} ka akses në panelin e menaxhimit.`
+        : `${row.business_name ?? row.email} nuk ka më akses në panel.`
     );
 
   async function openDelete(row: AdminUserRow) {
@@ -198,17 +197,20 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       });
       if (rpcError) throw rpcError;
       setRows((prev) => prev.filter((r) => r.id !== preview.id));
-      setToast(`${preview.business_name ?? preview.email} u fshi.`);
+      notify.success(
+        'Llogaria u fshi.',
+        `${preview.business_name ?? preview.email} dhe të gjitha të dhënat e saj u hoqën.`
+      );
       setPreview(null);
     } catch (err) {
       const raw = (err as Error).message;
-      setError(
-        /CANNOT_DELETE_SELF/.test(raw)
-          ? 'Nuk mund të fshish llogarinë tënde.'
-          : /LAST_ADMIN/.test(raw)
-            ? 'Duhet të mbetet të paktën një admin.'
-            : raw
-      );
+      const message = /CANNOT_DELETE_SELF/.test(raw)
+        ? 'Nuk mund të fshish llogarinë tënde.'
+        : /LAST_ADMIN/.test(raw)
+          ? 'Duhet të mbetet të paktën një admin.'
+          : raw;
+      setError(message);
+      notify.error('Llogaria nuk u fshi', message);
     } finally {
       setDeleting(false);
     }
@@ -474,9 +476,9 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
 
               {hasPaid && (
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="confirm-name" className="text-sm font-medium">
+                  <Label htmlFor="confirm-name">
                     Shkruaj “{requiredText}” për të konfirmuar
-                  </label>
+                  </Label>
                   <Input
                     id="confirm-name"
                     value={confirmText}
@@ -501,14 +503,6 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
         </DialogContent>
       </Dialog>
 
-      {toast && (
-        <div
-          role="status"
-          className="bg-foreground text-background fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg"
-        >
-          <BadgeCheck className="size-4" /> {toast}
-        </div>
-      )}
     </div>
   );
 }

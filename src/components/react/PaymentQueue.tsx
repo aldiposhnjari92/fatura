@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Check, Loader2, Landmark, CreditCard, Wallet, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from '@/lib/i18n';
+import { notify } from '@/lib/toast';
 import { Button } from '@/components/ui/react/button';
 import { formatALL, formatDate } from '@/lib/utils';
 import { planOf } from '@/lib/plans';
@@ -56,8 +57,14 @@ export default function PaymentQueue({
       });
       if (rpcError) throw rpcError;
       setRows((prev) => prev.filter((r) => r.id !== id));
+      notify.success(
+        approve ? t('adm.paymentApproved') : t('adm.paymentRejected'),
+        approve ? t('adm.paymentApprovedDesc') : t('adm.paymentRejectedDesc')
+      );
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error(t('adm.errPaymentTitle'), message);
     } finally {
       setBusy(null);
     }

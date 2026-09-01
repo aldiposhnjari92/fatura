@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/react/table';
 import { SuccessNote } from '@/components/ui/react/success-note';
+import { notify } from '@/lib/toast';
 import { formatALL, isValidNipt } from '@/lib/utils';
 import type { Client } from '@/lib/types';
 
@@ -117,9 +118,17 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
         );
       }
 
+      notify.success(
+        draft.id ? 'Klienti u ruajt.' : 'Klienti u shtua.',
+        draft.id
+          ? `Ndryshimet për ${payload.name} u ruajtën.`
+          : `${payload.name} është gati për t'u zgjedhur në një faturë.`
+      );
       setDraft(null);
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Klienti nuk u ruajt', message);
     } finally {
       setSaving(false);
     }
@@ -142,12 +151,18 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
         the answer lands before the screen changes.
       */
       setDeleted(true);
+      notify.success(
+        'Klienti u fshi.',
+        `${pendingDelete.name} u hoq nga lista. Faturat e tij mbeten.`
+      );
       closeTimer.current = window.setTimeout(() => {
         setPendingDelete(null);
         setDeleted(false);
       }, CONFIRM_MS);
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Klienti nuk u fshi', message);
     } finally {
       setDeleting(false);
     }

@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { STATUS_META, type InvoiceStatus } from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 import { SEARCH_MAX_LENGTH } from '@/lib/search';
+import { Button } from '@/components/ui/react/button';
+import { Input } from '@/components/ui/react/input';
 
 /*
   The app's global filter, as an instant-search combobox — on every viewport.
@@ -356,15 +358,17 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
         island is `display: contents`, so this button is a direct child of the
         header's flex row.
       */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => setSheet(true)}
         aria-label={t('action.search')}
         aria-expanded={sheet}
-        className="hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:ring-ring ml-auto flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-hidden md:hidden"
+        className="text-muted-foreground hover:text-foreground ml-auto size-10 shrink-0 rounded-lg [&_svg]:size-5 md:hidden"
       >
-        <Search className="size-5" aria-hidden="true" />
-      </button>
+        <Search aria-hidden="true" />
+      </Button>
 
       <div
         ref={rootRef}
@@ -397,21 +401,12 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
             role="search"
             className="relative min-w-0 flex-1"
           >
-            <div
-              className={cn(
-                /*
-                  Tinted, not white: the bar behind it is white at every width
-                  now, so a white field on it would be a ring and nothing else.
-                  Recessed against the bar is also the truer reading — the field
-                  is a hole in the chrome, not a card floating on it, which is
-                  why it carries no shadow.
-                */
-                'bg-ground ring-border/60 flex h-10 items-center gap-2.5 rounded-full px-4 ring-1 transition-shadow',
-                showPanel && 'ring-ring ring-2'
-              )}
-            >
-              <Search className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-              <input
+            <div className="relative">
+              <Search
+                className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <Input
                 ref={inputRef}
                 type="search"
                 name="kerko"
@@ -446,34 +441,50 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
                   rather than the design's, and it sat crushed against the
                   controls beside it — the button below replaces it.
                 */
-                className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-base outline-none md:text-sm [&::-webkit-search-cancel-button]:appearance-none"
+                className={cn(
+                  /*
+                    Tinted, not white: the bar behind it is white at every width
+                    now, so a white field on it would be a ring and nothing else.
+                    Recessed against the bar is also the truer reading — the field
+                    is a hole in the chrome, not a card floating on it, which is
+                    why it carries no shadow. The ring stands in for the border
+                    the field would otherwise draw.
+                  */
+                  'bg-ground ring-border/60 h-10 rounded-full border-0 pr-16 pl-11 shadow-none ring-1 transition-shadow lg:pr-24',
+                  '[&::-webkit-search-cancel-button]:appearance-none',
+                  showPanel && 'ring-ring ring-2'
+                )}
               />
 
-              {trimmed && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTerm('');
-                    setActiveIndex(-1);
-                    inputRef.current?.focus();
-                  }}
-                  aria-label="Pastro kërkimin"
-                  className="text-muted-foreground hover:text-foreground -mr-1 flex size-6 shrink-0 items-center justify-center rounded-full transition-colors"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              )}
+              <span className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1.5">
+                {trimmed && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setTerm('');
+                      setActiveIndex(-1);
+                      inputRef.current?.focus();
+                    }}
+                    aria-label="Pastro kërkimin"
+                    className="text-muted-foreground hover:text-foreground size-6 shrink-0 rounded-full"
+                  >
+                    <X className="size-4" aria-hidden="true" />
+                  </Button>
+                )}
 
-              {loading ? (
-                <Loader2
-                  className="text-muted-foreground size-3.5 shrink-0 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <kbd className="bg-primary text-white hidden shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[10px] font-semibold lg:inline">
-                  ⌘K
-                </kbd>
-              )}
+                {loading ? (
+                  <Loader2
+                    className="text-muted-foreground size-3.5 shrink-0 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <kbd className="bg-primary text-white hidden shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[10px] font-semibold lg:inline">
+                    ⌘K
+                  </kbd>
+                )}
+              </span>
             </div>
 
             {showPanel && (
@@ -545,13 +556,14 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
             not say which is which.
           */}
           {sheet && (
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={closeSheet}
-              className="text-muted-foreground hover:text-foreground shrink-0 px-1 text-sm font-medium transition-colors md:hidden"
+              className="text-muted-foreground hover:text-foreground h-auto shrink-0 px-1 py-0 no-underline hover:no-underline md:hidden"
             >
               {t('action.cancel')}
-            </button>
+            </Button>
           )}
         </div>
       </div>

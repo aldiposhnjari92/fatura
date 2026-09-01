@@ -26,6 +26,7 @@ import {
 import ActivityStream from '@/components/react/ActivityStream';
 import GlobalSearch from '@/components/react/GlobalSearch';
 import UserMenu from '@/components/react/UserMenu';
+import { Toaster } from '@/components/ui/react/sonner';
 import { cn } from '@/lib/utils';
 import type { PlanId } from '@/lib/plans';
 
@@ -331,6 +332,9 @@ export default function AppShell({
       >
         +
       </a>
+
+      {/* Action feedback for every island on the page below. */}
+      <Toaster />
     </SidebarProvider>
   );
 }

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { PasswordField } from '@/components/ui/react/password-field';
 import { useTranslations } from '@/lib/i18n';
+import { notify } from '@/lib/toast';
 
 interface Props {
   email: string;
@@ -46,8 +47,11 @@ export default function ChangePassword({ email }: Props) {
       setDone(true);
       setNext('');
       setConfirm('');
+      notify.success(t('pw.updated'), t('pw.updatedDesc'));
     } catch (err) {
-      setError((err as Error).message || t('common.unexpectedError'));
+      const message = (err as Error).message || t('common.unexpectedError');
+      setError(message);
+      notify.error(t('pw.errTitle'), message);
     } finally {
       setBusy(false);
     }

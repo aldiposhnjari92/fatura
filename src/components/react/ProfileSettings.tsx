@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/react/label';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import LogoCropper from '@/components/react/LogoCropper';
 import { isValidNipt } from '@/lib/utils';
+import { flashToast, notify } from '@/lib/toast';
 import type { Profile } from '@/lib/types';
 
 interface Props {
@@ -102,10 +103,12 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
 
     if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
       setError('Logo duhet të jetë PNG, JPG ose WebP.');
+      notify.error('Logoja nuk u pranua', 'Formati duhet të jetë PNG, JPG ose WebP.');
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
       setError('Logo është shumë e madhe (maksimumi 2 MB).');
+      notify.error('Logoja nuk u pranua', 'Madhësia maksimale e lejuar është 2 MB.');
       return;
     }
 
@@ -153,8 +156,11 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
       setLogoUrl(publicUrl);
       setSaved(true);
       closeCropper();
+      notify.success('Logoja u ngarkua.', 'Do të dalë lart majtas në çdo faturë.');
     } catch (err) {
-      setError(`Ngarkimi dështoi: ${translateStorageError((err as Error).message)}`);
+      const detail = translateStorageError((err as Error).message);
+      setError(`Ngarkimi dështoi: ${detail}`);
+      notify.error('Logoja nuk u ngarkua', detail);
     } finally {
       setUploading(false);
     }
@@ -170,8 +176,11 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
         .eq('id', userId);
       if (updateError) throw updateError;
       setLogoUrl('');
+      notify.success('Logoja u hoq.', 'Faturat e reja do të dalin pa logo.');
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Logoja nuk u hoq', message);
     } finally {
       setUploading(false);
     }
@@ -200,9 +209,25 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
       if (upsertError) throw upsertError;
 
       setSaved(true);
-      if (welcome) window.location.assign('/app/faturat/e-re');
+      // The welcome pass hands straight over to the first invoice, so its
+      // confirmation has to travel to that page instead of showing here.
+      if (welcome) {
+        flashToast(
+          'success',
+          'Cilësimet u ruajtën.',
+          'Tani mund të lëshosh faturën e parë.'
+        );
+        window.location.assign('/app/faturat/e-re');
+      } else {
+        notify.success(
+          'Cilësimet u ruajtën.',
+          'Të dhënat e reja do të dalin në çdo faturë.'
+        );
+      }
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Cilësimet nuk u ruajtën', message);
     } finally {
       setSaving(false);
     }

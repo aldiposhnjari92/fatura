@@ -1,6 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
+import { Toaster } from '@/components/ui/react/sonner';
 
 export interface Props {
   title: string;
@@ -82,4 +83,6 @@ const points = [
       </div>
     </aside>
   </div>
+
+  <Toaster client:idle />
 </BaseLayout>

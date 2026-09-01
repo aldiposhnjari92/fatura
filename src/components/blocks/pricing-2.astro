@@ -148,14 +148,15 @@ const isTrio = plans.length > 2;
             data-term-switch
           >
             {terms.map((term, index) => (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 data-term-option={term.months}
                 aria-pressed={index === 0}
-                class="text-muted-foreground hover:text-foreground aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:shadow-sm rounded-full px-4 py-2 text-sm font-medium transition-colors"
+                class="text-muted-foreground hover:text-foreground aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground aria-pressed:shadow-sm rounded-full px-4"
               >
                 {term.label}
-              </button>
+              </Button>
             ))}
           </div>
           <p class="text-muted-foreground text-sm">

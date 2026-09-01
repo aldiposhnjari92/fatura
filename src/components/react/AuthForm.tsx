@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { flashToast, notify } from '@/lib/toast';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { PasswordField } from '@/components/ui/react/password-field';
@@ -95,9 +96,10 @@ export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
 
         // Email confirmation on → no session yet, so tell them to check mail.
         if (!data.session) {
-          setNotice(
-            'Të dërguam një email konfirmimi. Hape linkun për të aktivizuar llogarinë.'
-          );
+          const message =
+            'Të dërguam një email konfirmimi. Hape linkun për të aktivizuar llogarinë.';
+          setNotice(message);
+          notify.info('Kontrollo emailin', message);
           setLoading(false);
           return;
         }
@@ -110,10 +112,20 @@ export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
       }
 
       // Full navigation, not a client route change: the server middleware has to
-      // see the freshly written auth cookies.
+      // see the freshly written auth cookies — which also means the greeting
+      // has to be handed to the page on the other side.
+      flashToast(
+        'success',
+        isRegister ? 'Llogaria u krijua.' : 'Mirë se erdhe!',
+        isRegister
+          ? 'Plotëso të dhënat e biznesit për të lëshuar faturën e parë.'
+          : 'Paneli yt është gati.'
+      );
       window.location.assign(next);
     } catch (err) {
-      setError(translateError((err as Error).message ?? 'Gabim i papritur.'));
+      const message = translateError((err as Error).message ?? 'Gabim i papritur.');
+      setError(message);
+      notify.error(isRegister ? 'Regjistrimi dështoi' : 'Hyrja dështoi', message);
       setLoading(false);
     }
   }

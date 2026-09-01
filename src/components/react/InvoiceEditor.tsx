@@ -21,6 +21,7 @@ import {
 } from '@/lib/types';
 import { addDays, formatALL, toDateInput } from '@/lib/utils';
 import { downloadInvoicePdf, isPdfEngineLoadError, shareInvoicePdf } from '@/lib/pdf';
+import { flashToast, notify } from '@/lib/toast';
 
 interface Props {
   profile: Profile | null;
@@ -81,7 +82,6 @@ export default function InvoiceEditor({
     null
   );
   const [error, setError] = React.useState<string | null>(null);
-  const [toast, setToast] = React.useState<string | null>(null);
 
   // Inline "new client" form, so a first invoice never dead-ends.
   const [showNewClient, setShowNewClient] = React.useState(false);
@@ -101,6 +101,16 @@ export default function InvoiceEditor({
   // Set when the PDF chunk can't be fetched — the page is stale, not broken.
   const [needsReload, setNeedsReload] = React.useState(false);
 
+  /**
+   * Surface a failure in both places: the banner keeps it on screen next to the
+   * form, the toast says it happened now. The title names the action that
+   * failed, so the raw message is free to be the detail under it.
+   */
+  function fail(title: string, detail: string) {
+    setError(`${title}: ${detail}`);
+    notify.error(title, detail);
+  }
+
   /** Report a PDF failure, distinguishing "page is stale" from a real error. */
   function reportPdfError(prefix: string, err: unknown) {
     if (isPdfEngineLoadError(err)) {
@@ -108,16 +118,10 @@ export default function InvoiceEditor({
       setError(null);
       return;
     }
-    setError(`${prefix}: ${(err as Error).message}`);
+    fail(prefix, (err as Error).message);
   }
 
   const selectedClient = clients.find((c) => c.id === clientId) ?? null;
-
-  React.useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(id);
-  }, [toast]);
 
   function updateItem(index: number, patch: Partial<InvoiceItem>) {
     setItems((prev) =>
@@ -201,9 +205,12 @@ export default function InvoiceEditor({
       setClientId((data as Client).id);
       setShowNewClient(false);
       setNewClient({ name: '', nipt: '', email: '', address: '' });
-      setToast(t('inv.clientAdded'));
+      notify.success(
+        t('inv.clientAdded'),
+        t('inv.clientAddedDesc', { name: (data as Client).name })
+      );
     } catch (err) {
-      setError((err as Error).message);
+      fail(t('inv.errClientTitle'), (err as Error).message);
     } finally {
       setCreatingClient(false);
     }
@@ -217,7 +224,7 @@ export default function InvoiceEditor({
   async function handleSave(statusOverride?: InvoiceStatus): Promise<string | null> {
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      fail(t('inv.errSaveTitle'), validationError);
       return null;
     }
 
@@ -260,7 +267,12 @@ export default function InvoiceEditor({
           .eq('id', invoice.id);
         if (updateError) throw updateError;
         if (statusOverride) setStatus(statusOverride);
-        setToast(statusOverride ? t('inv.confirmed') : t('inv.saved'));
+        notify.success(
+          statusOverride ? t('inv.confirmed') : t('inv.saved'),
+          statusOverride
+            ? t('inv.confirmedDesc', { number: invoiceNumber })
+            : t('inv.savedDesc', { number: invoiceNumber })
+        );
         return invoice.id;
       }
 
@@ -288,10 +300,18 @@ export default function InvoiceEditor({
       }
 
       if (statusOverride) setStatus(statusOverride);
-      setToast(statusOverride ? t('inv.confirmed') : t('inv.created'));
+      // Both callers navigate to the new invoice from here, so the message has
+      // to be handed to that page rather than raised on this one.
+      flashToast(
+        'success',
+        statusOverride ? t('inv.confirmed') : t('inv.created'),
+        statusOverride
+          ? t('inv.confirmedDesc', { number: invoiceNumber })
+          : t('inv.createdDesc', { number: invoiceNumber })
+      );
       return (data as { id: string }).id;
     } catch (err) {
-      setError((err as Error).message);
+      fail(t('inv.errSaveTitle'), (err as Error).message);
       return null;
     } finally {
       setSaving(false);
@@ -316,12 +336,16 @@ export default function InvoiceEditor({
   async function handleDownload() {
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      fail(t('inv.errPdfFailed'), validationError);
       return;
     }
     setBusyPdf('download');
     try {
       await downloadInvoicePdf(pdfInput, selectedClient?.name);
+      notify.success(
+        t('inv.pdfDownloaded'),
+        t('inv.pdfDownloadedDesc', { number: invoiceNumber })
+      );
     } catch (err) {
       reportPdfError(t('inv.errPdfFailed'), err);
     } finally {
@@ -332,13 +356,18 @@ export default function InvoiceEditor({
   async function handleShare() {
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      fail(t('inv.errShareFailed'), validationError);
       return;
     }
     setBusyPdf('share');
     try {
       const result = await shareInvoicePdf(pdfInput, selectedClient?.name);
-      if (result === 'downloaded') setToast(t('inv.pdfDownloaded'));
+      notify.success(
+        result === 'downloaded' ? t('inv.pdfDownloaded') : t('inv.shared'),
+        result === 'downloaded'
+          ? t('inv.pdfDownloadedDesc', { number: invoiceNumber })
+          : t('inv.sharedDesc', { number: invoiceNumber })
+      );
     } catch (err) {
       reportPdfError(t('inv.errShareFailed'), err);
     } finally {
@@ -349,7 +378,7 @@ export default function InvoiceEditor({
   async function handlePreview() {
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      fail(t('inv.errPreviewFailed'), validationError);
       return;
     }
     setBusyPdf('preview');
@@ -357,6 +386,7 @@ export default function InvoiceEditor({
       const { invoicePdfObjectUrl } = await import('@/lib/pdf');
       const url = await invoicePdfObjectUrl(pdfInput);
       window.open(url, '_blank', 'noopener');
+      notify.info(t('inv.previewOpened'), t('inv.previewOpenedDesc'));
       // Give the new tab time to claim the blob before releasing it.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
@@ -858,14 +888,6 @@ export default function InvoiceEditor({
         </Card>
       </div>
 
-      {toast && (
-        <div
-          role="status"
-          className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-lg md:bottom-6"
-        >
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

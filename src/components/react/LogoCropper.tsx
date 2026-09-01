@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import { Slider } from '@/components/ui/react/slider';
+import { notify } from '@/lib/toast';
 import { getCroppedImageBlob, type CropArea } from '@/lib/crop-image';
 
 interface Props {
@@ -67,7 +68,9 @@ export default function LogoCropper({
       const blob = await getCroppedImageBlob(imageSrc, croppedArea, rotation);
       await onCropped(blob);
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Prerja e logos dështoi', message);
     } finally {
       setWorking(false);
     }
@@ -128,20 +131,17 @@ export default function LogoCropper({
             </Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {ASPECTS.map((option) => (
-                <button
+                <Button
                   key={option.label}
                   type="button"
+                  size="sm"
+                  variant={aspect === option.value ? 'default' : 'outline'}
                   onClick={() => setAspect(option.value)}
-                  className={[
-                    'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
-                    aspect === option.value
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-accent',
-                  ].join(' ')}
+                  className="rounded-full px-3.5 text-sm"
                 >
                   {option.label}{' '}
                   <span className="opacity-70">{option.hint}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
+import { notify } from '@/lib/toast';
 import { STATUS_META, displayStatus, type InvoiceStatus } from '@/lib/types';
 
 interface Props {
@@ -91,10 +92,18 @@ export default function PaidToggle({
       setStatus(row.status);
       setPaidAt(row.paid_at);
       onStatusChange?.(row.status, row.paid_at);
+      notify.success(
+        row.status === 'paid' ? t('inv.markedPaid') : t('inv.markedUnpaid'),
+        row.status === 'paid'
+          ? t('inv.markedPaidDesc', { date: formatDate(row.paid_at ?? '') })
+          : t('inv.markedUnpaidDesc')
+      );
     } catch (err) {
       setStatus(previous.status);
       setPaidAt(previous.paidAt);
-      setError((err as Error).message || t('inv.markPaidFailed'));
+      const message = (err as Error).message;
+      setError(message || t('inv.markPaidFailed'));
+      notify.error(t('inv.markPaidFailed'), message || t('common.unexpectedError'));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,12 @@ import { Bell, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatALL, formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
+import { Button } from '@/components/ui/react/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/react/popover';
 
 export interface ActivityRow {
   id: number;
@@ -76,7 +82,6 @@ export default function ActivityStream({
   const [live, setLive] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
-  const panelRef = React.useRef<HTMLDivElement>(null);
   const loaded = React.useRef(false);
 
   /*
@@ -97,22 +102,6 @@ export default function ActivityStream({
       return [...prev, ...fetched.filter((r) => !seen.has(r.id))];
     });
   }
-
-  // Close on outside tap and on Escape — both needed for the panel to feel
-  // right on a phone, where there is no cursor to move away.
-  React.useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!panelRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   React.useEffect(() => {
     const name = `activity-stream-${(channelSeq += 1)}`;
@@ -144,85 +133,97 @@ export default function ActivityStream({
     };
   }, [variant]);
 
-          if (variant === 'bell') {
+  if (variant === 'bell') {
     return (
-      <div className="relative" ref={panelRef}>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((v) => !v);
+      /* Popover owns dismissal: outside pointerdown and Escape both come free. */
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (next) {
             setUnread(0);
             void loadOnce();
-          }}
-          aria-expanded={open}
-          aria-label={t('adm.notifications')}
-          className="hover:bg-muted focus-visible:ring-ring relative flex size-10 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+          }
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={t('adm.notifications')}
+            className="relative size-10 rounded-lg [&_svg]:size-5"
+          >
+            <Bell />
+            {unread > 0 && (
+              <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
+                {unread}
+              </span>
+            )}
+            <span
+              className={[
+                'absolute right-1.5 bottom-1.5 size-1.5 rounded-full',
+                live ? 'bg-teal-500' : 'bg-muted-foreground/40',
+              ].join(' ')}
+              aria-hidden="true"
+            />
+          </Button>
+        </PopoverTrigger>
+
+        {/*
+          Anchored to the bell, but never wider than the screen it has to fit
+          on — a right-aligned 24rem panel would otherwise hang off the side of
+          a phone. `collisionPadding` keeps the same 12px gutter the old fixed
+          positioning hard-coded.
+        */}
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className="max-h-[70vh] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto shadow-xl"
         >
-          <Bell className="size-5" />
-          {unread > 0 && (
-            <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
-              {unread}
-            </span>
-          )}
-          <span
-            className={[
-              'absolute right-1.5 bottom-1.5 size-1.5 rounded-full',
-              live ? 'bg-teal-500' : 'bg-muted-foreground/40',
-            ].join(' ')}
-            aria-hidden="true"
-          />
-        </button>
-
-        {open && (
-          /*
-            Anchored to the button on a wide screen, but pinned to the viewport
-            edges below `sm` — a right-anchored dropdown would otherwise hang
-            off the side of a phone.
-          */
-          <div className="bg-popover ring-border animate-rise fixed inset-x-3 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-xl shadow-xl ring-1 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <p className="text-sm font-semibold">{t('adm.notifications')}</p>
-              {/* There is no customer-facing history page, and /admin is
-                  closed to them — so the link only shows for operators. */}
-              {scope === 'platform' && (
-                <a href="/admin/aktiviteti" className="text-primary text-xs font-medium">
-                  {t('adm.viewAll')}
-                </a>
-              )}
-            </div>
-
-            {rows.length === 0 ? (
-              <p className="text-muted-foreground px-4 py-10 text-center text-sm">
-                {t('adm.noResults')}
-              </p>
-            ) : (
-              <ul className="divide-y">
-                {rows.slice(0, 20).map((row) => {
-                  const m = meta(row.type);
-                  return (
-                    <li key={row.id} className="flex items-start gap-3 px-4 py-3">
-                      <span
-                        className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.tone}`}
-                      >
-                        {m.label}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm">
-                          {row.business_name ?? row.ref ?? '—'}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {row.amount != null && `${formatALL(row.amount)} · `}
-                          {formatDate(row.created_at)}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <p className="text-sm font-semibold">{t('adm.notifications')}</p>
+            {/* There is no customer-facing history page, and /admin is
+                closed to them — so the link only shows for operators. */}
+            {scope === 'platform' && (
+              <a href="/admin/aktiviteti" className="text-primary text-xs font-medium">
+                {t('adm.viewAll')}
+              </a>
             )}
           </div>
-        )}
-      </div>
+
+          {rows.length === 0 ? (
+            <p className="text-muted-foreground px-4 py-10 text-center text-sm">
+              {t('adm.noResults')}
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {rows.slice(0, 20).map((row) => {
+                const m = meta(row.type);
+                return (
+                  <li key={row.id} className="flex items-start gap-3 px-4 py-3">
+                    <span
+                      className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.tone}`}
+                    >
+                      {m.label}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">
+                        {row.business_name ?? row.ref ?? '—'}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {row.amount != null && `${formatALL(row.amount)} · `}
+                        {formatDate(row.created_at)}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </PopoverContent>
+      </Popover>
     );
   }
 
@@ -250,14 +251,16 @@ export default function ActivityStream({
                   {row.amount != null && ` · ${formatALL(row.amount)}`}
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setToasts((prev) => prev.filter((x) => x.id !== row.id))}
-                className="text-muted-foreground hover:text-foreground shrink-0 rounded p-1"
+                className="text-muted-foreground hover:text-foreground size-7 shrink-0 rounded"
                 aria-label={t('action.close')}
               >
                 <X className="size-3.5" />
-              </button>
+              </Button>
             </div>
           );
         })}

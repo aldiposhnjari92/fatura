@@ -188,6 +188,35 @@ const sq = {
   'cli.deleteConfirm': 'Ta fshijmë këtë klient?',
   'cli.saved': 'Klienti u ruajt.',
 
+  // ---- Action feedback (toasts) ---------------------------------------
+  // Every toast is a title plus a description. The title is what happened; the
+  // description says what it means, so it never just restates the title.
+  'inv.shared': 'Fatura u shpërnda.',
+  'inv.previewOpened': 'Fatura u hap në një skedë të re.',
+  'inv.markedPaid': 'Fatura u shënua si e paguar.',
+  'inv.markedUnpaid': 'Fatura u shënua si e papaguar.',
+  'adm.paymentApproved': 'Pagesa u konfirmua.',
+  'adm.paymentRejected': 'Pagesa u refuzua.',
+
+  'inv.savedDesc': 'Ndryshimet në faturën {number} u ruajtën.',
+  'inv.createdDesc': 'Fatura {number} u shtua në listën tënde.',
+  'inv.confirmedDesc': 'Fatura {number} u lëshua dhe pret pagesën.',
+  'inv.clientAddedDesc': '{name} u zgjodh për këtë faturë.',
+  'inv.pdfDownloadedDesc': 'Fatura {number} u ruajt në pajisjen tënde.',
+  'inv.sharedDesc': 'Fatura {number} u dërgua me aplikacionin që zgjodhe.',
+  'inv.previewOpenedDesc': 'Kjo është vetëm parapamje — fatura nuk u ruajt.',
+  'inv.markedPaidDesc': 'Pagesa u regjistrua më {date}.',
+  'inv.markedUnpaidDesc': 'Fatura kthehet te pagesat në pritje.',
+  'adm.paymentApprovedDesc': 'Abonimi i përdoruesit u aktivizua.',
+  'adm.paymentRejectedDesc': 'Abonimi nuk u aktivizua.',
+  'pw.updatedDesc': 'Herën tjetër hyr me fjalëkalimin e ri.',
+
+  // Error titles. The failure message itself becomes the description.
+  'inv.errSaveTitle': 'Fatura nuk u ruajt',
+  'inv.errClientTitle': 'Klienti nuk u shtua',
+  'pw.errTitle': 'Fjalëkalimi nuk u ndryshua',
+  'adm.errPaymentTitle': 'Vendimi nuk u regjistrua',
+
   // ---- Settings --------------------------------------------------------
   'set.title': 'Cilësimet',
   'set.business': 'Të dhënat e biznesit',

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import { SuccessNote } from '@/components/ui/react/success-note';
+import { flashToast, notify } from '@/lib/toast';
 
 /* How long the confirmation is held before the list takes over. */
 const CONFIRM_MS = 1000;
@@ -46,12 +47,21 @@ export default function DeleteInvoiceButton({ invoiceId, invoiceNumber }: Props)
         list, which is what replaces it on screen.
       */
       setDone(true);
+      // The list is what replaces this page, so that is where the
+      // confirmation has to land.
+      flashToast(
+        'success',
+        'Fatura u fshi.',
+        `Fatura ${invoiceNumber} u hoq përgjithmonë.`
+      );
       timer.current = window.setTimeout(
         () => window.location.assign('/app/faturat'),
         CONFIRM_MS
       );
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Fatura nuk u fshi', message);
       setDeleting(false);
     }
   }
