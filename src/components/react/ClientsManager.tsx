@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/react/table';
+import { SuccessNote } from '@/components/ui/react/success-note';
 import { formatALL, isValidNipt } from '@/lib/utils';
 import type { Client } from '@/lib/types';
 
@@ -43,6 +44,9 @@ interface Draft {
 
 const emptyDraft = (): Draft => ({ id: null, name: '', nipt: '', email: '', address: '' });
 
+/* How long the confirmation is held before the dialog closes itself. */
+const CONFIRM_MS = 1000;
+
 export default function ClientsManager({ clients: initial, stats = {} }: Props) {
   const [clients, setClients] = React.useState<Client[]>(initial);
   const [search, setSearch] = React.useState('');
@@ -51,6 +55,11 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
   const [error, setError] = React.useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Client | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  /* Set for the second the dialog spends confirming, before it closes itself. */
+  const [deleted, setDeleted] = React.useState(false);
+  const closeTimer = React.useRef<number>();
+
+  React.useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -127,7 +136,16 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
         .eq('id', pendingDelete.id);
       if (deleteError) throw deleteError;
       setClients((prev) => prev.filter((c) => c.id !== pendingDelete.id));
-      setPendingDelete(null);
+      /*
+        The row goes at once — the table behind the overlay is already correct
+        when the dialog lifts — but the dialog holds the confirmation first, so
+        the answer lands before the screen changes.
+      */
+      setDeleted(true);
+      closeTimer.current = window.setTimeout(() => {
+        setPendingDelete(null);
+        setDeleted(false);
+      }, CONFIRM_MS);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -329,34 +347,46 @@ export default function ClientsManager({ clients: initial, stats = {} }: Props) 
       </Dialog>
 
       {/* Delete confirm */}
+      {/* Nothing left to cancel once it is gone, so dismissals are ignored for
+          the second the dialog spends on the confirmation. */}
       <Dialog
         open={pendingDelete !== null}
-        onOpenChange={(open) => !open && setPendingDelete(null)}
+        onOpenChange={(open) => !open && !deleted && setPendingDelete(null)}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Fshi {pendingDelete?.name}?</DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground text-sm">
-            {deleteUsage?.count
-              ? `Ky klient është përdorur në ${deleteUsage.count} ${
-                  deleteUsage.count === 1 ? 'faturë' : 'fatura'
-                }. Faturat ruhen, por mbeten pa klient të lidhur.`
-              : 'Klienti fshihet përgjithmonë.'}
-          </p>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setPendingDelete(null)}
-              disabled={deleting}
-            >
-              Anulo
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="animate-spin" />}
-              Po, fshije
-            </Button>
-          </DialogFooter>
+        <DialogContent hideClose={deleted}>
+          {deleted ? (
+            <SuccessNote>
+              <DialogTitle className="text-base font-semibold">
+                Klienti u fshi me sukses
+              </DialogTitle>
+            </SuccessNote>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Fshi {pendingDelete?.name}?</DialogTitle>
+              </DialogHeader>
+              <p className="text-muted-foreground text-sm">
+                {deleteUsage?.count
+                  ? `Ky klient është përdorur në ${deleteUsage.count} ${
+                      deleteUsage.count === 1 ? 'faturë' : 'fatura'
+                    }. Faturat ruhen, por mbeten pa klient të lidhur.`
+                  : 'Klienti fshihet përgjithmonë.'}
+              </p>
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  onClick={() => setPendingDelete(null)}
+                  disabled={deleting}
+                >
+                  Anulo
+                </Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting && <Loader2 className="animate-spin" />}
+                  Po, fshije
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -28,141 +28,157 @@ const memberSince = createdAt
 ---
 
 <AppLayout title="Cilësimet — Fatura.co" active="settings">
-  <div class="mb-6">
-    <p class="text-muted-foreground text-sm font-medium">Cilësimet</p>
-    <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-      {welcome ? 'Mirë se erdhe në Fatura.co' : 'Profili i biznesit'}
-    </h1>
-    <p class="text-muted-foreground mt-1 text-sm">
-      {
-        welcome
-          ? 'Plotëso një herë të dhënat e biznesit — pastaj dalin vetë në çdo faturë.'
-          : 'Këto të dhëna printohen në krye të çdo fature që lëshon.'
-      }
-    </p>
-  </div>
+  {/*
+    Capped and centred, unlike the app's other pages.
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-    <div class="flex min-w-0 flex-col gap-6">
-      <ProfileSettings
-        profile={profile}
-        userId={user!.id}
-        email={user!.email ?? ''}
-        welcome={welcome}
-        client:load
-      />
+    Those are lists and they earn the full canvas. This one is a form beside a
+    320px rail: left to run the whole width of a wide screen the fields become
+    absurdly long, and capping only the form — which is what it used to do —
+    just moves the problem, leaving a band of empty page between the form and
+    the rail. Capping the pair keeps the measure readable and puts whatever is
+    left over on the outside, where it reads as margin.
+  */}
+  <div class="mx-auto w-full max-w-6xl">
+    <header class="mb-6">
+      <p class="text-muted-foreground text-sm font-medium">Cilësimet</p>
+      <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+        {welcome ? 'Mirë se erdhe në Fatura.co' : 'Profili i biznesit'}
+      </h1>
+      <p class="text-muted-foreground mt-1 text-sm">
+        {
+          welcome
+            ? 'Plotëso një herë të dhënat e biznesit — pastaj dalin vetë në çdo faturë.'
+            : 'Këto të dhëna printohen në krye të çdo fature që lëshon.'
+        }
+      </p>
+    </header>
+
+    {/*
+      `items-start` so the rail keeps its own height: as a stretched grid item
+      its last card would grow to meet the bottom of the form beside it.
+    */}
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div class="flex min-w-0 flex-col gap-6">
+        <ProfileSettings
+          profile={profile}
+          userId={user!.id}
+          email={user!.email ?? ''}
+          welcome={welcome}
+          client:load
+        />
+
+        {/*
+          Its own card rather than part of the profile form: saving business
+          details and changing a password are different acts with different
+          consequences, and one Save button for both invites accidents.
+        */}
+        <section class="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+          <h2 class="font-semibold">{t('pw.section')}</h2>
+          <p class="text-muted-foreground mt-1 text-sm">{t('pw.sectionHint')}</p>
+          <div class="mt-5">
+            {/* Below the fold and rarely used — no reason to block first paint. */}
+            <ChangePassword email={user!.email ?? ''} client:idle />
+          </div>
+        </section>
+      </div>
 
       {/*
-        Its own card rather than part of the profile form: saving business
-        details and changing a password are different acts with different
-        consequences, and one Save button for both invites accidents.
+        The rail: status, not settings. Nothing here is edited, so the cards are
+        quieter than the ones beside them — a smaller heading and the same
+        padding, so the two columns still sit on one grid.
       */}
-      <section class="bg-card shadow-card rounded-2xl p-6">
-        <h2 class="font-semibold">{t('pw.section')}</h2>
-        <p class="text-muted-foreground mt-1 text-sm">{t('pw.sectionHint')}</p>
-        <div class="mt-5">
-          {/* Below the fold and rarely used — no reason to block first paint. */}
-          <ChangePassword email={user!.email ?? ''} client:idle />
-        </div>
-      </section>
-    </div>
+      <aside class="flex flex-col gap-6">
+        <section class="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-sm font-semibold">Plani</h2>
+            <span
+              class:list={[
+                'rounded-full px-2 py-0.5 text-[11px] font-bold',
+                plan === 'free' ? 'bg-muted text-muted-foreground' : 'bg-brand/15 text-primary',
+              ]}
+            >
+              {cancelled && plan !== 'free' ? `${planSpec.badge} · deri` : planSpec.badge}
+            </span>
+          </div>
 
-    <!-- Side rail -->
-    <aside class="flex flex-col gap-6">
-      <section class="bg-card shadow-card rounded-2xl p-6">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold">Plani</h2>
-          <span
-            class:list={[
-              'rounded-full px-2 py-0.5 text-[11px] font-bold',
-              plan === 'free'
-                ? 'bg-muted text-muted-foreground'
-                : 'bg-brand/15 text-primary',
-            ]}
-          >
-            {cancelled && plan !== 'free' ? `${planSpec.badge} · deri` : planSpec.badge}
-          </span>
-        </div>
-
-        {
-          cancelled && plan !== 'free' && (
-            <p class="text-muted-foreground mt-3 text-sm">
-              Aktiv deri më {proUntilLabel}, pastaj kalon në planin falas.
-            </p>
-          )
-        }
-
-        {
-          unlimited ? (
-            !cancelled && (
+          {
+            cancelled && plan !== 'free' && (
               <p class="text-muted-foreground mt-3 text-sm">
-                Fatura të palimituara. Faleminderit që na mbështet.
+                Aktiv deri më {proUntilLabel}, pastaj kalon në planin falas.
               </p>
             )
-          ) : (
-            <>
-              <div class="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
-                <div
-                  class:list={[
-                    'h-full rounded-full transition-all',
-                    limitReached ? 'bg-warning' : 'bg-primary',
-                  ]}
-                  style={`width:${usedPct}%`}
-                />
-              </div>
-              <p class="text-muted-foreground mt-2 text-sm">
-                <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
-                {invoiceLimit} fatura këtë muaj
+          }
+
+          {
+            unlimited ? (
+              !cancelled && (
+                <p class="text-muted-foreground mt-3 text-sm">
+                  Fatura të palimituara. Faleminderit që na mbështet.
+                </p>
+              )
+            ) : (
+              <>
+                <div class="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
+                  <div
+                    class:list={[
+                      'h-full rounded-full transition-all',
+                      limitReached ? 'bg-warning' : 'bg-primary',
+                    ]}
+                    style={`width:${usedPct}%`}
+                  />
+                </div>
+                <p class="text-muted-foreground mt-2 text-sm">
+                  <strong class="text-foreground">{invoicesThisMonth}</strong> nga{' '}
+                  {invoiceLimit} fatura këtë muaj
+                </p>
+                <Button as="a" href="/app/abonimi" size="sm" class="mt-4 w-full">
+                  {plan === 'free' ? `Kalo në ${PLANS.starter.name}` : `Kalo në ${PLANS.pro.name}`}
+                </Button>
+              </>
+            )
+          }
+        </section>
+
+        <section class="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+          <h2 class="text-sm font-semibold">Llogaria</h2>
+          <dl class="mt-4 flex flex-col gap-3 text-sm">
+            <div>
+              <dt class="text-muted-foreground text-xs">Email</dt>
+              <dd class="mt-0.5 truncate font-medium">{user!.email}</dd>
+            </div>
+            <div>
+              <dt class="text-muted-foreground text-xs">Klient që nga</dt>
+              <dd class="mt-0.5 font-medium">{memberSince}</dd>
+            </div>
+          </dl>
+
+          <form method="POST" action="/auth/signout" class="mt-5">
+            <Button type="submit" variant="outline" size="sm" class="w-full">
+              <Icon name="log-out" /> Dil nga llogaria
+            </Button>
+          </form>
+        </section>
+
+        <section class="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+          <div class="flex items-start gap-2.5">
+            <Icon name="shield-check" class="text-primary mt-0.5 size-4 shrink-0" />
+            <div>
+              <h2 class="text-sm font-semibold">Të dhënat e tua</h2>
+              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                Faturat dhe klientët janë të aksesueshëm vetëm nga llogaria jote — të
+                mbrojtura me Row Level Security në bazën e të dhënave. PDF-të krijohen në
+                pajisjen tënde dhe nuk kalojnë kurrë nga serverët tanë.
               </p>
-              <Button as="a" href="/app/abonimi" size="sm" class="mt-4 w-full">
-                {plan === 'free'
-                  ? `Kalo në ${PLANS.starter.name}`
-                  : `Kalo në ${PLANS.pro.name}`}
-              </Button>
-            </>
-          )
-        }
-      </section>
-
-      <section class="bg-card shadow-card rounded-2xl p-6">
-        <h2 class="text-sm font-semibold">Llogaria</h2>
-        <dl class="mt-4 flex flex-col gap-3 text-sm">
-          <div>
-            <dt class="text-muted-foreground text-xs">Email</dt>
-            <dd class="mt-0.5 truncate font-medium">{user!.email}</dd>
+              <a
+                href="/privatesia"
+                class="text-primary mt-2 inline-block text-xs font-medium hover:underline"
+              >
+                Politika e privatësisë
+              </a>
+            </div>
           </div>
-          <div>
-            <dt class="text-muted-foreground text-xs">Klient që nga</dt>
-            <dd class="mt-0.5 font-medium">{memberSince}</dd>
-          </div>
-        </dl>
-
-        <form method="POST" action="/auth/signout" class="mt-5">
-          <Button type="submit" variant="outline" size="sm" class="w-full">
-            <Icon name="log-out" /> Dil nga llogaria
-          </Button>
-        </form>
-      </section>
-
-      <section class="bg-card shadow-card rounded-2xl p-6">
-        <div class="flex items-start gap-2.5">
-          <Icon name="shield-check" class="text-primary mt-0.5 size-4 shrink-0" />
-          <div>
-            <h2 class="text-sm font-semibold">Të dhënat e tua</h2>
-            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-              Faturat dhe klientët janë të aksesueshëm vetëm nga llogaria jote — të
-              mbrojtura me Row Level Security në bazën e të dhënave. PDF-të krijohen në
-              pajisjen tënde dhe nuk kalojnë kurrë nga serverët tanë.
-            </p>
-            <a
-              href="/privatesia"
-              class="text-primary mt-2 inline-block text-xs font-medium hover:underline"
-            >
-              Politika e privatësisë
-            </a>
-          </div>
-        </div>
-      </section>
-    </aside>
+        </section>
+      </aside>
+    </div>
   </div>
 </AppLayout>

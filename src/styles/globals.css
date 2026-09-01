@@ -101,6 +101,20 @@
      soft ambient pool. Never a visible edge. */
   --elevation-card: 0 1px 2px hsl(216 18% 16% / 0.04), 0 8px 24px -12px hsl(216 18% 16% / 0.1);
   --elevation-card-lg: 0 1px 3px hsl(216 18% 16% / 0.05), 0 20px 48px -20px hsl(216 18% 16% / 0.16);
+
+  /*
+    The sidebar's own scale, which the shadcn sidebar reads by name. It is not
+    a second palette: the rail is a card, so these point at the tokens above
+    and only exist because the component addresses them as `--sidebar-*`.
+  */
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -168,6 +182,15 @@
   --color-ring: var(--ring);
 
   --color-ground: var(--ground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
   /* Real Tailwind utilities: `shadow-card`, `shadow-card-lg`. */
   --shadow-card: var(--elevation-card);
@@ -553,6 +576,41 @@ html[data-motion='on'] [data-stagger][data-shown='true'] > *:nth-child(n + 9) { 
   }
 }
 
+/* ---- Confirmation mark ------------------------------------------- */
+/*
+  The tick shown after a destructive action goes through. The disc springs
+  slightly past its size before settling and the check draws itself a beat
+  later, so the two read as one gesture rather than as an icon appearing.
+
+  Gated on `data-motion` like the reveals above: with reduced motion asked for,
+  or with no JavaScript, the mark is simply there — which is the state these
+  animations end on anyway.
+*/
+@keyframes pop-in {
+  0%   { opacity: 0; scale: 0.6; }
+  60%  { opacity: 1; scale: 1.06; }
+  100% { opacity: 1; scale: 1; }
+}
+
+@utility animate-pop {
+  html[data-motion='on'] & {
+    animation: pop-in 0.42s var(--ease-out-quint) both;
+  }
+}
+
+/* Lucide draws its check as a single path, so one dash offset animates it. */
+@keyframes draw-check {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@utility animate-check {
+  html[data-motion='on'] & path {
+    stroke-dasharray: 24;
+    animation: draw-check 0.36s var(--ease-out-quint) 0.14s both;
+  }
+}
+
 /* ---- Tactile interactions --------------------------------------- */
 @utility press {
   transition:
@@ -602,7 +660,8 @@ a[data-slot='button']:active {
   }
   a, button { transition: none; }
   button:active:not(:disabled), a[data-slot='button']:active { transform: none; }
-  .animate-rise { animation: none; }
+  .animate-rise, .animate-pop { animation: none; }
+  .animate-check path { animation: none; stroke-dasharray: none; }
 }
 
 /* The browser-print fallback for an invoice preview. */

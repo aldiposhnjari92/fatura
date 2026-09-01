@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { Label } from '@/components/ui/react/label';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/react/card';
 import LogoCropper from '@/components/react/LogoCropper';
 import { isValidNipt } from '@/lib/utils';
 import type { Profile } from '@/lib/types';
@@ -209,8 +208,18 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
     }
   }
 
+  /*
+    Both panels use the app's own card — `bg-card shadow-card rounded-2xl` —
+    rather than the bordered `Card` primitive they had before. The settings
+    page puts them directly beside the plan and account cards, which are built
+    that way, and two card treatments a column apart read as an accident.
+
+    No `max-w` here either. The width belongs to the page's grid; capping it
+    inside the island left the form stopping short of its own column and a band
+    of empty page between it and the rail.
+  */
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {error && (
         <p
           role="alert"
@@ -220,11 +229,9 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
         </p>
       )}
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Të dhënat e biznesit</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+      <section className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+        <h2 className="font-semibold">Të dhënat e biznesit</h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="business_name">Emri i biznesit *</Label>
             <Input
@@ -284,14 +291,15 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
             <Label htmlFor="email">Email (llogaria)</Label>
             <Input id="email" value={email} disabled readOnly />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Logo</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+        <h2 className="font-semibold">Logo</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Del lart majtas në çdo faturë.
+        </p>
+        <div className="mt-5">
           <div className="flex flex-wrap items-center gap-5">
             <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted/40">
               {logoUrl ? (
@@ -338,15 +346,15 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                PNG, JPG ose WebP · maksimumi 2 MB. Del lart majtas në çdo faturë.
-                Pas zgjedhjes mund ta presësh dhe ta rrotullosh.
+                PNG, JPG ose WebP · maksimumi 2 MB. Pas zgjedhjes mund ta presësh
+                dhe ta rrotullosh.
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={saving} size="lg">
           {saving ? <Loader2 className="animate-spin" /> : null}
           {welcome ? 'Ruaj dhe krijo faturën e parë' : 'Ruaj ndryshimet'}

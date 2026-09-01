@@ -1,17 +1,22 @@
 import * as React from 'react';
-import { FileText, Search, Users, CornerDownLeft, Loader2 } from 'lucide-react';
+import { FileText, Search, Users, CornerDownLeft, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_META, type InvoiceStatus } from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 import { SEARCH_MAX_LENGTH } from '@/lib/search';
 
 /*
-  The app's global filter, as an instant-search combobox.
+  The app's global filter, as an instant-search combobox — on every viewport.
 
   It replaces a plain GET form that only navigated. Typing now queries
   /app/kerko.json as you go and drops a categorised panel under the field —
   invoices and clients in their own sections, keyboard-navigable as one list,
   with the matched substring marked in each label.
+
+  On a phone the field is not in the bar at rest: at that width it would leave
+  no room for anything beside it. The magnifier next to the bell opens it as a
+  sheet across the top of the screen, with the same panel underneath. There is
+  no separate results page behind any of this — the panel is the search.
 
   Three things this has to get right, and a naive version gets wrong:
 
@@ -20,10 +25,11 @@ import { SEARCH_MAX_LENGTH } from '@/lib/search';
       is discarded unless it is still the term in the box; the in-flight one is
       aborted on every new keystroke.
 
-    • The no-JS path. The markup is a real <form action="/app/kerko">, so before
-      this island hydrates — and for anyone without JavaScript — the field still
-      works, it just navigates to the full results page instead of previewing.
-      Enter only preventDefaults when an option is actually highlighted.
+    • The no-JS path. The markup is a real <form action="/app/faturat">, so
+      before this island hydrates — and for anyone without JavaScript — the
+      field still works, it just navigates to the invoice list filtered by the
+      term instead of previewing. Enter only preventDefaults when an option is
+      actually highlighted.
 
     • Focus. Blur cannot simply close the panel: a click on a result blurs the
       input before the click lands. The panel closes on pointer-down outside the
@@ -88,6 +94,8 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
   const [term, setTerm] = React.useState(initialQuery);
   const [results, setResults] = React.useState<Results>(EMPTY);
   const [open, setOpen] = React.useState(false);
+  /* Phone only: the field lives off-screen until the magnifier is tapped. */
+  const [sheet, setSheet] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
 
@@ -96,6 +104,14 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
   const abortRef = React.useRef<AbortController | null>(null);
 
   const trimmed = term.trim();
+
+  /*
+    Where "everything that matches" goes now that there is no results page of
+    its own: the invoice list, whose `kerko` filter runs the very query this
+    panel previews. The overflow row, the Enter fallback and the no-JS form
+    submit all land on the same URL.
+  */
+  const allResultsHref = `/app/faturat?kerko=${encodeURIComponent(trimmed)}`;
 
   /*
     One flat list of everything selectable, in the order it is painted: the
@@ -111,7 +127,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
     if (trimmed) {
       rows.push({
         id: '__all__',
-        href: `/app/kerko?q=${encodeURIComponent(trimmed)}`,
+        href: allResultsHref,
         title: '',
         subtitle: '',
         kind: 'all' as const,
@@ -122,10 +138,10 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
 
   // ---- Fetching -----------------------------------------------------
   /*
-    Gated on `open`, not on the term alone. Landing on the results page with
-    the field pre-filled would otherwise fire a request on mount for rows the
-    page has already rendered server-side. Focusing the field opens the panel,
-    which is when the preview is actually wanted.
+    Gated on `open`, not on the term alone. Landing on a filtered invoice list
+    with the field pre-filled would otherwise fire a request on mount for rows
+    the page has already rendered server-side. Focusing the field opens the
+    panel, which is when the preview is actually wanted.
   */
   React.useEffect(() => {
     if (!open || !trimmed) {
@@ -169,15 +185,29 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
   }, [open, trimmed]);
 
   // ---- Dismissal ----------------------------------------------------
+  /*
+    Armed for the sheet as well as the panel: on a phone a tap on the page
+    behind the sheet has to put the whole thing away, not just the results.
+  */
   React.useEffect(() => {
-    if (!open) return;
+    if (!open && !sheet) return;
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+      setSheet(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
+  }, [open, sheet]);
+
+  // A sheet without the caret in the field is just a smaller header. Opening it
+  // also arms the panel, so the first keystroke previews rather than the second.
+  React.useEffect(() => {
+    if (!sheet) return;
+    setOpen(true);
+    inputRef.current?.focus();
+  }, [sheet]);
 
   // ---- ⌘K / Ctrl-K, the shortcut printed in the field ----------------
   React.useEffect(() => {
@@ -191,8 +221,15 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const closeSheet = () => {
+    setSheet(false);
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
   const go = (href: string) => {
     setOpen(false);
+    setSheet(false);
     window.location.assign(href);
   };
 
@@ -208,6 +245,9 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
         event.preventDefault();
         setOpen(false);
         setActiveIndex(-1);
+      } else if (sheet) {
+        event.preventDefault();
+        closeSheet();
       } else {
         setTerm('');
       }
@@ -230,7 +270,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
 
     if (event.key === 'Enter' && activeIndex >= 0 && options[activeIndex]) {
       // Only intercept when something is highlighted; otherwise the form
-      // submits to the full results page, which is the no-JS behaviour too.
+      // submits to the invoice list, which is the no-JS behaviour too.
       event.preventDefault();
       go(options[activeIndex].href);
     }
@@ -266,7 +306,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
                   aria-selected={active}
                   href={row.href}
                   onMouseEnter={() => setActiveIndex(position)}
-                  onClick={() => setOpen(false)}
+                  onClick={closeSheet}
                   className={cn(
                     'flex items-center justify-between gap-3 px-4 py-2.5 transition-colors',
                     active && 'bg-muted'
@@ -307,115 +347,174 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
   const allIndex = options.length - 1;
 
   return (
-    <div ref={rootRef} className="relative hidden min-w-0 max-w-md flex-1 md:block">
-      <form action="/app/kerko" method="get" role="search">
-        <div
-          className={cn(
-            'bg-card shadow-card ring-border/60 flex h-10 items-center gap-2.5 rounded-full px-4 ring-1 transition-shadow',
-            showPanel && 'ring-ring ring-2'
-          )}
-        >
-          <Search className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-          <input
-            ref={inputRef}
-            type="search"
-            name="q"
-            id="app-search"
-            value={term}
-            maxLength={SEARCH_MAX_LENGTH}
-            autoComplete="off"
-            placeholder={t('action.search')}
-            aria-label="Kërko fatura dhe klientë"
-            role="combobox"
-            aria-expanded={showPanel}
-            aria-controls="global-search-panel"
-            aria-autocomplete="list"
-            aria-activedescendant={
-              showPanel && activeIndex >= 0 ? optionId(activeIndex) : undefined
-            }
-            onChange={(event) => {
-              setTerm(event.target.value);
-              setOpen(true);
-              setActiveIndex(-1);
-            }}
-            onFocus={() => setOpen(true)}
-            onKeyDown={onKeyDown}
-            className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
-          />
+    <>
+      {/*
+        The phone's way in, sitting in the bar beside the bell — same box, same
+        glyph size, so the two read as a pair rather than as two guesses at a
+        header button. From `md` up the field itself is in the bar and this is
+        gone. It carries the `ml-auto` for the whole trailing cluster: an Astro
+        island is `display: contents`, so this button is a direct child of the
+        header's flex row.
+      */}
+      <button
+        type="button"
+        onClick={() => setSheet(true)}
+        aria-label={t('action.search')}
+        aria-expanded={sheet}
+        className="hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:ring-ring ml-auto flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-hidden md:hidden"
+      >
+        <Search className="size-5" aria-hidden="true" />
+      </button>
 
-          {loading ? (
-            <Loader2
-              className="text-muted-foreground size-3.5 shrink-0 animate-spin"
-              aria-hidden="true"
-            />
-          ) : (
-            <kbd className="bg-muted text-muted-foreground hidden shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[10px] font-semibold lg:inline">
-              ⌘K
-            </kbd>
+      <div
+        ref={rootRef}
+        className={cn(
+          'min-w-0',
+          sheet
+            ? /*
+                Pinned to the top of the screen, over the bar it replaces. The
+                header it sits in carries `backdrop-blur`, which makes that
+                header the containing block for anything fixed inside it — so
+                this covers the bar exactly and nothing else. That rules out a
+                dimmed backdrop from here; the panel below is opaque and a tap
+                anywhere outside still closes, which is what the overlay was
+                for.
+              */
+              'bg-card fixed inset-x-0 top-0 z-50 px-4 py-3 shadow-lg md:static md:max-w-md md:flex-1 md:bg-transparent md:p-0 md:shadow-none'
+            : 'hidden md:block md:max-w-md md:flex-1'
+        )}
+      >
+        {/* Anchors the panel to the field in both layouts. */}
+        <div className="relative flex items-center gap-2">
+          <form action="/app/faturat" method="get" role="search" className="min-w-0 flex-1">
+            <div
+              className={cn(
+                /*
+                  Tinted, not white: the bar behind it is white at every width
+                  now, so a white field on it would be a ring and nothing else.
+                  Recessed against the bar is also the truer reading — the field
+                  is a hole in the chrome, not a card floating on it, which is
+                  why it carries no shadow.
+                */
+                'bg-ground ring-border/60 flex h-10 items-center gap-2.5 rounded-full px-4 ring-1 transition-shadow',
+                showPanel && 'ring-ring ring-2'
+              )}
+            >
+              <Search className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+              <input
+                ref={inputRef}
+                type="search"
+                name="kerko"
+                id="app-search"
+                value={term}
+                maxLength={SEARCH_MAX_LENGTH}
+                autoComplete="off"
+                placeholder={t('action.search')}
+                aria-label="Kërko fatura dhe klientë"
+                role="combobox"
+                aria-expanded={showPanel}
+                aria-controls="global-search-panel"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  showPanel && activeIndex >= 0 ? optionId(activeIndex) : undefined
+                }
+                onChange={(event) => {
+                  setTerm(event.target.value);
+                  setOpen(true);
+                  setActiveIndex(-1);
+                }}
+                onFocus={() => setOpen(true)}
+                onKeyDown={onKeyDown}
+                className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
+              />
+
+              {loading ? (
+                <Loader2
+                  className="text-muted-foreground size-3.5 shrink-0 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <kbd className="bg-primary text-white hidden shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[10px] font-semibold lg:inline">
+                  ⌘K
+                </kbd>
+              )}
+            </div>
+          </form>
+
+          {/* Phone only: the way out of the sheet without reaching for Escape. */}
+          {sheet && (
+            <button
+              type="button"
+              onClick={closeSheet}
+              aria-label={t('action.close')}
+              className="hover:bg-muted text-muted-foreground hover:text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors md:hidden"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          )}
+
+          {showPanel && (
+            <div
+              id="global-search-panel"
+              className="bg-card shadow-card-lg absolute top-12 right-0 left-0 z-50 overflow-hidden rounded-2xl"
+            >
+              {/* Announced as one listbox even though the rows are grouped. */}
+              <ul role="listbox" aria-label="Rezultatet e kërkimit" className="max-h-[70vh] overflow-y-auto py-1">
+                {hasResults ? (
+                  <>
+                    {section(
+                      'Faturat',
+                      <FileText className="size-3" aria-hidden="true" />,
+                      results.invoiceCount,
+                      results.invoices,
+                      0
+                    )}
+                    {section(
+                      'Klientët',
+                      <Users className="size-3" aria-hidden="true" />,
+                      results.clientCount,
+                      results.clients,
+                      results.invoices.length
+                    )}
+                  </>
+                ) : (
+                  <li className="px-4 py-6 text-center">
+                    <p className="text-sm font-medium">
+                      {loading ? 'Duke kërkuar…' : `Asnjë rezultat për “${trimmed}”`}
+                    </p>
+                    {!loading && (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Provo numrin e faturës, emrin e klientit ose NIPT-in.
+                      </p>
+                    )}
+                  </li>
+                )}
+
+                {/* Always last, so ArrowUp from the top lands on it. */}
+                <li className="mt-1 border-t">
+                  <a
+                    id={optionId(allIndex)}
+                    role="option"
+                    aria-selected={activeIndex === allIndex}
+                    href={allResultsHref}
+                    onMouseEnter={() => setActiveIndex(allIndex)}
+                    onClick={closeSheet}
+                    className={cn(
+                      'flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium transition-colors',
+                      activeIndex === allIndex && 'bg-muted'
+                    )}
+                  >
+                    <span className="text-primary truncate">
+                      Shiko të gjitha faturat për “{trimmed}”
+                    </span>
+                    <CornerDownLeft className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+                  </a>
+                </li>
+              </ul>
+            </div>
           )}
         </div>
-      </form>
-
-      {showPanel && (
-        <div
-          id="global-search-panel"
-          className="bg-card shadow-card-lg absolute top-12 right-0 left-0 z-50 overflow-hidden rounded-2xl"
-        >
-          {/* Announced as one listbox even though the rows are grouped. */}
-          <ul role="listbox" aria-label="Rezultatet e kërkimit" className="max-h-[70vh] overflow-y-auto py-1">
-            {hasResults ? (
-              <>
-                {section(
-                  'Faturat',
-                  <FileText className="size-3" aria-hidden="true" />,
-                  results.invoiceCount,
-                  results.invoices,
-                  0
-                )}
-                {section(
-                  'Klientët',
-                  <Users className="size-3" aria-hidden="true" />,
-                  results.clientCount,
-                  results.clients,
-                  results.invoices.length
-                )}
-              </>
-            ) : (
-              <li className="px-4 py-6 text-center">
-                <p className="text-sm font-medium">
-                  {loading ? 'Duke kërkuar…' : `Asnjë rezultat për “${trimmed}”`}
-                </p>
-                {!loading && (
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    Provo numrin e faturës, emrin e klientit ose NIPT-in.
-                  </p>
-                )}
-              </li>
-            )}
-
-            {/* Always last, so ArrowUp from the top lands on it. */}
-            <li className="mt-1 border-t">
-              <a
-                id={optionId(allIndex)}
-                role="option"
-                aria-selected={activeIndex === allIndex}
-                href={`/app/kerko?q=${encodeURIComponent(trimmed)}`}
-                onMouseEnter={() => setActiveIndex(allIndex)}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  'flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium transition-colors',
-                  activeIndex === allIndex && 'bg-muted'
-                )}
-              >
-                <span className="text-primary truncate">
-                  Shiko të gjitha rezultatet për “{trimmed}”
-                </span>
-                <CornerDownLeft className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
-              </a>
-            </li>
-          </ul>
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

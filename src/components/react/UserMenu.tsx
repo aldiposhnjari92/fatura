@@ -45,6 +45,9 @@ export default function UserMenu({
 }: Props) {
   const t = useTranslations();
   const signOutRef = React.useRef<HTMLFormElement>(null);
+  const [open, setOpen] = React.useState(false);
+  /* When the menu last closed itself — see the trigger below. */
+  const dismissedAt = React.useRef(0);
   const label = businessName || email;
   /* Unlimited on Pro, 30 on Starter, 5 on free — the meter follows the tier. */
   const monthlyLimit = invoiceLimitOf(plan);
@@ -53,11 +56,49 @@ export default function UserMenu({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DropdownMenu
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) dismissedAt.current = Date.now();
+          setOpen(next);
+        }}
+      >
+        {/*
+          Opened from `click`, not from Radix's own `pointerdown`.
+
+          A tap produces pointerdown *and* click. Radix opens on the first and
+          leaves the second to the browser, which on a touch screen is close
+          enough to an outside interaction that the pair can land as
+          open-then-dismiss — one tap, and the avatar looks dead. Preventing the
+          default on pointerdown suppresses Radix's own handler
+          (composeEventHandlers checks defaultPrevented) and moves the opening
+          to the click, after any dismissal the same gesture triggers.
+
+          It opens, never toggles: a tap on the trigger while the menu is up is
+          already an outside interaction, so Radix closes it, and reopening on
+          the click that follows would make the menu impossible to shut. The
+          timestamp is what tells the two apart — a click within a moment of a
+          close belongs to the gesture that did the closing.
+
+          These props sit on the Trigger rather than on the button below: with
+          `asChild`, handlers passed to the child are merged by Slot, which
+          chains both unconditionally rather than honouring preventDefault.
+
+          `detail === 0` is the click the browser synthesises after Enter or
+          Space. Radix's key handling already covers that, so it is left alone.
+        */}
+        <DropdownMenuTrigger
+          asChild
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={(event) => {
+            if (event.detail === 0) return;
+            if (Date.now() - dismissedAt.current < 350) return;
+            setOpen(true);
+          }}
+        >
           <button
             type="button"
-            className="hover:bg-muted focus-visible:ring-ring flex items-center gap-2 rounded-full py-1 pr-2 pl-1 transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+            className="hover:bg-muted focus-visible:ring-ring flex touch-manipulation items-center gap-2 rounded-full py-1 pr-2 pl-1 transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
             aria-label={t('nav.accountMenu')}
           >
             <Avatar>
