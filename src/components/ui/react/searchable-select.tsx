@@ -119,7 +119,13 @@ export function SearchableSelect({
           aria-label={ariaLabel}
           disabled={disabled}
           className={cn(
-            'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            /*
+              Sized off `Input`, down to the height, the radius and the shadow.
+              This sits in the same form rows as plain fields — a 40px pill at
+              14px beside a 36px field at 16px reads as two different controls
+              rather than two of a kind.
+            */
+            'border-input bg-transparent ring-offset-background focus-visible:ring-ring flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-base shadow-sm focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
             !selected && 'text-muted-foreground',
             className
           )}
@@ -143,7 +149,13 @@ export function SearchableSelect({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              className="placeholder:text-muted-foreground h-10 w-full bg-transparent text-sm outline-hidden"
+              /*
+                `text-base` under `md`, like every other field: iOS Safari zooms
+                the viewport when something smaller than 16px takes focus, and
+                this one autofocuses the moment the dropdown opens — so the page
+                lurches as part of opening it.
+              */
+              className="placeholder:text-muted-foreground h-10 w-full bg-transparent text-base outline-hidden md:text-sm"
             />
           </div>
         )}

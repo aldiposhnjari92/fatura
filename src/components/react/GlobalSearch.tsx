@@ -384,9 +384,19 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
             : 'hidden md:block md:max-w-md md:flex-1'
         )}
       >
-        {/* Anchors the panel to the field in both layouts. */}
-        <div className="relative flex items-center gap-2">
-          <form action="/app/faturat" method="get" role="search" className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          {/*
+            The form, not the row, is what the panel hangs off: on a phone the
+            row is wider than the field by the width of the dismiss beside it,
+            and a panel that overshoots the field it belongs to reads as
+            unanchored.
+          */}
+          <form
+            action="/app/faturat"
+            method="get"
+            role="search"
+            className="relative min-w-0 flex-1"
+          >
             <div
               className={cn(
                 /*
@@ -425,8 +435,34 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
                 }}
                 onFocus={() => setOpen(true)}
                 onKeyDown={onKeyDown}
-                className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
+                /*
+                  `text-base` under `md`, like every other input in the app:
+                  iOS Safari zooms the viewport when a field smaller than 16px
+                  takes focus, and on the search sheet that lands as the page
+                  jumping to meet the keyboard.
+
+                  The native cancel affordance goes with it. A search input
+                  draws its own ✕ on WebKit, at the browser's size and colour
+                  rather than the design's, and it sat crushed against the
+                  controls beside it — the button below replaces it.
+                */
+                className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-base outline-none md:text-sm [&::-webkit-search-cancel-button]:appearance-none"
               />
+
+              {trimmed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTerm('');
+                    setActiveIndex(-1);
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="Pastro kërkimin"
+                  className="text-muted-foreground hover:text-foreground -mr-1 flex size-6 shrink-0 items-center justify-center rounded-full transition-colors"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
 
               {loading ? (
                 <Loader2
@@ -439,79 +475,83 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
                 </kbd>
               )}
             </div>
+
+            {showPanel && (
+              <div
+                id="global-search-panel"
+                className="bg-card shadow-card-lg absolute top-12 right-0 left-0 z-50 overflow-hidden rounded-2xl"
+              >
+                {/* Announced as one listbox even though the rows are grouped. */}
+                <ul role="listbox" aria-label="Rezultatet e kërkimit" className="max-h-[70vh] overflow-y-auto py-1">
+                  {hasResults ? (
+                    <>
+                      {section(
+                        'Faturat',
+                        <FileText className="size-3" aria-hidden="true" />,
+                        results.invoiceCount,
+                        results.invoices,
+                        0
+                      )}
+                      {section(
+                        'Klientët',
+                        <Users className="size-3" aria-hidden="true" />,
+                        results.clientCount,
+                        results.clients,
+                        results.invoices.length
+                      )}
+                    </>
+                  ) : (
+                    <li className="px-4 py-6 text-center">
+                      <p className="text-sm font-medium">
+                        {loading ? 'Duke kërkuar…' : `Asnjë rezultat për “${trimmed}”`}
+                      </p>
+                      {!loading && (
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          Provo numrin e faturës, emrin e klientit ose NIPT-in.
+                        </p>
+                      )}
+                    </li>
+                  )}
+
+                  {/* Always last, so ArrowUp from the top lands on it. */}
+                  <li className="mt-1 border-t">
+                    <a
+                      id={optionId(allIndex)}
+                      role="option"
+                      aria-selected={activeIndex === allIndex}
+                      href={allResultsHref}
+                      onMouseEnter={() => setActiveIndex(allIndex)}
+                      onClick={closeSheet}
+                      className={cn(
+                        'flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium transition-colors',
+                        activeIndex === allIndex && 'bg-muted'
+                      )}
+                    >
+                      <span className="text-primary truncate">
+                        Shiko të gjitha faturat për “{trimmed}”
+                      </span>
+                      <CornerDownLeft className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            )}
           </form>
 
-          {/* Phone only: the way out of the sheet without reaching for Escape. */}
+          {/*
+            Phone only: the way out of the sheet without reaching for Escape.
+            A word rather than a second ✕ — the one in the field clears the
+            term, this one leaves, and two identical glyphs an inch apart do
+            not say which is which.
+          */}
           {sheet && (
             <button
               type="button"
               onClick={closeSheet}
-              aria-label={t('action.close')}
-              className="hover:bg-muted text-muted-foreground hover:text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors md:hidden"
+              className="text-muted-foreground hover:text-foreground shrink-0 px-1 text-sm font-medium transition-colors md:hidden"
             >
-              <X className="size-5" aria-hidden="true" />
+              {t('action.cancel')}
             </button>
-          )}
-
-          {showPanel && (
-            <div
-              id="global-search-panel"
-              className="bg-card shadow-card-lg absolute top-12 right-0 left-0 z-50 overflow-hidden rounded-2xl"
-            >
-              {/* Announced as one listbox even though the rows are grouped. */}
-              <ul role="listbox" aria-label="Rezultatet e kërkimit" className="max-h-[70vh] overflow-y-auto py-1">
-                {hasResults ? (
-                  <>
-                    {section(
-                      'Faturat',
-                      <FileText className="size-3" aria-hidden="true" />,
-                      results.invoiceCount,
-                      results.invoices,
-                      0
-                    )}
-                    {section(
-                      'Klientët',
-                      <Users className="size-3" aria-hidden="true" />,
-                      results.clientCount,
-                      results.clients,
-                      results.invoices.length
-                    )}
-                  </>
-                ) : (
-                  <li className="px-4 py-6 text-center">
-                    <p className="text-sm font-medium">
-                      {loading ? 'Duke kërkuar…' : `Asnjë rezultat për “${trimmed}”`}
-                    </p>
-                    {!loading && (
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Provo numrin e faturës, emrin e klientit ose NIPT-in.
-                      </p>
-                    )}
-                  </li>
-                )}
-
-                {/* Always last, so ArrowUp from the top lands on it. */}
-                <li className="mt-1 border-t">
-                  <a
-                    id={optionId(allIndex)}
-                    role="option"
-                    aria-selected={activeIndex === allIndex}
-                    href={allResultsHref}
-                    onMouseEnter={() => setActiveIndex(allIndex)}
-                    onClick={closeSheet}
-                    className={cn(
-                      'flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium transition-colors',
-                      activeIndex === allIndex && 'bg-muted'
-                    )}
-                  >
-                    <span className="text-primary truncate">
-                      Shiko të gjitha faturat për “{trimmed}”
-                    </span>
-                    <CornerDownLeft className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
-                  </a>
-                </li>
-              </ul>
-            </div>
           )}
         </div>
       </div>
