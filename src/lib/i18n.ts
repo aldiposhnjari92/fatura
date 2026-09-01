@@ -191,6 +191,7 @@ const sq = {
   // ---- Action feedback (toasts) ---------------------------------------
   // Every toast is a title plus a description. The title is what happened; the
   // description says what it means, so it never just restates the title.
+  'inv.deleted': 'Fatura u fshi.',
   'inv.shared': 'Fatura u shpërnda.',
   'inv.previewOpened': 'Fatura u hap në një skedë të re.',
   'inv.markedPaid': 'Fatura u shënua si e paguar.',

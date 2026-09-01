@@ -2,6 +2,7 @@
 import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
+import { Icon } from '@/components/ui/icon';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
 import type { Client } from '@/lib/types';
 import { quotaReached } from '@/lib/plans';
@@ -32,15 +33,26 @@ const t = useTranslations();
 ---
 
 <AppLayout title={`${t('inv.new')} — Fatura.co`} active="invoices">
-  <div class="mb-6 flex items-center gap-3">
+  {/*
+    The same header shape as the rest of the app: the way back on its own line
+    above, then the title with a line saying what this screen is for. It used
+    to be a bare arrow-link and an h1 with nothing between them.
+  */}
+  <div class="mb-5">
     <a
       href="/app/faturat"
-      class="text-sm font-medium text-muted-foreground hover:text-foreground"
-      >← {t('inv.title')}</a
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
     >
-  </div>
+      <Icon name="arrow-left" class="size-4" />
+      {t('inv.title')}
+    </a>
 
-  <h1 class="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">{t('inv.new')}</h1>
+    <h1 class="mt-3 text-2xl font-bold tracking-[-0.03em] sm:text-3xl">{t('inv.new')}</h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      Numri <span class="text-foreground font-medium">{suggestedNumber}</span> u propozua
+      automatikisht — ndryshoje nëse do.
+    </p>
+  </div>
 
   <InvoiceEditor
     profile={profile}

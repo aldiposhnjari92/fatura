@@ -3,6 +3,10 @@ import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
 import DeleteInvoiceButton from '@/components/react/DeleteInvoiceButton';
+import StatusBadge from '@/components/StatusBadge.astro';
+import { Icon } from '@/components/ui/icon';
+import { displayStatus } from '@/lib/types';
+import { formatALL, formatDate } from '@/lib/utils';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
 import type { Client, Invoice } from '@/lib/types';
 
@@ -40,21 +44,40 @@ const t = useTranslations();
 ---
 
 <AppLayout title={`${invoice.invoice_number} — Fatura.co`} active="invoices">
-  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  {/* Mirrors the new-invoice header, plus the two facts you open a saved
+      invoice to check: what state it is in, and for how much. */}
+  <div class="mb-5">
     <a
       href="/app/faturat"
-      class="text-sm font-medium text-muted-foreground hover:text-foreground">← {t('inv.title')}</a
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
     >
-    <DeleteInvoiceButton
-      invoiceId={invoice.id}
-      invoiceNumber={invoice.invoice_number}
-      client:idle
-    />
-  </div>
+      <Icon name="arrow-left" class="size-4" />
+      {t('inv.title')}
+    </a>
 
-  <h1 class="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">
-    {invoice.invoice_number}
-  </h1>
+    <div class="mt-3 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
+            {invoice.invoice_number}
+          </h1>
+          <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
+        </div>
+        <p class="text-muted-foreground mt-1 text-sm">
+          Lëshuar më {formatDate(invoice.issue_date)} ·
+          <span class="text-foreground font-medium tabular-nums">
+            {formatALL(invoice.total)}
+          </span>
+        </p>
+      </div>
+
+      <DeleteInvoiceButton
+        invoiceId={invoice.id}
+        invoiceNumber={invoice.invoice_number}
+        client:idle
+      />
+    </div>
+  </div>
 
   <InvoiceEditor
     profile={profile}

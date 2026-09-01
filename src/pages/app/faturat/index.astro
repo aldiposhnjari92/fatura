@@ -1,9 +1,9 @@
 ---
 import TableSort from '@/components/TableSort.astro';
 import PaidToggle from '@/components/react/PaidToggle';
+import InvoiceRowActions from '@/components/react/InvoiceRowActions';
 import AppLayout from '@/layouts/AppLayout.astro';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import {
   Table,
@@ -19,7 +19,7 @@ import { applyInvoiceSearch, matchingClientIds, normalizeQuery } from '@/lib/sea
 
 export const prerender = false;
 
-const { supabase, user } = Astro.locals;
+const { supabase, user, invoicesThisMonth } = Astro.locals;
 const params = Astro.url.searchParams;
 
 const VALID_STATUSES: InvoiceStatus[] = ['draft', 'unpaid', 'paid', 'overdue'];
@@ -32,36 +32,26 @@ const search = normalizeQuery(params.get('kerko'));
 const PAGE_SIZE = 25;
 const page = Math.max(1, Number.parseInt(params.get('faqe') ?? '1', 10) || 1);
 const from = (page - 1) * PAGE_SIZE;
-
-/*
-  Paged and column-scoped. This previously pulled 200 rows with `select('*')`,
-  dragging the whole `items` JSONB of every invoice across the wire to render a
-  table that never displays it.
-*/
-
-let query = supabase
-  .from('invoices')
-  .select('id, invoice_number, issue_date, due_date, total, status, paid_at, clients(name)', {
-    count: 'exact',
-  })
-  .eq('owner_id', user!.id)
-  .order('issue_date', { ascending: false })
-  .order('created_at', { ascending: false })
-  .range(from, from + PAGE_SIZE - 1);
+const todayIso = new Date().toISOString().slice(0, 10);
 
 /*
   `overdue` is no longer a value anyone stores — it is "unpaid, and the due
-  date has passed". Filtering has to express that condition rather than compare
-  against a status that will never be found in the column.
+  date has passed". Every query that filters by status has to express that
+  condition rather than compare against a value the column will never hold.
 */
-if (status === 'overdue') {
-  query = query
-    .eq('status', 'unpaid')
-    .not('due_date', 'is', null)
-    .lt('due_date', new Date().toISOString().slice(0, 10));
-} else if (status) {
-  query = query.eq('status', status);
-}
+const byStatus = <T extends { eq: Function; not: Function; lt: Function }>(
+  query: T,
+  value: InvoiceStatus | null
+): T => {
+  if (value === 'overdue') {
+    return query
+      .eq('status', 'unpaid')
+      .not('due_date', 'is', null)
+      .lt('due_date', todayIso) as T;
+  }
+  return value ? (query.eq('status', value) as T) : query;
+};
+
 /*
   Matches the invoice number *or* the client it is billed to — the same rule
   the shell's global search uses, so a term typed up there and then narrowed
@@ -69,20 +59,71 @@ if (status === 'overdue') {
   there is a term to match.
 */
 const searchClientIds = search ? await matchingClientIds(supabase, user!.id, search) : [];
-query = applyInvoiceSearch(query, search, searchClientIds);
 
-const { data, error, count } = await query;
-const invoices = (data ?? []) as unknown as InvoiceWithClient[];
-const total = count ?? 0;
-const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+/*
+  Paged and column-scoped. This deliberately does not select `items`: the
+  JSONB of every invoice is dead weight in a table that never shows a line.
+  The row actions fetch it for the one invoice they are asked about.
+*/
+const listQuery = applyInvoiceSearch(
+  byStatus(
+    supabase
+      .from('invoices')
+      .select(
+        'id, invoice_number, issue_date, due_date, total, status, paid_at, clients(name)',
+        { count: 'exact' }
+      )
+      .eq('owner_id', user!.id),
+    status
+  )
+    .order('issue_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1),
+  search,
+  searchClientIds
+);
 
-const filters: { label: string; value: InvoiceStatus | null }[] = [
+/*
+  Counts for the filter pills, each carrying the active search so a pill can
+  never promise rows the search has already excluded. `head: true` means no
+  row ever crosses the wire — these are index counts, run in parallel with
+  the page itself.
+*/
+const countFor = (value: InvoiceStatus | null) =>
+  applyInvoiceSearch(
+    byStatus(
+      supabase
+        .from('invoices')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', user!.id),
+      value
+    ),
+    search,
+    searchClientIds
+  );
+
+const filterDefs: { label: string; value: InvoiceStatus | null }[] = [
   { label: 'Të gjitha', value: null },
   { label: 'Draft', value: 'draft' },
   { label: 'Të papaguara', value: 'unpaid' },
   { label: 'Të paguara', value: 'paid' },
   { label: 'Të vonuara', value: 'overdue' },
 ];
+
+const [listResult, statsResult, ...countResults] = await Promise.all([
+  listQuery,
+  // Every figure in the strip summed in Postgres, one row back.
+  supabase.rpc('dashboard_stats'),
+  ...filterDefs.map((f) => countFor(f.value)),
+]);
+
+const { data, error, count } = listResult;
+const invoices = (data ?? []) as unknown as InvoiceWithClient[];
+const total = count ?? 0;
+const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+const stats = (statsResult.data ?? {}) as Record<string, number>;
+const filters = filterDefs.map((f, i) => ({ ...f, count: countResults[i]?.count ?? 0 }));
 
 const buildHref = (next: Partial<{ statusi: string; kerko: string; faqe: number }>) => {
   const qs = new URLSearchParams();
@@ -96,75 +137,148 @@ const buildHref = (next: Partial<{ statusi: string; kerko: string; faqe: number 
   return str ? `/app/faturat?${str}` : '/app/faturat';
 };
 
+/*
+  What the page is actually for. The old header led with the row count and the
+  sum of whatever happened to be on the current page — a number that changes
+  when you paginate and means nothing when you do. These are account-wide and
+  answer the question the list exists to answer: who owes me what.
+*/
+const overdueCount = Number(stats.overdue_count ?? 0);
 
-const pageTotal = invoices.reduce((sum, invoice) => sum + (invoice.total ?? 0), 0);
+const summary = [
+  {
+    label: "Për t'u arkëtuar",
+    value: formatALL(Number(stats.outstanding_total ?? 0)),
+    tone: 'text-warning',
+    note: 'Fatura të lëshuara dhe ende të papaguara',
+  },
+  {
+    label: 'Të vonuara',
+    value: formatALL(Number(stats.overdue_total ?? 0)),
+    tone: 'text-destructive',
+    note:
+      overdueCount === 0
+        ? 'Të gjitha brenda afatit'
+        : overdueCount === 1
+          ? '1 faturë ka kaluar afatin'
+          : `${overdueCount} fatura kanë kaluar afatin`,
+  },
+  {
+    label: 'Të arkëtuara këtë muaj',
+    value: formatALL(Number(stats.paid_this_month ?? 0)),
+    tone: 'text-success',
+    note: 'Pagesa të marra që nga fillimi i muajit',
+  },
+  {
+    label: 'Faturuar këtë muaj',
+    value: formatALL(Number(stats.month_total ?? 0)),
+    // This figure is the month's, so its caption has to be the month's too —
+    // it read `total_invoices`, an all-time count sitting under a monthly sum.
+    note:
+      invoicesThisMonth === 1
+        ? '1 faturë e lëshuar'
+        : `${invoicesThisMonth} fatura të lëshuara`,
+  },
+];
+
 const hasFilter = Boolean(status || search);
+const activeFilter = filters.find((f) => f.value === status);
 ---
 
 <AppLayout title="Faturat — Fatura.co" active="invoices">
-  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <!-- Page header -->
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="text-muted-foreground text-sm font-medium">Faturat</p>
-      <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-        {total} {total === 1 ? 'faturë' : 'fatura'}
-      </h1>
-      {
-        invoices.length > 0 && (
-          <p class="text-muted-foreground mt-1 text-sm">
-            {formatALL(pageTotal)} në këtë faqe
-          </p>
-        )
-      }
+      <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">Faturat</h1>
+      <p class="text-muted-foreground mt-1 text-sm">
+        {
+          hasFilter
+            ? `${total} ${total === 1 ? 'faturë përputhet' : 'fatura përputhen'} me filtrat`
+            : 'Çdo faturë që ke lëshuar, dhe gjendja e secilës.'
+        }
+      </p>
     </div>
 
-    <Button as="a" href="/app/faturat/e-re">
+    <Button as="a" href="/app/faturat/e-re" class="rounded-full px-4">
       <Icon name="plus" /> Faturë e re
     </Button>
   </div>
 
-  <!-- Toolbar -->
-  <div
-    class="bg-card shadow-card mb-4 flex flex-col gap-3 rounded-2xl p-3 lg:flex-row lg:items-center lg:justify-between"
-  >
-    <div class="flex flex-wrap gap-1.5">
+  {/*
+    One card holding the four figures, split by hairlines, rather than four
+    tiles — the same treatment the dashboard uses, because these four are one
+    statement about the month rather than four independent numbers.
+  */}
+  <section class="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-5 sm:gap-y-7 lg:grid-cols-4 lg:gap-0">
       {
-        filters.map((filter) => (
+        summary.map((item, index) => (
+          <div
+            class:list={['lg:px-6 lg:first:pl-0 lg:last:pr-0', index > 0 && 'lg:border-l']}
+          >
+            <dt class="text-muted-foreground text-xs sm:text-sm">{item.label}</dt>
+            <dd>
+              <p
+                class={`mt-1 text-xl font-bold tracking-[-0.03em] tabular-nums sm:mt-1.5 sm:text-2xl ${item.tone ?? ''}`}
+              >
+                {item.value}
+              </p>
+              <p class="text-muted-foreground mt-0.5 text-[11px] leading-snug sm:text-xs">
+                {item.note}
+              </p>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  {/*
+    Filters only. The search field that used to sit here did the same job as
+    the one in the app bar, writing the same `kerko` param — two boxes, one
+    behaviour. The term now shows as a chip instead, so it stays visible and
+    removable without being re-offered.
+  */}
+  <div class="mt-5 mb-4 flex flex-wrap items-center gap-1.5">
+    {
+      filters.map((filter) => {
+        const isActive = status === filter.value;
+        return (
           <Button
             as="a"
             href={buildHref({ statusi: filter.value ?? '', faqe: 1 })}
             size="sm"
-            variant={status === filter.value ? 'default' : 'ghost'}
+            variant={isActive ? 'default' : 'ghost'}
+            class="rounded-full"
+            aria-current={isActive ? 'page' : undefined}
           >
             {filter.label}
+            <span
+              class:list={[
+                'ml-0.5 rounded-full px-1.5 text-xs tabular-nums',
+                isActive ? 'bg-primary-foreground/20' : 'bg-muted text-muted-foreground',
+              ]}
+            >
+              {filter.count}
+            </span>
           </Button>
-        ))
-      }
-    </div>
+        );
+      })
+    }
 
-    <form method="GET" action="/app/faturat" class="flex gap-2">
-      {status && <input type="hidden" name="statusi" value={status} />}
-      <div class="relative flex-1 lg:w-64">
-        <Icon
-          name="search"
-          class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-        />
-        <Input
-          type="search"
-          name="kerko"
-          value={search}
-          placeholder="Kërko numrin e faturës…"
-          class="pl-8"
-        />
-      </div>
-      <Button type="submit" variant="outline" class="shrink-0">Kërko</Button>
-      {
-        hasFilter && (
-          <Button as="a" href="/app/faturat" variant="ghost" class="shrink-0">
-            Pastro
-          </Button>
-        )
-      }
-    </form>
+    {
+      search && (
+        <a
+          href={buildHref({ kerko: '', faqe: 1 })}
+          class="bg-accent text-primary hover:bg-accent/70 ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors"
+        >
+          <Icon name="search" class="size-3.5" />
+          <span class="max-w-[12rem] truncate">{search}</span>
+          <Icon name="x" class="size-3.5" />
+          <span class="sr-only">Hiq kërkimin</span>
+        </a>
+      )
+    }
   </div>
 
   {
@@ -189,33 +303,36 @@ const hasFilter = Boolean(status || search);
             ? 'Provo një filtër tjetër ose pastro kërkimin.'
             : 'Krijo faturën e parë — të merr më pak se 2 minuta.'}
         </p>
-        <Button as="a" href={hasFilter ? '/app/faturat' : '/app/faturat/e-re'} class="mt-5">
+        <Button
+          as="a"
+          href={hasFilter ? '/app/faturat' : '/app/faturat/e-re'}
+          class="mt-5 rounded-full px-5"
+        >
           {hasFilter ? 'Pastro filtrat' : 'Krijo faturën e parë'}
         </Button>
       </div>
     ) : (
       <div class="bg-card shadow-card overflow-hidden rounded-2xl">
         {/*
-          Same reasoning as the dashboard: below `sm` the table becomes one row
-          per invoice, because six columns on a 360px screen wraps the number
-          across three lines and pushes the status off the edge. Sorting stays
-          reachable on mobile through the controls above the list.
+          Below `sm` the table becomes one row per invoice: six columns on a
+          360px screen wraps the number across three lines and pushes the
+          status off the edge. Sorting stays reachable through the filters.
         */}
         <ul class="divide-y sm:hidden">
           {invoices.map((invoice) => (
-            <li class="flex items-center justify-between gap-3 px-4 py-3">
-              <a href={`/app/faturat/${invoice.id}`} class="min-w-0 flex-1">
-                <span class="text-primary block truncate font-medium">
+            <li class="px-4 py-3">
+              <a href={`/app/faturat/${invoice.id}`} class="flex items-baseline gap-3">
+                <span class="text-primary min-w-0 flex-1 truncate text-sm font-medium">
                   {invoice.invoice_number}
                 </span>
-                <span class="text-muted-foreground block truncate text-xs">
-                  {invoice.clients?.name ?? '—'} · {formatDate(invoice.issue_date)}
-                </span>
-              </a>
-              <span class="flex shrink-0 flex-col items-end gap-1">
-                <span class="font-medium whitespace-nowrap tabular-nums">
+                <span class="shrink-0 text-sm font-semibold whitespace-nowrap tabular-nums">
                   {formatALL(invoice.total)}
                 </span>
+              </a>
+              <p class="text-muted-foreground mt-0.5 truncate text-xs">
+                {invoice.clients?.name ?? '—'} · {formatDate(invoice.issue_date)}
+              </p>
+              <div class="mt-2 flex items-center justify-between gap-2">
                 <PaidToggle
                   client:visible
                   invoiceId={invoice.id}
@@ -224,34 +341,42 @@ const hasFilter = Boolean(status || search);
                   dueDate={invoice.due_date}
                   showBadge
                 />
-              </span>
+                <InvoiceRowActions
+                  client:visible
+                  invoiceId={invoice.id}
+                  invoiceNumber={invoice.invoice_number}
+                />
+              </div>
             </li>
           ))}
         </ul>
 
+        {/*
+          Denser than the default: `py-2` on every cell fits roughly a third
+          more invoices on a screen, and this is a table people scan rather
+          than read. The due-date column now survives to `sm` — it is the
+          column that decides whether a row needs chasing.
+        */}
         <Table containerClass="hidden sm:block" data-sortable>
           <TableHeader>
             <TableRow>
-              <TableHead sortKey="numri">Numri</TableHead>
-              {/* Now sortable too: the client name is already in the DOM, so
-                  the join that blocked SQL ordering is irrelevant here. */}
-              <TableHead sortKey="klienti">Klienti</TableHead>
-              <TableHead class="hidden sm:table-cell" sortKey="data" sortType="date">
-                Lëshuar
-              </TableHead>
-              <TableHead class="hidden md:table-cell" sortKey="afati" sortType="date">
-                Afati
-              </TableHead>
-              <TableHead class="text-right" sortKey="totali" sortType="number">
+              <TableHead class="py-2.5" sortKey="numri">Numri</TableHead>
+              <TableHead class="py-2.5" sortKey="klienti">Klienti</TableHead>
+              <TableHead class="py-2.5" sortKey="data" sortType="date">Lëshuar</TableHead>
+              <TableHead class="py-2.5" sortKey="afati" sortType="date">Afati</TableHead>
+              <TableHead class="py-2.5 text-right" sortKey="totali" sortType="number">
                 Totali
               </TableHead>
-              <TableHead class="text-right" sortKey="statusi">Statusi</TableHead>
+              <TableHead class="py-2.5 text-right" sortKey="statusi">Statusi</TableHead>
+              <TableHead class="w-12 py-2.5">
+                <span class="sr-only">Veprime</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {invoices.map((invoice) => (
               <TableRow>
-                <TableCell>
+                <TableCell class="py-2">
                   <a
                     href={`/app/faturat/${invoice.id}`}
                     class="text-primary font-medium hover:underline"
@@ -259,19 +384,19 @@ const hasFilter = Boolean(status || search);
                     {invoice.invoice_number}
                   </a>
                 </TableCell>
-                <TableCell class="max-w-[18rem] truncate">
+                <TableCell class="max-w-[16rem] truncate py-2">
                   {invoice.clients?.name ?? '—'}
                 </TableCell>
-                <TableCell class="text-muted-foreground hidden sm:table-cell">
+                <TableCell class="text-muted-foreground py-2 whitespace-nowrap">
                   {formatDate(invoice.issue_date)}
                 </TableCell>
-                <TableCell class="text-muted-foreground hidden md:table-cell">
+                <TableCell class="text-muted-foreground py-2 whitespace-nowrap">
                   {formatDate(invoice.due_date)}
                 </TableCell>
-                <TableCell class="text-right font-medium tabular-nums">
+                <TableCell class="py-2 text-right font-medium tabular-nums">
                   {formatALL(invoice.total)}
                 </TableCell>
-                <TableCell class="text-right">
+                <TableCell class="py-2 text-right">
                   {/* Badge and action are one island, so they can never
                       disagree after a click. */}
                   <PaidToggle
@@ -283,6 +408,13 @@ const hasFilter = Boolean(status || search);
                     showBadge
                   />
                 </TableCell>
+                <TableCell class="py-2 pl-0 text-right">
+                  <InvoiceRowActions
+                    client:visible
+                    invoiceId={invoice.id}
+                    invoiceNumber={invoice.invoice_number}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -290,9 +422,10 @@ const hasFilter = Boolean(status || search);
 
         {
           pageCount > 1 && (
-            <div class="flex items-center justify-between border-t px-5 py-3">
+            <div class="flex items-center justify-between gap-3 border-t px-5 py-3">
               <p class="text-muted-foreground text-sm">
-                Faqja {page} nga {pageCount}
+                {from + 1}–{Math.min(from + PAGE_SIZE, total)} nga {total}
+                {activeFilter?.value ? ` · ${activeFilter.label.toLowerCase()}` : ''}
               </p>
               <div class="flex gap-2">
                 <Button
@@ -301,7 +434,7 @@ const hasFilter = Boolean(status || search);
                   size="sm"
                   variant="outline"
                   aria-disabled={page <= 1}
-                  class={page <= 1 ? 'pointer-events-none opacity-50' : ''}
+                  class:list={['rounded-full', page <= 1 && 'pointer-events-none opacity-50']}
                 >
                   <Icon name="chevron-left" /> Para
                 </Button>
@@ -311,7 +444,10 @@ const hasFilter = Boolean(status || search);
                   size="sm"
                   variant="outline"
                   aria-disabled={page >= pageCount}
-                  class={page >= pageCount ? 'pointer-events-none opacity-50' : ''}
+                  class:list={[
+                    'rounded-full',
+                    page >= pageCount && 'pointer-events-none opacity-50',
+                  ]}
                 >
                   Pas <Icon name="chevron-right" />
                 </Button>

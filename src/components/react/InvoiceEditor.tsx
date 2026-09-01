@@ -1,5 +1,20 @@
 import * as React from 'react';
-import { CheckCircle2, Loader2, Plus, Trash2, Download, Share2, Save, Eye } from 'lucide-react';
+import {
+  CheckCircle2,
+  Download,
+  Eye,
+  FileText,
+  List,
+  Loader2,
+  Plus,
+  Receipt,
+  Save,
+  Share2,
+  StickyNote,
+  Trash2,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from '@/lib/i18n';
 import PaidToggle from '@/components/react/PaidToggle';
@@ -8,7 +23,6 @@ import { Input } from '@/components/ui/react/input';
 import { NumberInput } from '@/components/ui/react/number-input';
 import { Label } from '@/components/ui/react/label';
 import { Textarea } from '@/components/ui/react/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/react/card';
 import { DatePicker } from '@/components/ui/react/date-picker';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import {
@@ -29,6 +43,40 @@ interface Props {
   invoice?: Invoice | null;
   suggestedNumber: string;
   limitReached?: boolean;
+}
+
+/*
+  The app's own card — `bg-card shadow-card rounded-2xl` — rather than the
+  bordered `Card` primitive this used before. Settings and the dashboard are
+  built that way, and two card treatments one click apart read as an accident.
+  The icon chip beside the heading is the same pair the dashboard uses, and it
+  is what lets a long form be scanned for the section you came back to edit.
+*/
+function Section({
+  icon: Icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+      <div className="flex items-center gap-2.5">
+        <span className="bg-accent text-primary flex size-8 shrink-0 items-center justify-center rounded-full">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-semibold tracking-tight">{title}</h2>
+          {hint && <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{hint}</p>}
+        </div>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
 }
 
 const VAT_OPTIONS = [0, 6, 20];
@@ -399,13 +447,13 @@ export default function InvoiceEditor({
   const profileIncomplete = !profile?.business_name || !profile?.nipt;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
       {/* ------------------------- Left: the form ------------------------- */}
-      <div className="space-y-6">
+      <div className="space-y-5">
         {needsReload && (
           <div
             role="alert"
-            className="border-warning/40 bg-warning/10 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm"
+            className="border-warning/40 bg-warning/10 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
           >
             <span className="font-medium">
               {t('inv.staleReload')}
@@ -424,20 +472,20 @@ export default function InvoiceEditor({
         {error && (
           <p
             role="alert"
-            className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-4 py-3 text-sm font-medium"
+            className="border-destructive/30 bg-destructive/10 text-destructive rounded-xl border px-4 py-3 text-sm font-medium"
           >
             {error}
           </p>
         )}
 
         {limitReached && !isEdit && (
-          <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+          <p className="border-warning/40 bg-warning/10 rounded-xl border px-4 py-3 text-sm font-medium">
             {t('inv.warnLimitReached')}
           </p>
         )}
 
         {profileIncomplete && (
-          <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+          <p className="border-warning/40 bg-warning/10 rounded-xl border px-4 py-3 text-sm">
             {t('inv.warnProfileIncomplete')}{' '}
             <a href="/app/cilesimet" className="font-semibold underline">
               {t('inv.warnProfileLink')}
@@ -447,11 +495,8 @@ export default function InvoiceEditor({
         )}
 
         {/* Client */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">{t('inv.client')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section icon={Users} title={t('inv.client')} hint="Kujt i lëshohet kjo faturë">
+          <div className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row">
               {/*
                 Searchable: this is the one list in the form that grows without
@@ -566,15 +611,12 @@ export default function InvoiceEditor({
                 </div>
               </form>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
 
         {/* Invoice meta */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">{t('inv.details')}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+        <Section icon={FileText} title={t('inv.details')} hint="Numri, datat dhe TVSH-ja">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="invoice_number">{t('inv.number')} *</Label>
               <Input
@@ -649,15 +691,12 @@ export default function InvoiceEditor({
                 }))}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
 
         {/* Items */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">{t('inv.items')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <Section icon={List} title={t('inv.items')} hint="Çfarë po faturon">
+          <div className="space-y-3">
             {/* Column headers, desktop only */}
             <div className="hidden gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid sm:grid-cols-[1fr_80px_120px_110px_40px]">
               <span>{t('inv.description')}</span>
@@ -719,32 +758,24 @@ export default function InvoiceEditor({
             <Button type="button" variant="outline" onClick={addItem} className="w-full">
               <Plus /> {t('inv.addItem')}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
 
         {/* Notes */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">{t('inv.notes')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('inv.notesPlaceholder')}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
+        <Section icon={StickyNote} title={t('inv.notes')} hint="Shfaqen në fund të PDF-së">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('inv.notesPlaceholder')}
+            rows={3}
+          />
+        </Section>
       </div>
 
       {/* ------------------------- Right: totals ------------------------- */}
       <div className="lg:sticky lg:top-24 lg:self-start">
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">{t('inv.summary')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section icon={Receipt} title={t('inv.summary')}>
+          <div className="space-y-4">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">{t('inv.subtotal')}</dt>
@@ -881,11 +912,11 @@ export default function InvoiceEditor({
               </div>
             </div>
 
-            <p className="text-center text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-center text-xs">
               {t('inv.pdfNote')}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
       </div>
 
     </div>
