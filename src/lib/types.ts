@@ -103,30 +103,36 @@ export function computeTotals(
 }
 
 /**
- * Status chips. Tinted surfaces with a matching ring, defined per theme so they
- * stay legible on both the light mist ground and the dark ink one.
+ * The chip itself — shape, spacing and type scale — shared by every place one
+ * is drawn: the Astro badge, the invoice-list paid toggle and the search
+ * results. Compose it with `cn()` so a caller can override a piece without
+ * fighting the source order.
  */
-export const STATUS_META: Record<
-  InvoiceStatus,
-  { label: string; className: string }
-> = {
+export const STATUS_BADGE_BASE =
+  'inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset';
+
+/**
+ * The colour of a status chip, per theme, so it stays legible on both the light
+ * mist ground and the dark ink one.
+ *
+ * Colour only. The wording lives in the `status.*` dictionary keys — this used
+ * to carry an Albanian `label` as well, which nothing read and which was free
+ * to drift out of step with the dictionary that did.
+ */
+export const STATUS_META: Record<InvoiceStatus, { className: string }> = {
   draft: {
-    label: 'Draft',
     className:
       'bg-slate-200/70 text-slate-700 ring-slate-300/60 dark:bg-white/10 dark:text-slate-200 dark:ring-white/15',
   },
   unpaid: {
-    label: 'E papaguar',
     className:
       'bg-amber-100 text-amber-900 ring-amber-300/70 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/30',
   },
   paid: {
-    label: 'E paguar',
     className:
       'bg-teal-100 text-teal-900 ring-teal-300/70 dark:bg-brand/20 dark:text-brand dark:ring-brand/40',
   },
   overdue: {
-    label: 'E vonuar',
     className:
       'bg-red-100 text-red-900 ring-red-300/70 dark:bg-red-400/15 dark:text-red-200 dark:ring-red-400/30',
   },

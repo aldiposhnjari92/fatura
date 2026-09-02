@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
@@ -8,6 +10,21 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://fatura.co',
   output: 'server',
+  /*
+    Astro 7's HTML compressor drops the whitespace between a text node and an
+    inline element that follows it on the next line, which Astro 5 collapsed to
+    a single space. That turned markup like
+
+      Fatura profesionale në
+      <span>2 minuta</span>, jo 2 orë.
+
+    into "në2 minuta" in the hero, and did the same to the "shkruaj në <a>"
+    sentences on /cmimet and /privatesia. Whitespace between words is content,
+    not formatting, so the compressor is off rather than every such line being
+    rewritten with an entity that the next contributor would have to know about.
+    Gzip reclaims almost all of the difference.
+  */
+  compressHTML: false,
   security: {
     // Astro only trusts `Host`/`X-Forwarded-Host` for hosts listed here; every
     // other host collapses to `localhost`. Behind Vercel's proxy that made
@@ -34,6 +51,18 @@ export default defineConfig({
     }),
   ],
   vite: {
+    /*
+      `@` has to be declared here, not only in tsconfig paths. Vite 8 resolves
+      CSS with Rolldown, which does not read tsconfig — so the
+      `@reference "@/styles/globals.css"` that every typography component uses
+      to reach Tailwind stopped resolving on the Astro 7 upgrade. JS imports
+      kept working, which is what made the failure look like a CSS-only bug.
+    */
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
     // Tailwind v4 is a Vite plugin now — there is no @astrojs/tailwind
     // integration and no postcss.config.js.
     plugins: [tailwindcss()],

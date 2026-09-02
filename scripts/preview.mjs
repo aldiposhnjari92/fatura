@@ -13,6 +13,8 @@
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = resolve('.vercel/output');
@@ -25,7 +27,55 @@ if (!existsSync(HANDLER)) {
   process.exit(1);
 }
 
-const { default: handler } = await import(pathToFileURL(HANDLER).href);
+const { default: entry } = await import(pathToFileURL(HANDLER).href);
+
+/*
+  @astrojs/vercel 11 exports a Web `fetch` handler — `{ default: { fetch } }` —
+  where 8 exported a Node `(req, res)` function. Both shapes are accepted so
+  this script does not become another thing to remember on the next adapter
+  bump; the bridge below is only used for the fetch form.
+*/
+const fetchHandler =
+  typeof entry === 'function' ? null : typeof entry?.fetch === 'function' ? entry.fetch : null;
+
+if (!fetchHandler && typeof entry !== 'function') {
+  console.error('Unrecognised adapter entrypoint: expected a function or { fetch }.');
+  process.exit(1);
+}
+
+/** Node IncomingMessage -> Web Request. */
+function toWebRequest(req) {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value === undefined) continue;
+    for (const item of Array.isArray(value) ? value : [value]) headers.append(key, item);
+  }
+
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  return new Request(url, {
+    method: req.method,
+    headers,
+    body: hasBody ? Readable.toWeb(req) : undefined,
+    duplex: hasBody ? 'half' : undefined,
+  });
+}
+
+/** Web Response -> Node ServerResponse. */
+async function sendWebResponse(response, res) {
+  // set-cookie is the one header that legitimately repeats.
+  const cookies = response.headers.getSetCookie?.() ?? [];
+  for (const [key, value] of response.headers) {
+    if (key.toLowerCase() === 'set-cookie') continue;
+    res.setHeader(key, value);
+  }
+  if (cookies.length) res.setHeader('set-cookie', cookies);
+
+  res.writeHead(response.status);
+  if (!response.body) return res.end();
+  await pipeline(Readable.fromWeb(response.body), res);
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -67,7 +117,15 @@ createServer((req, res) => {
     createReadStream(file).pipe(res);
     return;
   }
-  handler(req, res);
+  if (!fetchHandler) return entry(req, res);
+
+  Promise.resolve(fetchHandler(toWebRequest(req)))
+    .then((response) => sendWebResponse(response, res))
+    .catch((error) => {
+      console.error(error);
+      if (!res.headersSent) res.writeHead(500);
+      res.end('Internal Server Error');
+    });
 }).listen(PORT, () => {
   console.log(`\n  Production build running at http://localhost:${PORT}\n`);
 });

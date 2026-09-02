@@ -2,10 +2,15 @@ import * as React from 'react';
 import { Check, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
-import { formatDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import { notify } from '@/lib/toast';
-import { STATUS_META, displayStatus, type InvoiceStatus } from '@/lib/types';
+import {
+  STATUS_BADGE_BASE,
+  STATUS_META,
+  displayStatus,
+  type InvoiceStatus,
+} from '@/lib/types';
 
 interface Props {
   invoiceId: string;
@@ -113,9 +118,7 @@ export default function PaidToggle({
   const meta = STATUS_META[shown] ?? STATUS_META.draft;
 
   const badge = showBadge ? (
-    <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${meta.className}`}
-    >
+    <span className={cn(STATUS_BADGE_BASE, meta.className)}>
       {t(`status.${shown}` as 'status.draft')}
     </span>
   ) : null;

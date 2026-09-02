@@ -7,6 +7,55 @@ const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';
 const AUTH_ROUTES = ['/login', '/regjistrohu'];
 
+/*
+  Two request-shaping attacks this middleware has to refuse on its own, because
+  the releases that fix them are whole majors away (see SECURITY.md).
+
+  1. @astrojs/vercel below 10.0.2 let any caller rewrite the routed path with
+     an `x-astro-path` header or an `x_astro_path` query parameter,
+     unauthenticated (GHSA-mr6q-rp88-fx84). The adapter is on 11.0.9 now, so
+     this is belt and braces rather than the only thing standing between a
+     caller and the router — but nothing legitimate sets either: the header is
+     only meaningful with Edge middleware, which this build does not enable.
+     Any request carrying one is refused outright.
+
+  2. Astro has shipped this bug more than once: the router normalises a path
+     that middleware then reads raw, so `/%61pp/faturat` routes to
+     /app/faturat while `startsWith('/app')` reads it as public
+     (CVE-2025-64765, and the follow-up bypasses after it). Every decision
+     below is therefore made against a fully decoded path, never `url.pathname`.
+     Cheap, and it does not go stale the next time one of these lands.
+*/
+const PATH_OVERRIDE_HEADER = 'x-astro-path';
+const PATH_OVERRIDE_PARAM = 'x_astro_path';
+
+/**
+ * The path the router will actually resolve, or null if the request is
+ * malformed enough that guessing would be worse than refusing.
+ */
+function normalizedPathname(raw: string): string | null {
+  let path = raw;
+
+  // Decode until stable: one pass leaves a double-encoded segment encoded.
+  for (let i = 0; i < 4; i += 1) {
+    let next: string;
+    try {
+      next = decodeURIComponent(path);
+    } catch {
+      return null; // malformed escape sequence
+    }
+    if (next === path) break;
+    path = next;
+  }
+
+  // None of these appear in a real route here, and each is a known way to
+  // make a prefix check disagree with a router.
+  if (path.includes('\\') || path.includes('..') || path.includes('\0')) return null;
+
+  // `//app` is not `/app` to `startsWith`, but a router may well collapse it.
+  return path.replace(/\/{2,}/g, '/');
+}
+
 /**
  * Sent on every response. The CSP is deliberately strict about where scripts
  * and connections may go: Supabase for data, self for everything else.
@@ -57,9 +106,37 @@ export const onRequest = defineMiddleware(async (context, next) => {
   */
   const { cookies, url, locals, redirect } = context;
 
-  const isAdminArea = url.pathname.startsWith(ADMIN_PREFIX);
-  const isProtected = url.pathname.startsWith(PROTECTED_PREFIX) || isAdminArea;
-  const isAuthRoute = AUTH_ROUTES.includes(url.pathname);
+  /*
+    Refuse a caller-supplied path override before anything else looks at the
+    path. The query parameter is always safe to read; the header is only
+    reached on routes that render per request, because touching
+    `context.request` while prerendering warns.
+  */
+  if (!context.isPrerendered) {
+    const request = context.request;
+    /*
+      The adapter consumes `x_astro_path` and rewrites the URL before this
+      runs, so `url.searchParams` is already clean — verified against the
+      production handler. The raw request URL is checked as well, so the
+      guard still bites on any adapter build that leaves it in place.
+    */
+    if (
+      request.headers.has(PATH_OVERRIDE_HEADER) ||
+      request.url.includes(PATH_OVERRIDE_PARAM) ||
+      url.searchParams.has(PATH_OVERRIDE_PARAM)
+    ) {
+      return new Response('Bad Request', { status: 400 });
+    }
+  }
+
+  const pathname = normalizedPathname(url.pathname);
+  if (pathname === null) {
+    return new Response('Bad Request', { status: 400 });
+  }
+
+  const isAdminArea = pathname.startsWith(ADMIN_PREFIX);
+  const isProtected = pathname.startsWith(PROTECTED_PREFIX) || isAdminArea;
+  const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
   const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
@@ -123,7 +200,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.user = user;
 
   if (isProtected && !user) {
-    const returnTo = encodeURIComponent(url.pathname + url.search);
+    const returnTo = encodeURIComponent(pathname + url.search);
     return withHeaders(redirect(`/login?next=${returnTo}`, 302));
   }
 
@@ -188,11 +265,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const isManager = Boolean(locals.profile?.is_manager) || isAdmin;
     const MANAGER_ROUTES = ['/admin/faturat', '/admin/aktiviteti'];
 
-    if (isAdminArea || url.pathname.startsWith('/app/admin')) {
+    if (isAdminArea || pathname.startsWith('/app/admin')) {
       if (!isManager) {
         return withHeaders(redirect('/app', 302));
       }
-      if (!isAdmin && !MANAGER_ROUTES.includes(url.pathname)) {
+      if (!isAdmin && !MANAGER_ROUTES.includes(pathname)) {
         return withHeaders(redirect('/admin/faturat', 302));
       }
     }
@@ -206,7 +283,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     */
     if (
       (locals.profile?.is_admin || locals.profile?.is_manager) &&
-      url.pathname === '/app' &&
+      pathname === '/app' &&
       !url.searchParams.has('klient')
     ) {
       return withHeaders(
@@ -222,7 +299,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       !locals.profile?.is_admin &&
       isProtected &&
       needsOnboarding &&
-      url.pathname !== onboardingPath
+      pathname !== onboardingPath
     ) {
       return withHeaders(redirect(`${onboardingPath}?welcome=1`, 302));
     }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FileText, Search, Users, CornerDownLeft, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STATUS_META, type InvoiceStatus } from '@/lib/types';
+import { STATUS_BADGE_BASE, STATUS_META, type InvoiceStatus } from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 import { SEARCH_MAX_LENGTH } from '@/lib/search';
 import { Button } from '@/components/ui/react/button';
@@ -330,7 +330,9 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
                     {row.status && (
                       <span
                         className={cn(
-                          'rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+                          STATUS_BADGE_BASE,
+                          // Denser than the standard chip: it sits in a result row.
+                          'px-2 text-[11px]',
                           (STATUS_META[row.status] ?? STATUS_META.draft).className
                         )}
                       >

@@ -110,11 +110,21 @@ const filterDefs: { label: string; value: InvoiceStatus | null }[] = [
   { label: 'Të vonuara', value: 'overdue' },
 ];
 
+/*
+  `dashboard_stats()` already carries three of the five pill counts
+  account-wide, so with no search term only the two it does not hold need a
+  query of their own — four round trips instead of seven. A search changes
+  every count, so then all five are recounted against the term.
+*/
+const pillsToQuery: (InvoiceStatus | null)[] = search
+  ? filterDefs.map((f) => f.value)
+  : ['unpaid', 'paid'];
+
 const [listResult, statsResult, ...countResults] = await Promise.all([
   listQuery,
   // Every figure in the strip summed in Postgres, one row back.
   supabase.rpc('dashboard_stats'),
-  ...filterDefs.map((f) => countFor(f.value)),
+  ...pillsToQuery.map((value) => countFor(value)),
 ]);
 
 const { data, error, count } = listResult;
@@ -123,7 +133,21 @@ const total = count ?? 0;
 const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 const stats = (statsResult.data ?? {}) as Record<string, number>;
-const filters = filterDefs.map((f, i) => ({ ...f, count: countResults[i]?.count ?? 0 }));
+
+const queriedCounts = new Map<InvoiceStatus | null, number>(
+  pillsToQuery.map((value, i) => [value, countResults[i]?.count ?? 0])
+);
+
+const statsCount: Partial<Record<string, number>> = {
+  null: Number(stats.total_invoices ?? 0),
+  draft: Number(stats.draft_count ?? 0),
+  overdue: Number(stats.overdue_count ?? 0),
+};
+
+const filters = filterDefs.map((f) => ({
+  ...f,
+  count: queriedCounts.get(f.value) ?? statsCount[String(f.value)] ?? 0,
+}));
 
 const buildHref = (next: Partial<{ statusi: string; kerko: string; faqe: number }>) => {
   const qs = new URLSearchParams();
