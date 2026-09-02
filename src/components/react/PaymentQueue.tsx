@@ -38,7 +38,12 @@ export default function PaymentQueue({
     paypal: t('pay.paypal'),
   };
   const [rows, setRows] = React.useState(initial);
-  const [busy, setBusy] = React.useState<string | null>(null);
+  /*
+    Which row, and which of its two buttons. Tracking the row alone put the
+    spinner on "Konfirmo" no matter which button was pressed, so rejecting a
+    payment looked like it was approving one.
+  */
+  const [busy, setBusy] = React.useState<{ id: string; approve: boolean } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   async function decide(id: string, approve: boolean) {
@@ -48,7 +53,7 @@ export default function PaymentQueue({
     ) {
       return;
     }
-    setBusy(id);
+    setBusy({ id, approve });
     setError(null);
     try {
       const { error: rpcError } = await supabase.rpc('admin_decide_payment', {
@@ -119,18 +124,27 @@ export default function PaymentQueue({
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={busy === row.id}
+                  disabled={busy?.id === row.id}
                   onClick={() => decide(row.id, false)}
                   className="text-muted-foreground hover:text-destructive"
                 >
-                  <X /> Refuzo
+                  {busy?.id === row.id && !busy.approve ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <X />
+                  )}
+                  Refuzo
                 </Button>
                 <Button
                   size="sm"
-                  disabled={busy === row.id}
+                  disabled={busy?.id === row.id}
                   onClick={() => decide(row.id, true)}
                 >
-                  {busy === row.id ? <Loader2 className="animate-spin" /> : <Check />}
+                  {busy?.id === row.id && busy.approve ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Check />
+                  )}
                   Konfirmo
                 </Button>
               </div>

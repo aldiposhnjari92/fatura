@@ -1,0 +1,184 @@
+---
+/*
+  Feedback for the wait a page costs.
+
+  This is a multi-page app: every link, filter pill, page of the invoice list
+  and "Faturë e re" is a real navigation, and the server has to run its queries
+  before the browser has anything to paint. On a warm connection that is a
+  couple of hundred milliseconds; on a phone on 3G with a cold function it is
+  one to two seconds during which the old page sits there, unchanged, looking
+  like the tap did nothing — so people tap again, which costs another round
+  trip.
+
+  Two signals, from one click:
+
+    • the bar at the top of the viewport, which says "something is loading";
+    • the control itself, which says *which* thing — dimmed, and with a spinner
+      when it has a label wide enough to hold one.
+
+  Both wait `SHOW_AFTER` before appearing. A navigation that resolves in 80ms
+  needs no spinner, and flashing one makes the app feel busier than it is.
+
+  Nothing here hooks `beforeunload`: a page carrying that listener is barred
+  from the back/forward cache in some browsers, and trading an instant Back for
+  a progress bar nobody asked for is a bad deal. Link clicks and form submits
+  are caught by delegation; the handful of places that navigate from JavaScript
+  call `startNavProgress()` (src/lib/nav-progress.ts) themselves.
+*/
+---
+
+<div id="nav-progress" aria-hidden="true"><span></span></div>
+<p id="nav-progress-status" class="sr-only" role="status" aria-live="polite"></p>
+
+<script is:inline>
+  (function () {
+    /* Long enough that a fast navigation never flashes the bar. */
+    var SHOW_AFTER = 130;
+    /* A navigation the browser abandoned — a blocked popup, a file download
+       served inline — must not leave the bar running forever. */
+    var GIVE_UP_AFTER = 20000;
+
+    var root = document.documentElement;
+    var status = document.getElementById('nav-progress-status');
+    var showTimer = null;
+    var giveUpTimer = null;
+    var marked = null;
+    var running = false;
+
+    /*
+      Whether the control has room for a trailing spinner.
+
+      A button with a visible label is a flex row with a gap, so an appended
+      spinner lands beside the text and costs a few pixels of width. An
+      icon-only button is a fixed square and a collapsed rail item hides its
+      label, so there the spinner would squash the icon — those dim instead.
+      `data-nav-feedback` on the element overrides the guess.
+    */
+    function mode(el) {
+      var explicit = el.getAttribute('data-nav-feedback');
+      if (explicit) return explicit;
+
+      var kids = el.childNodes;
+      for (var i = 0; i < kids.length; i++) {
+        var node = kids[i];
+        if (node.nodeType === 3) {
+          if (node.textContent.trim()) return 'spinner';
+          continue;
+        }
+        if (node.nodeType !== 1) continue;
+        if (node.tagName.toLowerCase() === 'svg') continue;
+        if (node.classList && node.classList.contains('sr-only')) continue;
+        if (!node.textContent.trim()) continue;
+        // Hidden by CSS — the collapsed sidebar's label, a `md:` only span.
+        if (!node.getClientRects().length) continue;
+        return 'spinner';
+      }
+      return 'plain';
+    }
+
+    function start(el) {
+      if (el && !marked) {
+        var kind = mode(el);
+        if (kind !== 'off') {
+          marked = el;
+          el.setAttribute('data-nav-pending', kind);
+          el.setAttribute('aria-busy', 'true');
+        }
+      }
+
+      if (running) return;
+      running = true;
+
+      showTimer = window.setTimeout(function () {
+        showTimer = null;
+        root.setAttribute('data-navigating', 'true');
+        if (status) status.textContent = 'Po ngarkohet…';
+      }, SHOW_AFTER);
+
+      giveUpTimer = window.setTimeout(reset, GIVE_UP_AFTER);
+    }
+
+    function reset() {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(giveUpTimer);
+      showTimer = null;
+      giveUpTimer = null;
+      running = false;
+      root.removeAttribute('data-navigating');
+      if (status) status.textContent = '';
+      if (marked) {
+        marked.removeAttribute('data-nav-pending');
+        marked.removeAttribute('aria-busy');
+        marked = null;
+      }
+    }
+
+    /** Does clicking this anchor actually replace the document? */
+    function navigates(a) {
+      if (a.hasAttribute('download')) return false;
+      if (a.getAttribute('aria-disabled') === 'true') return false;
+
+      var target = a.getAttribute('target');
+      if (target && target !== '_self') return false;
+
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) === '#') return false;
+
+      var url;
+      try {
+        url = new URL(a.href, location.href);
+      } catch (e) {
+        return false;
+      }
+      // mailto:, tel:, blob: — the page stays where it is.
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+      // Same document, different fragment: a scroll, not a load.
+      if (url.href.split('#')[0] === location.href.split('#')[0]) return false;
+
+      return true;
+    }
+
+    /*
+      Delegated, and in the bubble phase on purpose: anything that handles the
+      click itself — a Radix menu item, a React island — has already had its
+      say by the time this runs, and `defaultPrevented` tells us the browser
+      is not going anywhere.
+    */
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      // A modified click opens a tab; this one stays put.
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      var target = event.target;
+      if (!target || !target.closest) return;
+      var link = target.closest('a[href]');
+      if (!link || !navigates(link)) return;
+
+      start(link);
+    });
+
+    document.addEventListener('submit', function (event) {
+      if (event.defaultPrevented) return;
+      var form = event.target;
+      if (!form || form.nodeType !== 1) return;
+      var target = form.getAttribute('target');
+      if (target && target !== '_self') return;
+
+      // The submitter is the button the user pressed — the thing that should
+      // carry the spinner. Older Safari does not report it; the form is the
+      // fallback, and it is invisible, so it only raises the bar.
+      start(event.submitter || form);
+    });
+
+    /*
+      Back from the bfcache restores this document exactly as it was left —
+      including a bar left mid-run by the navigation that took the user away.
+    */
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) reset();
+    });
+
+    /* For the places that navigate from JavaScript rather than from a click. */
+    window.__navProgress = { start: start, done: reset };
+  })();
+</script>

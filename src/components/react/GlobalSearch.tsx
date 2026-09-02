@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { STATUS_BADGE_BASE, STATUS_META, type InvoiceStatus } from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 import { SEARCH_MAX_LENGTH } from '@/lib/search';
+import { startNavProgress } from '@/lib/nav-progress';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 
@@ -164,6 +165,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
       })
         .then((response) => {
           if (response.redirected && new URL(response.url).pathname === '/login') {
+            startNavProgress();
             window.location.assign(response.url);
             return Promise.reject('signed-out');
           }
@@ -232,6 +234,9 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
   const go = (href: string) => {
     setOpen(false);
     setSheet(false);
+    // The panel closing is the only thing the user sees otherwise, and it
+    // looks exactly like a dismissal rather than like a result opening.
+    startNavProgress();
     window.location.assign(href);
   };
 

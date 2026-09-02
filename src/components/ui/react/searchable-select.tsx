@@ -121,11 +121,11 @@ export function SearchableSelect({
           className={cn(
             /*
               Sized off `Input`, down to the height, the radius and the shadow.
-              This sits in the same form rows as plain fields — a 40px pill at
-              14px beside a 36px field at 16px reads as two different controls
-              rather than two of a kind.
+              This sits in the same form rows as plain fields, so it takes the
+              same 40px control height — anything else reads as two different
+              kinds of control rather than two of a kind.
             */
-            'border-input bg-transparent ring-offset-background focus-visible:ring-ring flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-base shadow-sm focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+            'border-input bg-transparent ring-offset-background focus-visible:ring-ring flex h-10 min-h-10 w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-base shadow-sm focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
             !selected && 'text-muted-foreground',
             className
           )}

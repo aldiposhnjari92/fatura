@@ -369,7 +369,15 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                           openDelete(row);
                         }}
                       >
-                        <Trash2 /> Fshi biznesin
+                        {/* The confirmation dialog waits on a count query, so
+                            the menu sits open and unchanged for as long as that
+                            takes unless the item says it is working. */}
+                        {previewing === row.id ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Trash2 />
+                        )}
+                        Fshi biznesin
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />

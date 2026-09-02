@@ -312,6 +312,10 @@ export default function AppShell({
                 key={item.key}
                 href={item.href}
                 aria-current={active === item.key ? 'page' : undefined}
+                /* Icon over label in a fixed-height bar: a trailing spinner
+                   would add a third line and shove the bar off the screen, so
+                   these dim while the next page is on its way. */
+                data-nav-feedback="plain"
                 className={cn(
                   'flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
                   active === item.key ? 'text-primary' : 'text-muted-foreground'
@@ -327,6 +331,8 @@ export default function AppShell({
 
       <a
         href="/app/faturat/e-re"
+        /* A fixed circle around a single glyph — same reason as the bar. */
+        data-nav-feedback="plain"
         className="bg-primary text-primary-foreground fixed right-4 bottom-20 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light shadow-lg transition-transform hover:scale-105 lg:hidden"
         aria-label={newInvoiceLabel}
       >

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/react/dialog';
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { flashToast, notify } from '@/lib/toast';
+import { startNavProgress } from '@/lib/nav-progress';
 
 /* How long the confirmation is held before the list takes over. */
 const CONFIRM_MS = 1000;
@@ -55,7 +56,10 @@ export default function DeleteInvoiceButton({ invoiceId, invoiceNumber }: Props)
         `Fatura ${invoiceNumber} u hoq përgjithmonë.`
       );
       timer.current = window.setTimeout(
-        () => window.location.assign('/app/faturat'),
+        () => {
+          startNavProgress();
+          window.location.assign('/app/faturat');
+        },
         CONFIRM_MS
       );
     } catch (err) {

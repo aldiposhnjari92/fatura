@@ -1,5 +1,6 @@
 ---
 import Analytics from '@vercel/analytics/astro';
+import NavigationProgress from '@/components/NavigationProgress.astro';
 
 import '@/styles/globals.css';
 
@@ -96,6 +97,14 @@ const ogImage = new URL(image, siteUrl).href;
     <slot name="head" />
   </head>
   <body class="min-h-screen bg-background font-sans text-foreground">
+    {/*
+      Every page in this app is a real document load, so the wait between a
+      tap and the next screen belongs to the whole site rather than to any one
+      island — it lives here, above the slot, and covers marketing, auth, the
+      app and the console alike.
+    */}
+    <NavigationProgress />
+
     <slot />
 
     <script is:inline>

@@ -28,6 +28,18 @@ declare global {
       invoiceLimit: number | null;
     }
   }
+
+  interface Window {
+    /*
+      Published by <NavigationProgress />. It has to hang off the window rather
+      than be imported: the bar is raised by an inline script in the document
+      and by islands that are torn down by the page load it is reporting on.
+    */
+    __navProgress?: {
+      start: (el?: Element | null) => void;
+      done: () => void;
+    };
+  }
 }
 
 interface ImportMetaEnv {

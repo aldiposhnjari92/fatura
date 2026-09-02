@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/react/button';
 import { formatDate, initials } from '@/lib/utils';
 import { invoiceLimitOf, planOf, usageRatio, type PlanId } from '@/lib/plans';
 import { useTranslations } from '@/lib/i18n';
+import { startNavProgress } from '@/lib/nav-progress';
 
 interface Props {
   businessName: string | null;
@@ -204,7 +205,18 @@ export default function UserMenu({
               // Let the menu close first, then POST — a GET sign-out would be
               // triggerable cross-site.
               event.preventDefault();
-              signOutRef.current?.submit();
+              /*
+                requestSubmit, not submit: `form.submit()` bypasses the submit
+                event entirely, so the navigation indicator would never hear
+                about the one action on this menu that is not instant.
+              */
+              const form = signOutRef.current;
+              if (!form) return;
+              if (typeof form.requestSubmit === 'function') form.requestSubmit();
+              else {
+                startNavProgress();
+                form.submit();
+              }
             }}
           >
             <LogOut /> {t('nav.signOutAccount')}

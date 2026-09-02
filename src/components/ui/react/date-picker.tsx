@@ -54,7 +54,9 @@ export function DatePicker({
           disabled={disabled}
           aria-label={ariaLabel}
           className={cn(
-            'w-full justify-start gap-2 font-normal',
+            // A Button by construction, so it carries the button scale
+            // rather than the field one until it is told otherwise.
+            'h-10 min-h-10 w-full justify-start gap-2 font-normal',
             !selected && 'text-muted-foreground',
             className
           )}

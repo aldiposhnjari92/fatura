@@ -9,6 +9,7 @@ import LogoCropper from '@/components/react/LogoCropper';
 import { isValidNipt } from '@/lib/utils';
 import { flashToast, notify } from '@/lib/toast';
 import type { Profile } from '@/lib/types';
+import { startNavProgress } from '@/lib/nav-progress';
 
 interface Props {
   profile: Profile | null;
@@ -68,6 +69,12 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
   const [logoUrl, setLogoUrl] = React.useState(profile?.logo_url ?? '');
 
   const [saving, setSaving] = React.useState(false);
+  /*
+    Saved *and* on the way out. `saving` is cleared in a finally that runs the
+    moment the navigation is asked for, so on the welcome pass it would put the
+    button back to "Ruaj" for the second the next page takes to arrive.
+  */
+  const [leaving, setLeaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
@@ -217,6 +224,8 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
           'Cilësimet u ruajtën.',
           'Tani mund të lëshosh faturën e parë.'
         );
+        setLeaving(true);
+        startNavProgress();
         window.location.assign('/app/faturat/e-re');
       } else {
         notify.success(
@@ -380,8 +389,8 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={saving} size="lg">
-          {saving ? <Loader2 className="animate-spin" /> : null}
+        <Button type="submit" disabled={saving || leaving} size="lg">
+          {saving || leaving ? <Loader2 className="animate-spin" /> : null}
           {welcome ? 'Ruaj dhe krijo faturën e parë' : 'Ruaj ndryshimet'}
         </Button>
 

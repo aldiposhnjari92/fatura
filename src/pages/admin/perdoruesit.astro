@@ -112,10 +112,13 @@ const hrefFor = (next: Partial<{ filtri: string; kerko: string; faqe: number }>)
           class="pl-8"
         />
       </div>
-      <Button type="submit" variant="outline" class="shrink-0">Kërko</Button>
+      {/* Field height, not button height: these two belong to the search box
+          beside them, and a 36px button against a 40px field leaves the row
+          with a ragged bottom edge. */}
+      <Button type="submit" variant="outline" class="h-10 shrink-0">Kërko</Button>
       {
         (search || filter !== 'all') && (
-          <Button as="a" href="/admin/perdoruesit" variant="ghost" class="shrink-0">
+          <Button as="a" href="/admin/perdoruesit" variant="ghost" class="h-10 shrink-0">
             Pastro
           </Button>
         )

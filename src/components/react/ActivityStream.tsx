@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, Loader2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatALL, formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
@@ -83,6 +83,12 @@ export default function ActivityStream({
   const [open, setOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
   const loaded = React.useRef(false);
+  /*
+    The first open is a round trip. Without this the panel renders its empty
+    state while that request is in flight, so a user with a full history is
+    told they have none and then watches it appear.
+  */
+  const [loading, setLoading] = React.useState(false);
 
   /*
     The bell fetches its history the first time it is opened, not on page load.
@@ -92,15 +98,20 @@ export default function ActivityStream({
   async function loadOnce() {
     if (loaded.current) return;
     loaded.current = true;
-    const { data } = await supabase.rpc(
-      scope === 'own' ? 'my_activity' : 'activity_feed',
-      { p_limit: 20 }
-    );
-    const fetched = (data as { rows: ActivityRow[] } | null)?.rows ?? [];
-    setRows((prev) => {
-      const seen = new Set(prev.map((r) => r.id));
-      return [...prev, ...fetched.filter((r) => !seen.has(r.id))];
-    });
+    setLoading(true);
+    try {
+      const { data } = await supabase.rpc(
+        scope === 'own' ? 'my_activity' : 'activity_feed',
+        { p_limit: 20 }
+      );
+      const fetched = (data as { rows: ActivityRow[] } | null)?.rows ?? [];
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id));
+        return [...prev, ...fetched.filter((r) => !seen.has(r.id))];
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   React.useEffect(() => {
@@ -193,7 +204,15 @@ export default function ActivityStream({
             )}
           </div>
 
-          {rows.length === 0 ? (
+          {loading && rows.length === 0 ? (
+            <p
+              className="text-muted-foreground flex items-center justify-center gap-2 px-4 py-10 text-sm"
+              role="status"
+            >
+              <Loader2 className="size-4 animate-spin" />
+              {t('common.loading')}
+            </p>
+          ) : rows.length === 0 ? (
             <p className="text-muted-foreground px-4 py-10 text-center text-sm">
               {t('adm.noResults')}
             </p>

@@ -26,6 +26,7 @@ import {
 } from '@/lib/pdf';
 import { flashToast, notify } from '@/lib/toast';
 import { useTranslations } from '@/lib/i18n';
+import { startNavProgress } from '@/lib/nav-progress';
 import type { Client, Profile } from '@/lib/types';
 
 /*
@@ -153,7 +154,10 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
         to the page that comes back.
       */
       flashToast('success', 'Fatura u fshi.', `Fatura ${invoiceNumber} u hoq përgjithmonë.`);
-      timer.current = window.setTimeout(() => window.location.reload(), 900);
+      timer.current = window.setTimeout(() => {
+        startNavProgress();
+        window.location.reload();
+      }, 900);
     } catch (err) {
       notify.error('Fatura nuk u fshi', (err as Error).message);
       setDeleting(false);

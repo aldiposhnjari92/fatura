@@ -36,6 +36,7 @@ import {
 import { addDays, formatALL, toDateInput } from '@/lib/utils';
 import { downloadInvoicePdf, isPdfEngineLoadError, shareInvoicePdf } from '@/lib/pdf';
 import { flashToast, notify } from '@/lib/toast';
+import { startNavProgress } from '@/lib/nav-progress';
 
 interface Props {
   profile: Profile | null;
@@ -366,9 +367,21 @@ export default function InvoiceEditor({
     }
   }
 
+  /*
+    Saving a new invoice ends on the invoice's own page, which is a second wait
+    on top of the insert the user just watched. `handleSave` has already
+    cleared `saving` by the time it returns, so the button is put back into its
+    spinning state rather than going idle for the length of the page load.
+  */
+  function leaveFor(href: string) {
+    setSaving(true);
+    startNavProgress();
+    window.location.assign(href);
+  }
+
   async function handleSaveAndClose() {
     const id = await handleSave();
-    if (id && !isEdit) window.location.assign(`/app/faturat/${id}`);
+    if (id && !isEdit) leaveFor(`/app/faturat/${id}`);
   }
 
   /*
@@ -378,7 +391,7 @@ export default function InvoiceEditor({
   */
   async function handleConfirm() {
     const id = await handleSave('unpaid');
-    if (id && !isEdit) window.location.assign(`/app/faturat/${id}`);
+    if (id && !isEdit) leaveFor(`/app/faturat/${id}`);
   }
 
   async function handleDownload() {
@@ -793,7 +806,7 @@ export default function InvoiceEditor({
                     id="discount"
                     value={discount}
                     onValueChange={setDiscount}
-                    className="h-8 w-28 text-right"
+                    className="w-28 text-right"
                   />
                 </dd>
               </div>

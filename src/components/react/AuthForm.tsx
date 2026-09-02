@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/react/input';
 import { PasswordField } from '@/components/ui/react/password-field';
 import { Label } from '@/components/ui/react/label';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
+import { startNavProgress } from '@/lib/nav-progress';
 
 type Mode = 'login' | 'register';
 
@@ -121,6 +122,9 @@ export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
           ? 'Plotëso të dhënat e biznesit për të lëshuar faturën e parë.'
           : 'Paneli yt është gati.'
       );
+      // `loading` is deliberately never cleared on this path, so the button
+      // keeps its spinner while the bar carries the wait for the next page.
+      startNavProgress();
       window.location.assign(next);
     } catch (err) {
       const message = translateError((err as Error).message ?? 'Gabim i papritur.');
