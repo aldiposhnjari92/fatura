@@ -76,6 +76,16 @@ export default defineConfig({
     ssr: {
       // jsPDF must never be pulled into the server bundle — PDF is 100% client-side.
       external: ['jspdf', 'jspdf-autotable'],
+      /*
+        The opposite problem. `@vercel/analytics/astro` resolves to
+        dist/astro/component.ts — raw TypeScript that re-exports an .astro
+        file — so it has to go through the transform pipeline. Left to Vite's
+        default of externalising node_modules for SSR, Node is handed source it
+        cannot execute and Astro reports the import as
+        "Component 'Analytics' is not a valid component", which reads like a
+        syntax error in our own code rather than a resolution problem.
+      */
+      noExternal: ['@vercel/analytics'],
     },
   },
 });

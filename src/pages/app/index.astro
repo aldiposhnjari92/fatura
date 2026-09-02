@@ -113,7 +113,13 @@ const businessName = profile?.business_name?.trim() ?? '';
       <Button as="a" href="/app/klientet" variant="outline" class="rounded-full px-4">
         <Icon name="users" /> Klientët
       </Button>
-      <Button as="a" href="/app/faturat/e-re" class="rounded-full px-4">
+      {/* Compose belongs to the floating button below `lg`; two of them in
+          one view is the same action asked twice. */}
+      <Button
+        as="a"
+        href="/app/faturat/e-re"
+        class="hidden rounded-full px-4 lg:inline-flex"
+      >
         <Icon name="plus" /> Faturë e re
       </Button>
     </div>
