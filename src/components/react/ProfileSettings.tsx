@@ -160,10 +160,17 @@ export default function ProfileSettings({ profile, userId, email, welcome }: Pro
 
       if (updateError) throw updateError;
 
-      setLogoUrl(publicUrl);
+      /*
+        The card deliberately keeps showing the old logo until the page is
+        loaded again. A freshly written object is not reliably readable from
+        its public URL straight away, so painting it here produced a broken
+        image often enough that no preview beats a wrong one — and the avatar
+        in the top bar is server-rendered, so it would not have agreed with it
+        until a reload anyway.
+      */
       setSaved(true);
       closeCropper();
-      notify.success('Logoja u ngarkua.', 'Do të dalë lart majtas në çdo faturë.');
+      notify.success('Logoja u ngarkua.', 'Do të shfaqet pas rifreskimit të faqes.');
     } catch (err) {
       const detail = translateStorageError((err as Error).message);
       setError(`Ngarkimi dështoi: ${detail}`);

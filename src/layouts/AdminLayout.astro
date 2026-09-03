@@ -1,12 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import Logo from '@/components/Logo.astro';
-import ActivityStream from '@/components/react/ActivityStream';
-import { Toaster } from '@/components/ui/react/sonner';
-import { Icon } from '@/components/ui/icon';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { initials } from '@/lib/utils';
+import AdminShell from '@/components/react/AdminShell';
+import type { AdminNavGroup } from '@/components/react/AdminShell';
 import { useTranslations } from '@/lib/i18n';
 
 export interface Props {
@@ -23,22 +18,15 @@ const { profile, user } = Astro.locals;
 const t = useTranslations();
 
 /*
-  A separate shell from /app on purpose. The client dashboard and the operator
-  console have different jobs, and rendering the admin tools inside the customer
-  chrome makes it far too easy to ship a control to the wrong audience.
+  The operator console runs on the same shell as /app — the shadcn rail, the
+  collapse state, ⌘B and the sticky bar — but through its own component rather
+  than a mode of AppShell. The two consoles share a design; they must not share
+  a payload, or every operator control sits one boolean away from the customer
+  chrome. See src/components/react/AdminShell.tsx.
 
-  The console used to signal that with wholesale dark chrome. It now shares the
-  customer shell's surface language — white rail on a grey ground, soft cards,
-  grouped nav — so the two read as one product, and the "you are operating on
-  other people's data" signal is carried by the one element that cannot be
-  missed or scrolled away: the ink brand block pinned at the top of the rail,
-  badged ADMIN or MENAXHER. That is a stronger cue than a dark background,
-  which a reader stops seeing within a minute.
-
-  The nav loop is written twice, once per breakpoint, because the two shells
-  are genuinely different elements rather than one restyled: a fixed sliding
-  sheet on a phone, a static column on a desktop. The data is declared once
-  here, so only the markup repeats.
+  This file is now only the data: which items this role may see, and the
+  strings. The markup that used to be written twice here — a sliding sheet on
+  a phone, a static column on a desktop — is the sidebar primitive's job now.
 
   A manager only ever sees the invoice-activity items. The middleware and the
   RPCs both enforce this independently; hiding the links is the courtesy layer,
@@ -67,7 +55,7 @@ const invoicesItem = {
   icon: 'file-text',
 } as const;
 
-const nav = isAdmin
+const nav: AdminNavGroup[] = isAdmin
   ? [
       { group: null, items: [overviewItem] },
       { group: 'Aktiviteti', items: [activityItem, invoicesItem] },
@@ -98,271 +86,38 @@ const nav = isAdmin
     ]
   : [{ group: null, items: [invoicesItem, activityItem] }];
 
-const railLink =
-  'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
-const railActive = 'bg-accent text-accent-foreground font-semibold';
-const railIdle = 'text-muted-foreground hover:bg-muted hover:text-foreground';
-const railChip = 'flex size-6 shrink-0 items-center justify-center rounded-md transition-colors';
-const railChipActive = 'bg-primary text-primary-foreground';
-const railChipIdle = 'bg-muted text-muted-foreground group-hover:bg-background';
-const footerLink =
-  'text-muted-foreground hover:bg-muted hover:text-foreground flex h-auto w-full items-center justify-start gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors';
+/*
+  The rail's collapse state, read on the server from the same cookie the
+  customer shell uses — so an operator who collapses the rail in one console
+  finds it collapsed in the other, which is the behaviour a single design
+  implies.
+*/
+const defaultSidebarOpen = Astro.cookies.get('sidebar_state')?.value !== 'false';
 ---
 
 <BaseLayout title={title} noindex={true}>
-  <div class="bg-ground flex min-h-screen flex-col lg:flex-row">
-    {/*
-      Mobile: a real off-canvas drawer.
-
-      Driven by a checkbox + labels rather than script, so it still opens with
-      JavaScript unavailable — and unlike the <details> it replaces, the panel
-      is `fixed`, so opening it slides a sheet over the page instead of pushing
-      the whole console down. The backdrop is a second <label> for the same
-      checkbox, which is what gives us tap-outside-to-close without a handler.
-
-      The bar is a fixed `h-14`, not content-sized, because the content header
-      below sticks at exactly that offset.
-    */}
-    <input id="admin-nav" type="checkbox" class="peer sr-only" aria-label={t('nav.menu')} />
-
-    <div
-      class="bg-card sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:hidden"
-    >
-      <a href="/admin" class="flex items-center gap-2">
-        <Logo />
-        <span
-          class="bg-ink text-mist rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
-        >
-          {isAdmin ? 'ADMIN' : 'MENAXHER'}
-        </span>
-      </a>
-
-      <span class="flex items-center gap-2">
-        {
-          pendingCount > 0 && (
-            <span class="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-              {pendingCount}
-            </span>
-          )
-        }
-        <ActivityStream variant="bell" client:idle />
-        <label
-          for="admin-nav"
-          class={cn(
-            buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
-            'cursor-pointer rounded-lg'
-          )}
-          aria-label={t('nav.menu')}
-        >
-          <Icon name="menu" class="size-5" />
-        </label>
-      </span>
-    </div>
-
-    {/* Backdrop — closes the drawer when tapped. */}
-    <label
-      for="admin-nav"
-      aria-hidden="true"
-      class="pointer-events-none fixed inset-0 z-40 bg-black/50 opacity-0 transition-opacity duration-300 peer-checked:pointer-events-auto peer-checked:opacity-100 lg:hidden"
-    ></label>
-
-    <aside
-      class="bg-card fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] -translate-x-full flex-col gap-4 overflow-y-auto p-3 shadow-2xl transition-transform duration-300 ease-out peer-checked:translate-x-0 lg:hidden"
-    >
-      <div class="bg-ink flex items-center justify-between gap-2 rounded-xl px-3 py-2.5">
-        <span class="flex items-center gap-2">
-          <Logo invert />
-        </span>
-        <label
-          for="admin-nav"
-          class={cn(
-            buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-            'text-mist hover:text-mist cursor-pointer rounded-lg hover:bg-white/10'
-          )}
-          aria-label={t('nav.close')}
-        >
-          <Icon name="x" class="size-4" />
-        </label>
-      </div>
-
-      <nav class="flex flex-col gap-3">
-        {
-          nav.map((section) => (
-            <div class="flex flex-col gap-1">
-              {section.group && (
-                <p class="text-muted-foreground/70 px-2.5 pt-1 pb-0.5 text-[10px] font-bold tracking-[0.12em] uppercase">
-                  {section.group}
-                </p>
-              )}
-              {section.items.map((item) => (
-                <a
-                  href={item.href}
-                  aria-current={active === item.key ? 'page' : undefined}
-                  class:list={[railLink, active === item.key ? railActive : railIdle]}
-                >
-                  <span
-                    class:list={[
-                      railChip,
-                      active === item.key ? railChipActive : railChipIdle,
-                    ]}
-                  >
-                    <Icon name={item.icon} class="size-3.5" />
-                  </span>
-                  <span>{item.label}</span>
-                  {item.key === 'payments' && pendingCount > 0 && (
-                    <span class="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                      {pendingCount}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </div>
-          ))
-        }
-      </nav>
-
-      <div class="mt-auto flex flex-col gap-1 border-t pt-3">
-        <div class="flex items-center gap-2.5 px-2.5 py-1.5">
-          <span
-            class="bg-accent text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-          >
-            {initials(profile?.business_name ?? user?.email)}
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-medium">{profile?.business_name}</p>
-            <p class="text-muted-foreground truncate text-[11px]">{user?.email}</p>
-          </div>
-        </div>
-
-        <Button as="a" href="/app?klient=1" variant="ghost" class={footerLink}>
-          <Icon name="arrow-left" class="size-4" />
-          {t('nav.backToApp')}
-        </Button>
-
-        <form method="POST" action="/auth/signout">
-          <Button type="submit" variant="ghost" class={footerLink}>
-            <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
-          </Button>
-        </form>
-      </div>
-    </aside>
-
-    {/* ---------- Desktop: persistent rail ---------- */}
-    <aside
-      class="bg-card sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 p-3 lg:flex"
-    >
-      {/*
-        The operator marker. Ink, so it reads as a different mode of the same
-        product at a glance, and pinned above the nav so it is never scrolled
-        out of view.
-      */}
-      <a
-        href="/admin"
-        class="bg-ink flex items-center justify-between gap-2 rounded-xl px-3 py-2.5"
-        aria-label={t('adm.console')}
-      >
-        <Logo invert />
-        <span
-          class="bg-brand/20 text-brand rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wide"
-        >
-          {isAdmin ? 'ADMIN' : 'MENAXHER'}
-        </span>
-      </a>
-
-      <nav class="flex flex-col gap-3" aria-label={t('adm.console')}>
-        {
-          nav.map((section) => (
-            <div class="flex flex-col gap-1">
-              {section.group && (
-                <p class="text-muted-foreground/70 px-2.5 pt-1 pb-0.5 text-[10px] font-bold tracking-[0.12em] uppercase">
-                  {section.group}
-                </p>
-              )}
-              {section.items.map((item) => (
-                <a
-                  href={item.href}
-                  aria-current={active === item.key ? 'page' : undefined}
-                  class:list={[railLink, active === item.key ? railActive : railIdle]}
-                >
-                  <span
-                    class:list={[
-                      railChip,
-                      active === item.key ? railChipActive : railChipIdle,
-                    ]}
-                  >
-                    <Icon name={item.icon} class="size-3.5" />
-                  </span>
-                  <span>{item.label}</span>
-                  {item.key === 'payments' && pendingCount > 0 && (
-                    <span class="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                      {pendingCount}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </div>
-          ))
-        }
-      </nav>
-
-      <div class="mt-auto flex flex-col gap-1 border-t pt-3">
-        <div class="flex items-center gap-2.5 px-2.5 py-1.5">
-          <span
-            class="bg-accent text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-          >
-            {initials(profile?.business_name ?? user?.email)}
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-medium">{profile?.business_name}</p>
-            <p class="text-muted-foreground truncate text-[11px]">{user?.email}</p>
-          </div>
-        </div>
-
-        <Button as="a" href="/app?klient=1" variant="ghost" class={footerLink}>
-          <Icon name="arrow-left" class="size-4" />
-          {t('nav.backToApp')}
-        </Button>
-
-        <form method="POST" action="/auth/signout">
-          <Button type="submit" variant="ghost" class={footerLink}>
-            <Icon name="log-out" class="size-4" /> {t('nav.signOut')}
-          </Button>
-        </form>
-      </div>
-    </aside>
-
-    {/* ---------- Content ---------- */}
-    <div class="flex min-w-0 flex-1 flex-col">
-      <header class="bg-ground/85 sticky top-14 z-30 backdrop-blur-md lg:top-0">
-        <div
-          class="flex flex-col gap-3 px-4 py-5 sm:px-6 md:flex-row md:flex-wrap md:items-end md:justify-between"
-        >
-          <div class="min-w-0">
-            <h1 class="truncate text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
-              {heading}
-            </h1>
-            {subheading && <p class="text-muted-foreground mt-1 text-sm">{subheading}</p>}
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="hidden lg:block">
-              <ActivityStream variant="bell" client:idle />
-            </span>
-            <slot name="actions" />
-          </div>
-        </div>
-      </header>
-
-      <main class="min-w-0 flex-1 px-4 pb-8 sm:px-6">
-        <slot />
-      </main>
-
-      {/* Live notifications, console-wide. The table's RLS is manager-only, so
-          the subscription yields nothing to anyone else. */}
-      <ActivityStream variant="toast" client:idle />
-
-      {/* Feedback for the operator's own actions, distinct from the realtime
-          feed above: that reports what the platform did, this what they did. */}
-      <Toaster client:idle />
-    </div>
-  </div>
+  <AdminShell
+    heading={heading}
+    subheading={subheading}
+    active={active}
+    nav={nav}
+    pendingCount={pendingCount}
+    isAdmin={isAdmin}
+    businessName={profile?.business_name ?? null}
+    email={user?.email ?? ''}
+    backToAppHref="/app?klient=1"
+    labels={{
+      console: t('adm.console'),
+      backToApp: t('nav.backToApp'),
+      signOut: t('nav.signOut'),
+      pendingPayments: t('adm.payments'),
+    }}
+    defaultSidebarOpen={defaultSidebarOpen}
+    client:load
+  >
+    <Fragment slot="actions">
+      <slot name="actions" />
+    </Fragment>
+    <slot />
+  </AdminShell>
 </BaseLayout>

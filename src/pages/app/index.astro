@@ -62,19 +62,16 @@ const kpis = [
   {
     label: 'Faturuar këtë muaj',
     value: formatALL(monthTotal),
-    hint: 'Vlera e të gjitha faturave të lëshuara nga 1 i muajit deri sot.',
     delta,
   },
   {
     label: 'Të arkëtuara',
     value: formatALL(Number(stats.paid_total ?? 0)),
-    hint: 'Totali i faturave që i ke shënuar si të paguara.',
     tone: 'text-success',
   },
   {
     label: "Për t'u arkëtuar",
     value: formatALL(Number(stats.outstanding_total ?? 0)),
-    hint: "Faturat e dërguara që ende nuk janë paguar.",
     tone: 'text-warning',
     note:
       Number(stats.overdue_count ?? 0) > 0
@@ -84,7 +81,6 @@ const kpis = [
   {
     label: 'Klientë',
     value: String(stats.client_count ?? 0),
-    hint: 'Klientët e ruajtur në regjistrin tënd.',
   },
 ];
 
@@ -168,13 +164,7 @@ const businessName = profile?.business_name?.trim() ?? '';
               index > 0 && 'lg:border-l',
             ]}
           >
-            <dt class="text-muted-foreground flex items-center gap-1.5 text-sm">
-              {kpi.label}
-              <span title={kpi.hint} class="cursor-help">
-                <Icon name="info" class="text-muted-foreground/50 size-3.5" />
-                <span class="sr-only">{kpi.hint}</span>
-              </span>
-            </dt>
+            <dt class="text-muted-foreground text-sm">{kpi.label}</dt>
 
             <dd class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span

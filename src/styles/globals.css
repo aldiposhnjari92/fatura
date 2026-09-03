@@ -482,21 +482,6 @@ html[data-auth='user'] [data-auth-show='anon'] {
   }
 }
 
-/*
-  Lock the page behind the admin drawer.
-
-  The drawer is a checkbox + labels with no JavaScript, so the usual
-  `body.style.overflow` toggle is not available; `:has()` reads the checkbox
-  state straight from the DOM instead. Scoped below `lg`, where the drawer
-  exists at all — the desktop sidebar is in normal flow and must never lock
-  scrolling.
-*/
-@media (width < 64rem) {
-  body:has(#admin-nav:checked) {
-    overflow: hidden;
-  }
-}
-
 /* ===================================================================
    Motion system
 

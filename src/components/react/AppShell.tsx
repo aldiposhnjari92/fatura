@@ -166,9 +166,13 @@ export default function AppShell({
       <div className="hidden lg:contents">
         <Sidebar collapsible="icon">
           <SidebarHeader>
+            {/* Same reasoning as the rail items: the wordmark is real text, so
+                the guess lands on 'spinner'. The bar at the top already says a
+                page is loading. */}
             <a
               href={dashboardHref}
               aria-label="Fatura.co — paneli"
+              data-nav-feedback="off"
               className="flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1 group-data-[collapsible=icon]:px-0"
             >
               <LogoMark />
@@ -193,7 +197,18 @@ export default function AppShell({
                             isActive={active === item.key}
                             tooltip={item.label}
                           >
-                            <a href={item.href} aria-current={active === item.key ? 'page' : undefined}>
+                            {/*
+                              The rail is always on screen, so a spinner
+                              appearing inside the item you just tapped is a
+                              second answer to a question the bar at the top of
+                              the viewport has already given. `off` leaves the
+                              item alone entirely — no spinner, no dim.
+                            */}
+                            <a
+                              href={item.href}
+                              aria-current={active === item.key ? 'page' : undefined}
+                              data-nav-feedback="off"
+                            >
                               <Icon />
                               <span>{item.label}</span>
                             </a>
@@ -255,7 +270,12 @@ export default function AppShell({
             <SidebarTrigger className="-ml-1 hidden lg:flex" />
 
             {/* The rail carries the mark from `lg`; below that the bar does. */}
-            <a href={dashboardHref} className="lg:hidden" aria-label="Fatura.co — paneli">
+            <a
+              href={dashboardHref}
+              className="lg:hidden"
+              aria-label="Fatura.co — paneli"
+              data-nav-feedback="off"
+            >
               <span className="inline-flex items-center gap-2.5">
                 <LogoMark />
                 <Wordmark />
