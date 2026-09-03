@@ -20,7 +20,3 @@ export function startNavProgress(el?: Element | null) {
   window.__navProgress?.start(el ?? null);
 }
 
-/** Put it away again: the navigation was abandoned, so nothing is coming. */
-export function stopNavProgress() {
-  window.__navProgress?.done();
-}

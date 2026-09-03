@@ -1,4 +1,4 @@
-import { PLANS, type PlanId } from '@/lib/plans';
+import type { PlanId } from '@/lib/plans';
 
 export type InvoiceStatus = 'draft' | 'paid' | 'unpaid' | 'overdue';
 
@@ -112,6 +112,20 @@ export const STATUS_BADGE_BASE =
   'inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset';
 
 /**
+ * Narrows whatever the database handed back to a status we can draw.
+ *
+ * Not defensive padding: `status` is a text column, and the RPCs that feed the
+ * admin tables type it as a bare string. A value the column grows later would
+ * otherwise render an unstyled, unlabelled chip. Falling back to 'draft' keeps
+ * the colour and the wording agreeing, whatever arrives.
+ */
+export function toInvoiceStatus(value: unknown): InvoiceStatus {
+  return typeof value === 'string' && value in STATUS_META
+    ? (value as InvoiceStatus)
+    : 'draft';
+}
+
+/**
  * The colour of a status chip, per theme, so it stays legible on both the light
  * mist ground and the dark ink one.
  *
@@ -164,19 +178,3 @@ export function displayStatus(
 ): InvoiceStatus {
   return isOverdue(status, dueDate) ? 'overdue' : status;
 }
-
-/** Whole days a payment is late. 0 when it is not. */
-export function daysOverdue(
-  status: InvoiceStatus,
-  dueDate: string | null | undefined
-): number {
-  if (!isOverdue(status, dueDate)) return 0;
-  const due = new Date(dueDate as string);
-  const today = new Date();
-  due.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  return Math.round((today.getTime() - due.getTime()) / 86_400_000);
-}
-
-/** Free plan ceiling. Starter raises it to 30; Pro lifts it entirely. */
-export const FREE_INVOICE_LIMIT = PLANS.free.invoiceLimit as number;

@@ -154,7 +154,7 @@ async function loadPdfEngine() {
   }
 }
 
-export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfInput) {
+async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfInput) {
   const [jsPdfModule, autoTableModule] = await loadPdfEngine();
 
   const jsPDF = (jsPdfModule.jsPDF ??
@@ -428,7 +428,7 @@ export async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfIn
   return doc;
 }
 
-export function invoiceFileName(invoiceNumber: string, clientName?: string | null): string {
+function invoiceFileName(invoiceNumber: string, clientName?: string | null): string {
   const safe = (value: string) =>
     value
       .normalize('NFD')

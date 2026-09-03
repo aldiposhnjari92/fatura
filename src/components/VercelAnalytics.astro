@@ -1,0 +1,68 @@
+---
+import Analytics from '@vercel/analytics/astro';
+
+/*
+  Vercel Web Analytics, and the filter that runs before it.
+
+  Both halves used to sit inline in BaseLayout, where the <Analytics /> render
+  was missing — so the import was unused and the scrubber below set a global
+  that nothing ever read, on every page. They belong together: the order is
+  the contract, and splitting them is what let one go missing.
+
+  Off unless PUBLIC_VERCEL_ANALYTICS is "true", so no page carries the script
+  (or the hook) until someone decides to start collecting. Like every PUBLIC_*
+  var here it is read at build time, so switching it on needs a redeploy.
+*/
+---
+
+  {/*
+    Vercel Web Analytics. In production it loads `/_vercel/insights/script.js`
+    and beacons to `/_vercel/insights/view` — both same-origin, so BaseLayout's
+    CSP already allows them without a new source expression. (In dev it
+    reaches for va.vercel-scripts.com instead, which the CSP blocks; that
+    build reports nothing anyway, so the only cost is a console warning.)
+
+    What reaches Vercel is filtered first. The component reads
+    `window.webAnalyticsBeforeSend`, so this has to be a plain inline script
+    rather than a module: module scripts are deferred, and the hook has to
+    exist before the analytics one runs.
+  */}
+  <script is:inline>
+    /*
+      Signed-in URLs are stripped of anything that identifies a record or a
+      person before they leave the browser:
+
+        • /app/faturat/<uuid> is a specific invoice. The route is the useful
+          dimension; the id is not, and it is the customer's, not ours.
+        • the query string behind /app and /admin carries `kerko` — whatever
+          the user typed into search, which is routinely a client's name —
+          and `next`, which is a path. Neither is worth measuring.
+
+      Marketing URLs are left alone on purpose: their query strings are how
+      utm_* attribution arrives, and there is nothing private in them.
+    */
+    window.webAnalyticsBeforeSend = function (event) {
+      try {
+        var url = new URL(event.url, window.location.origin);
+        if (!/^\/(app|admin)(\/|$)/.test(url.pathname)) return event;
+
+        url.pathname = url.pathname.replace(
+          /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi,
+          '/[id]'
+        );
+        url.search = '';
+        return { ...event, url: url.toString() };
+      } catch (e) {
+        // A URL we cannot parse is one we cannot vouch for: drop the event
+        // rather than forward it unfiltered.
+        return null;
+      }
+    };
+  </script>
+
+  {/*
+    After the hook, never before it: <Analytics /> reads
+    `window.webAnalyticsBeforeSend` when its own script runs, and a module
+    script that beat the inline one would send the first pageview unfiltered.
+  */}
+  <Analytics />

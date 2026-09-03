@@ -4,6 +4,7 @@ import StatusBadge from '@/components/StatusBadge.astro';
 import { displayStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import StatCell from '@/components/StatCell.astro';
 import {
   Table,
   TableBody,
@@ -158,15 +159,8 @@ const businessName = profile?.business_name?.trim() ?? '';
     <dl class="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-y-8 lg:grid-cols-4 lg:gap-0">
       {
         kpis.map((kpi, index) => (
-          <div
-            class:list={[
-              'lg:px-6 lg:first:pl-0 lg:last:pr-0',
-              index > 0 && 'lg:border-l',
-            ]}
-          >
-            <dt class="text-muted-foreground text-sm">{kpi.label}</dt>
-
-            <dd class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <StatCell label={kpi.label} first={index === 0}>
+            <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span
                 class={`text-2xl font-bold tracking-[-0.03em] tabular-nums ${kpi.tone ?? ''}`}
               >
@@ -189,8 +183,8 @@ const businessName = profile?.business_name?.trim() ?? '';
               {kpi.note && (
                 <span class="text-muted-foreground text-xs">{kpi.note}</span>
               )}
-            </dd>
-          </div>
+            </div>
+          </StatCell>
         ))
       }
     </dl>

@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import TableSort from '@/components/TableSort.astro';
+import StatusBadge from '@/components/StatusBadge.astro';
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatALL, formatDate } from '@/lib/utils';
+import { toInvoiceStatus } from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 
 export const prerender = false;
@@ -69,18 +71,6 @@ const filters = [
   { label: t('status.overdue'), value: 'overdue' },
 ];
 
-const BADGE: Record<string, string> = {
-  draft: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200',
-  unpaid: 'bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200',
-  paid: 'bg-teal-100 text-teal-900 dark:bg-brand/20 dark:text-brand',
-  overdue: 'bg-red-100 text-red-900 dark:bg-red-400/15 dark:text-red-200',
-};
-const LABEL: Record<string, string> = {
-  draft: t('status.draft'),
-  unpaid: t('status.unpaid'),
-  paid: t('status.paid'),
-  overdue: t('status.overdue'),
-};
 ---
 
 <AdminLayout
@@ -151,7 +141,8 @@ const LABEL: Record<string, string> = {
           </TableHeader>
           <TableBody>
             {list.rows.map((row) => {
-              const shown = row.overdue ? 'overdue' : row.status;
+              // manager_invoices() types `status` as a bare string.
+              const shown = toInvoiceStatus(row.overdue ? 'overdue' : row.status);
               return (
                 <TableRow>
                   <TableCell class="py-3 font-mono text-xs">{row.invoice_number}</TableCell>
@@ -176,11 +167,7 @@ const LABEL: Record<string, string> = {
                     {formatALL(row.total)}
                   </TableCell>
                   <TableCell class="py-3 text-right">
-                    <span
-                      class={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${BADGE[shown]}`}
-                    >
-                      {LABEL[shown]}
-                    </span>
+                    <StatusBadge status={shown} class="px-2 text-[10px]" />
                   </TableCell>
                 </TableRow>
               );

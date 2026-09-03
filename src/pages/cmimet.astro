@@ -3,6 +3,7 @@ import MarketingLayout from '@/layouts/MarketingLayout.astro';
 import Pricing2 from '@/components/blocks/pricing-2.astro';
 import Cta1 from '@/components/blocks/cta-1.astro';
 import { TERM_CHOICES } from '@/lib/payments';
+import { marketingPlans } from '@/lib/marketing-plans';
 import { Section, SectionContainer } from '@/components/ui/section';
 import SectionHeading from '@/components/sections/SectionHeading.astro';
 import { Icon } from '@/components/ui/icon';
@@ -17,70 +18,20 @@ import {
 
 export const prerender = true;
 
-const plans = [
-  {
-    name: 'Falas',
+/* The pricing page sells the same three plans in its own words. */
+const plans = marketingPlans({
+  free: {
     description: 'Përgjithmonë. Pa kartë krediti.',
-    price: 0,
-    currency: 'ALL',
-    unit: 'muaj',
     features: [
       '5 fatura në muaj',
       'Klientë të palimituar',
       'PDF me logo dhe NIPT',
       'TVSH dhe zbritje',
     ],
-    note: 'Pa kartë krediti',
-    button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
-    authedButton: {
-      label: 'Shko te paneli',
-      href: '/app',
-      variant: 'outline' as const,
-    },
   },
-  {
-    name: 'Starter',
-    description: 'Kur 5 fatura nuk mjaftojnë më.',
-    price: 1000,
-    currency: 'ALL',
-    unit: 'muaj',
-    features: [
-      '30 fatura në muaj',
-      'Gjithçka nga plani falas',
-      'Klientë të palimituar',
-      'Anulo kur të duash',
-    ],
-    note: 'Anulo kur të duash',
-    button: {
-      label: 'Fillo me Starter',
-      href: '/regjistrohu?plan=starter&muaj=1',
-      variant: 'outline' as const,
-    },
-    authedButton: {
-      label: 'Kalo në Starter',
-      href: '/app/abonimi?plan=starter&muaj=1',
-      variant: 'outline' as const,
-    },
-  },
-  {
-    name: 'Pro',
-    description: 'Për biznese që faturojnë çdo ditë.',
-    price: 2000,
-    currency: 'ALL',
-    unit: 'muaj',
-    features: [
-      'Fatura të palimituara',
-      'Gjithçka nga plani Starter',
-      'Mbështetje me përparësi në WhatsApp',
-      'Veçoritë e reja të parët',
-    ],
-    featured: true,
-    badge: 'Më i zgjedhuri',
-    note: 'Anulo kur të duash',
-    button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
-    authedButton: { label: 'Kalo në Pro', href: '/app/abonimi?plan=pro&muaj=1' },
-  },
-];
+  starter: { description: 'Kur 5 fatura nuk mjaftojnë më.' },
+});
+
 
 const rows = [
   { label: 'Fatura në muaj', free: '5', starter: '30', pro: 'Të palimituara' },

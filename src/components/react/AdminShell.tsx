@@ -29,8 +29,10 @@ import {
   SidebarTrigger,
 } from '@/components/ui/react/sidebar';
 import ActivityStream from '@/components/react/ActivityStream';
+import LogoMark from '@/components/react/LogoMark';
+import { initials } from '@/lib/utils';
 import { Toaster } from '@/components/ui/react/sonner';
-import { cn, initials } from '@/lib/utils';
+
 
 /*
   The operator console's shell — the same chrome as /app, built on the same
@@ -114,28 +116,6 @@ interface Props {
   children?: React.ReactNode;
 }
 
-/** The mark alone, so the wordmark can drop when the rail narrows. */
-function LogoMark() {
-  return (
-    <svg
-      width="26"
-      height="26"
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <rect width="32" height="32" rx="8.5" fill="#00ADB5" />
-      <path
-        d="M10 9.5h12M10 15.5h8M10 21.5h5"
-        stroke="#222831"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export default function AdminShell({
   heading,
   subheading,
@@ -190,7 +170,7 @@ export default function AdminShell({
               className="bg-ink flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
             >
               <span className="flex min-w-0 items-center gap-2.5">
-                <LogoMark />
+                <LogoMark size={26} invert />
                 <span className="text-mist text-[1.0625rem] font-bold tracking-[-0.02em] group-data-[collapsible=icon]:hidden">
                   Fatura<span className="text-brand">.co</span>
                 </span>

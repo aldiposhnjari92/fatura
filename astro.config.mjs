@@ -61,6 +61,19 @@ export default defineConfig({
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
+        /*
+          jsPDF pulls html2canvas, canvg and dompurify in statically for
+          `doc.html()` and SVG rasterising. src/lib/pdf.ts uses neither, so
+          these were 372 KB downloaded and parsed on every PDF download and
+          never executed. See scripts/jspdf-optional-stub.js before removing.
+        */
+        html2canvas: fileURLToPath(
+          new URL('./scripts/jspdf-optional-stub.js', import.meta.url)
+        ),
+        canvg: fileURLToPath(new URL('./scripts/jspdf-optional-stub.js', import.meta.url)),
+        dompurify: fileURLToPath(
+          new URL('./scripts/jspdf-optional-stub.js', import.meta.url)
+        ),
       },
     },
     // Tailwind v4 is a Vite plugin now — there is no @astrojs/tailwind

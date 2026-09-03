@@ -26,6 +26,7 @@ import {
 import ActivityStream from '@/components/react/ActivityStream';
 import GlobalSearch from '@/components/react/GlobalSearch';
 import UserMenu from '@/components/react/UserMenu';
+import LogoMark from '@/components/react/LogoMark';
 import { Toaster } from '@/components/ui/react/sonner';
 import { cn } from '@/lib/utils';
 import type { PlanId } from '@/lib/plans';
@@ -85,28 +86,6 @@ interface Props {
   isAdmin: boolean;
   invoicesThisMonth: number;
   children?: React.ReactNode;
-}
-
-/** The mark on its own, so the wordmark can drop when the rail narrows. */
-function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg
-      width="30"
-      height="30"
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      className={cn('shrink-0', className)}
-    >
-      <rect width="32" height="32" rx="8.5" fill="#222831" />
-      <path
-        d="M10 9.5h12M10 15.5h8M10 21.5h5"
-        stroke="#00ADB5"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
 }
 
 function Wordmark() {

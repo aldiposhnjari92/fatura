@@ -1,0 +1,39 @@
+---
+import { cn } from '@/lib/utils';
+
+/*
+  One figure in a hairline-split row.
+
+  The wrapper is the fiddly part and it was written twice, on the dashboard and
+  on the invoice list: at `lg` the cells sit in one card separated by rules,
+  with the outer padding trimmed off the first and last so the row still lines
+  up with the card's edges. Below `lg` they stack and the rules disappear.
+
+  The value is a slot rather than a prop because the two callers put different
+  things next to the number — a period-on-period delta chip in one, a caption
+  in the other — and flattening that into flags would be a worse trade than
+  letting each page write its own `dd`.
+*/
+
+export interface Props {
+  label: string;
+  /** No rule to the left of the first cell in the row. */
+  first?: boolean;
+  /** The dashboard runs the label at `text-sm`, the list a step down. */
+  labelClass?: string;
+  class?: string;
+}
+
+const { label, first = false, labelClass, class: className } = Astro.props;
+---
+
+<div
+  class:list={[
+    'lg:px-6 lg:first:pl-0 lg:last:pr-0',
+    !first && 'lg:border-l',
+    className,
+  ]}
+>
+  <dt class={cn('text-muted-foreground text-sm', labelClass)}>{label}</dt>
+  <dd><slot /></dd>
+</div>

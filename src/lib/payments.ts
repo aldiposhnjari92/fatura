@@ -14,13 +14,6 @@ import { PLANS, planOf, type PaidPlanId } from '@/lib/plans';
 export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
 
 /*
-  Display only. The amount actually charged comes from
-  public.plan_monthly_price() via create_payment() — the server never trusts a
-  price sent by the browser. Keep src/lib/plans.ts and the SQL in step.
-*/
-export const PRO_MONTHLY_ALL = PLANS.pro.monthlyALL;
-
-/*
   Terms on offer: monthly or yearly, the same two for every plan.
 
   It used to be four (1, 3, 6, 12). Quarterly and half-yearly were choices

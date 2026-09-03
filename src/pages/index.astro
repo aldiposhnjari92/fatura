@@ -11,74 +11,13 @@ import ProblemSection from '@/components/sections/ProblemSection.astro';
 import StepsSection from '@/components/sections/StepsSection.astro';
 import WaitlistSection from '@/components/sections/WaitlistSection.astro';
 import { TERM_CHOICES } from '@/lib/payments';
+import { marketingPlans } from '@/lib/marketing-plans';
 
 // Fully static: no session lookup, no JS shipped, cached at the edge.
 export const prerender = true;
 
-const plans = [
-  {
-    name: 'Falas',
-    description: 'Për të filluar sot.',
-    price: 0,
-    currency: 'ALL',
-    unit: 'muaj',
-    features: [
-      '5 fatura në muaj',
-      'Klientë të palimituar',
-      'PDF me logon tënde',
-      'TVSH dhe zbritje',
-    ],
-    note: 'Pa kartë krediti',
-    button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' as const },
-    authedButton: {
-      label: 'Shko te paneli',
-      href: '/app',
-      variant: 'outline' as const,
-    },
-  },
-  {
-    name: 'Starter',
-    description: 'Për biznese që faturojnë çdo javë.',
-    price: 1000,
-    currency: 'ALL',
-    unit: 'muaj',
-    features: [
-      '30 fatura në muaj',
-      'Gjithçka nga plani falas',
-      'Klientë të palimituar',
-      'Anulo kur të duash',
-    ],
-    note: 'Anulo kur të duash',
-    button: {
-      label: 'Fillo me Starter',
-      href: '/regjistrohu?plan=starter&muaj=1',
-      variant: 'outline' as const,
-    },
-    authedButton: {
-      label: 'Kalo në Starter',
-      href: '/app/abonimi?plan=starter&muaj=1',
-      variant: 'outline' as const,
-    },
-  },
-  {
-    name: 'Pro',
-    description: 'Për biznese që faturojnë çdo ditë.',
-    price: 2000,
-    currency: 'ALL',
-    unit: 'muaj',
-    features: [
-      'Fatura të palimituara',
-      'Gjithçka nga plani Starter',
-      'Mbështetje me përparësi në WhatsApp',
-      'Veçoritë e reja të parët',
-    ],
-    featured: true,
-    badge: 'Më i zgjedhuri',
-    note: 'Anulo kur të duash',
-    button: { label: 'Fillo me Pro', href: '/regjistrohu?plan=pro&muaj=1' },
-    authedButton: { label: 'Kalo në Pro', href: '/app/abonimi?plan=pro&muaj=1' },
-  },
-];
+const plans = marketingPlans();
+
 
 const faqs = [
   {

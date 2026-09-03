@@ -1,5 +1,10 @@
 ---
-import { STATUS_BADGE_BASE, STATUS_META, type InvoiceStatus } from '@/lib/types';
+import {
+  STATUS_BADGE_BASE,
+  STATUS_META,
+  toInvoiceStatus,
+  type InvoiceStatus,
+} from '@/lib/types';
 import { useTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -10,13 +15,8 @@ export interface Props {
 
 const { status, class: className } = Astro.props;
 
-/*
-  `status` comes from the database, so the fallback is not dead code: a value
-  the column grows later would otherwise render an unstyled, unlabelled chip
-  rather than an honest "Draft". The label falls back with it, so the colour
-  and the wording can never disagree.
-*/
-const known = status in STATUS_META ? status : 'draft';
+/* The fallback lives in toInvoiceStatus() — see the note there. */
+const known = toInvoiceStatus(status);
 
 const t = useTranslations();
 ---
