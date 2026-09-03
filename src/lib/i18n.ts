@@ -118,6 +118,11 @@ const sq = {
   'inv.saved': 'Fatura u ruajt.',
   'inv.downloadPdf': 'Shkarko PDF',
   'inv.preview': 'Shiko faturën',
+  /* The PDF trio sits three-up in the summary panel; the long forms above
+     do not fit a third of a sidebar, and the icon carries the rest. */
+  'inv.downloadShort': 'Shkarko',
+  'inv.previewShort': 'Shiko',
+  'inv.pdfActions': 'PDF',
   'inv.share': 'Dërgo',
   'inv.pdfNote':
     'PDF-ja krijohet në telefonin tënd. Asnjë të dhënë nuk shkon te ndonjë server i tretë.',

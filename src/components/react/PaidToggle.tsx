@@ -172,19 +172,25 @@ export default function PaidToggle({
 
   if (variant === 'panel') {
     return (
-      <div className="flex flex-col gap-3">
+      /*
+        The payment state, as one strip.
+
+        The chip's colours are the shared ones now — this had its own copy of
+        the teal/amber pair, a fourth alongside STATUS_META, the admin table
+        and the badge component, and it had already lost the ring the others
+        carry.
+
+        The button is `outline`, not `default`. Stacked under Save it was a
+        second solid teal button, and two primaries in one panel means the eye
+        has to pick — marking paid is a state change on a saved invoice, not
+        the thing the form exists to do.
+      */
+      <div className="ring-border/50 flex flex-col gap-3 rounded-xl p-4 ring-1">
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground text-sm font-medium">
             {t('inv.payment')}
           </span>
-          <span
-            className={[
-              'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-              isPaid
-                ? 'bg-teal-100 text-teal-900 dark:bg-brand/20 dark:text-brand'
-                : 'bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200',
-            ].join(' ')}
-          >
+          <span className={cn(STATUS_BADGE_BASE, STATUS_META[isPaid ? 'paid' : 'unpaid'].className)}>
             {isPaid && paidAt
               ? t('inv.paidOn', { date: formatDate(paidAt) })
               : t('inv.notPaidYet')}
@@ -193,7 +199,7 @@ export default function PaidToggle({
 
         <Button
           type="button"
-          variant="default"
+          variant="outline"
           onClick={toggle}
           disabled={busy}
           className="press w-full"

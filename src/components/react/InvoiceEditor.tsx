@@ -839,45 +839,70 @@ export default function InvoiceEditor({
       {/* ------------------------- Right: totals ------------------------- */}
       <div className="lg:sticky lg:top-24 lg:self-start">
         <Section icon={Receipt} title={t('inv.summary')}>
-          <div className="space-y-4">
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">{t('inv.subtotal')}</dt>
-                <dd className="font-medium tabular-nums">{formatALL(totals.subtotal)}</dd>
-              </div>
+          <div className="space-y-5">
+            {/*
+              The money, on its own ground.
 
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">
-                  <Label htmlFor="discount" className="font-normal text-muted-foreground">
-                    {t('inv.discount')}
-                  </Label>
-                </dt>
-                <dd>
-                  <NumberInput
-                    id="discount"
-                    value={discount}
-                    onValueChange={setDiscount}
-                    className="w-28 text-right"
-                  />
-                </dd>
-              </div>
+              These four lines used to run as one flat list of hairline-split
+              rows straight into the buttons below, which gave the figures and
+              the actions the same weight — and the total, at one step up in
+              size, barely won an argument it should not have been having. The
+              ledger now sits on its own tinted panel and the total is the one
+              thing in the card you cannot miss.
+            */}
+            <div className="bg-muted/40 ring-border/50 rounded-xl p-4 ring-1">
+              <dl className="space-y-2.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">{t('inv.subtotal')}</dt>
+                  <dd className="font-medium tabular-nums">{formatALL(totals.subtotal)}</dd>
+                </div>
 
-              {vatPercent > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">{t('inv.vat')} {vatPercent}%</dt>
-                  <dd className="font-medium tabular-nums">
-                    {formatALL(totals.vatAmount)}
+                {/*
+                  The one editable figure in a column of read-only ones. It is
+                  sized and aligned to sit *in* that column — the full-width
+                  pill it replaces broke the rhythm of the numbers and read as
+                  a form field that had wandered into a receipt.
+                */}
+                <div className="flex items-center justify-between gap-3">
+                  <dt>
+                    <Label
+                      htmlFor="discount"
+                      className="text-muted-foreground font-normal"
+                    >
+                      {t('inv.discount')}
+                    </Label>
+                  </dt>
+                  <dd>
+                    <NumberInput
+                      id="discount"
+                      value={discount}
+                      onValueChange={setDiscount}
+                      className="h-9 min-h-9 w-24 text-right tabular-nums"
+                    />
                   </dd>
                 </div>
-              )}
 
-              <div className="flex justify-between border-t pt-3 text-lg">
-                <dt className="font-bold">{t('inv.total')}</dt>
-                <dd className="font-extrabold tabular-nums text-primary">
-                  {formatALL(totals.total)}
-                </dd>
-              </div>
-            </dl>
+                {vatPercent > 0 && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">
+                      {t('inv.vat')} {vatPercent}%
+                    </dt>
+                    <dd className="font-medium tabular-nums">
+                      {formatALL(totals.vatAmount)}
+                    </dd>
+                  </div>
+                )}
+
+                <div className="border-border/60 mt-1 flex items-baseline justify-between gap-3 border-t pt-3">
+                  <dt className="text-muted-foreground text-[11px] font-bold tracking-[0.12em] uppercase">
+                    {t('inv.total')}
+                  </dt>
+                  <dd className="text-primary text-2xl font-extrabold tracking-[-0.02em] tabular-nums sm:text-[1.75rem]">
+                    {formatALL(totals.total)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
 
             {/*
               Answering "has this been paid?" is the job people come back to an
@@ -886,36 +911,38 @@ export default function InvoiceEditor({
               there is nothing to mark until the row exists.
             */}
             {isEdit && invoice?.id && (
-              <div className="border-t pt-4">
-                <PaidToggle
-                  invoiceId={invoice.id}
-                  status={status}
-                  paidAt={paidAt}
-                  variant="panel"
-                  onStatusChange={(nextStatus, nextPaidAt) => {
-                    // Keep the form in step: the status dropdown, its
-                    // paid-lock and the toast all read this state.
-                    setStatus(nextStatus);
-                    setPaidAt(nextPaidAt);
-                  }}
-                />
-              </div>
+              <PaidToggle
+                invoiceId={invoice.id}
+                status={status}
+                paidAt={paidAt}
+                variant="panel"
+                onStatusChange={(nextStatus, nextPaidAt) => {
+                  // Keep the form in step: the status dropdown, its
+                  // paid-lock and the toast all read this state.
+                  setStatus(nextStatus);
+                  setPaidAt(nextPaidAt);
+                }}
+              />
             )}
 
-            <div className="space-y-2 border-t pt-4">
-              {/*
-                A draft is not yet a real invoice. Confirming is the act that
-                issues it, so it gets the primary button and saving-as-draft
-                steps down to secondary. Once issued, there is nothing left to
-                confirm and plain save takes the lead again.
-              */}
+            {/*
+              One primary, and only one.
+
+              A draft is not yet a real invoice: confirming is the act that
+              issues it, so it takes the solid button and saving-as-draft steps
+              down. Once issued there is nothing left to confirm and plain save
+              leads. Either way the PDF row below stays secondary — it acts on
+              a document that already exists, which is a different question
+              from "commit my edits".
+            */}
+            <div className="space-y-2">
               {status === 'draft' ? (
                 <>
                   <Button
                     type="button"
                     onClick={handleConfirm}
                     disabled={saving}
-                    className="press w-full"
+                    className="press h-11 w-full"
                   >
                     {saving ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
                     {t('inv.confirm')}
@@ -936,39 +963,58 @@ export default function InvoiceEditor({
                   type="button"
                   onClick={handleSaveAndClose}
                   disabled={saving}
-                  className="press w-full"
+                  className="press h-11 w-full"
                 >
                   {saving ? <Loader2 className="animate-spin" /> : <Save />}
                   {isEdit ? t('action.saveChanges') : t('inv.save')}
                 </Button>
               )}
+            </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDownload}
-                disabled={busyPdf !== null}
-                className="w-full"
-              >
-                {busyPdf === 'download' ? <Loader2 className="animate-spin" /> : <Download />}
-                {t('inv.downloadPdf')}
-              </Button>
+            {/*
+              Three things you can do with the finished PDF, at one weight.
 
-              <div className="grid grid-cols-2 gap-2">
+              They were split across two tiers before — download as a
+              full-width outline button, view and send as a pair of ghost
+              buttons underneath — which implied a hierarchy none of them have
+              over each other. Three-up also gives each a real tap target,
+              which the ghost row did not on a phone.
+            */}
+            <div>
+              <p className="text-muted-foreground mb-2 text-[11px] font-bold tracking-[0.12em] uppercase">
+                {t('inv.pdfActions')}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
-                  onClick={handlePreview}
+                  variant="outline"
+                  onClick={handleDownload}
                   disabled={busyPdf !== null}
+                  className="press h-auto flex-col gap-1.5 px-1 py-3 text-xs font-medium"
                 >
-                  {busyPdf === 'preview' ? <Loader2 className="animate-spin" /> : <Eye />}
-                  {t('inv.preview')}
+                  {busyPdf === 'download' ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Download />
+                  )}
+                  {t('inv.downloadShort')}
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
+                  onClick={handlePreview}
+                  disabled={busyPdf !== null}
+                  className="press h-auto flex-col gap-1.5 px-1 py-3 text-xs font-medium"
+                >
+                  {busyPdf === 'preview' ? <Loader2 className="animate-spin" /> : <Eye />}
+                  {t('inv.previewShort')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleShare}
                   disabled={busyPdf !== null}
+                  className="press h-auto flex-col gap-1.5 px-1 py-3 text-xs font-medium"
                 >
                   {busyPdf === 'share' ? <Loader2 className="animate-spin" /> : <Share2 />}
                   {t('inv.share')}
