@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { PLANS, isPaidPlanId } from '@/lib/plans';
+import { describeTerm, isTermMonths } from '@/lib/payments';
 
 export const prerender = false;
 
@@ -74,7 +75,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   // ---------- create ----------
   if (body.action === 'create') {
-    const months = Math.min(Math.max(Number(body.months) || 1, 1), 24);
+    // Only the terms actually on offer (monthly or yearly). The clamp this
+    // replaced accepted anything from 1 to 24, so a hand-rolled request could
+    // open a payment row for a term the pricing page never sells.
+    const months = isTermMonths(body.months) ? Number(body.months) : 1;
     // An unknown or missing tier falls back to Pro, which is what every order
     // predating Starter bought.
     const plan = isPaidPlanId(body.plan) ? body.plan : 'pro';
@@ -98,7 +102,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         purchase_units: [
           {
             reference_id: reference,
-            description: `Fatura.co ${PLANS[plan].name} — ${months} muaj`,
+            description: `Fatura.co ${PLANS[plan].name} — ${describeTerm(months)}`,
             custom_id: String((payment as Record<string, unknown>).id),
             amount: {
               // PayPal has no ALL support for card processing in most accounts,

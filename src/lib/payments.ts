@@ -20,12 +20,25 @@ export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
 */
 export const PRO_MONTHLY_ALL = PLANS.pro.monthlyALL;
 
-/** Terms on offer. The same four for every plan; only the total differs. */
-export const TERM_MONTHS = [1, 3, 6, 12] as const;
+/*
+  Terms on offer: monthly or yearly, the same two for every plan.
+
+  It used to be four (1, 3, 6, 12). Quarterly and half-yearly were choices
+  nobody was asking for — there is no discount attached to any term (the price
+  is always plan_monthly_price() x months, in SQL), so the extra cards only
+  made the visitor do arithmetic before deciding. Two is the shape every
+  subscription buyer already knows.
+*/
+export const TERM_MONTHS = [1, 12] as const;
 
 export interface TermOption {
   months: number;
+  /** Name of the term, as a card or toggle title: "Mujor" / "Vjetor". */
   label: string;
+  /** Unit noun for a price line, rendered as "/muaj" or "/vit". */
+  unit: string;
+  /** The term as a span of time, for running text: "një muaj" / "një vit". */
+  periodLabel: string;
   /** Total in Lek for this plan over this term. */
   total: number;
   /** Marketing note, e.g. a discount hint. */
@@ -33,11 +46,17 @@ export interface TermOption {
   best?: boolean;
 }
 
-const TERM_META: Record<number, { label: string; note?: string; best?: boolean }> = {
-  1: { label: '1 muaj' },
-  3: { label: '3 muaj', note: 'tremujor' },
-  6: { label: '6 muaj', note: 'gjysmë viti' },
-  12: { label: '12 muaj', note: 'një vit', best: true },
+type TermMeta = Omit<TermOption, 'months' | 'total'>;
+
+const TERM_META: Record<number, TermMeta> = {
+  1: { label: 'Mujor', unit: 'muaj', periodLabel: 'një muaj' },
+  12: {
+    label: 'Vjetor',
+    unit: 'vit',
+    periodLabel: 'një vit',
+    note: 'një pagesë për 12 muaj',
+    best: true,
+  },
 };
 
 /** The term cards for a given plan, priced from that plan's monthly rate. */
@@ -53,11 +72,14 @@ export function termOptions(plan: PaidPlanId | string): TermOption[] {
 /**
  * The terms without a price attached, for the marketing pages. Those cards
  * carry their own prices (they are prerendered and must not import the plan
- * table into the client bundle), so they only need the months and the label.
+ * table into the client bundle), so they only need the months and the labels.
  */
-export const TERM_CHOICES: { months: number; label: string }[] = TERM_MONTHS.map(
-  (months) => ({ months, label: TERM_META[months].label })
-);
+export const TERM_CHOICES: { months: number; label: string; unit: string }[] =
+  TERM_MONTHS.map((months) => ({
+    months,
+    label: TERM_META[months].label,
+    unit: TERM_META[months].unit,
+  }));
 
 export function isTermMonths(value: unknown): boolean {
   return TERM_MONTHS.includes(Number(value) as (typeof TERM_MONTHS)[number]);
@@ -148,7 +170,7 @@ export function getMethods(env: Record<string, unknown>): MethodInfo[] {
   ];
 }
 
-/** Human label for a term, e.g. "12 muaj". */
+/** Human label for a term, e.g. "Vjetor". Falls back for legacy payment rows. */
 export function describeTerm(months: number): string {
   return TERM_META[months]?.label ?? `${months} muaj`;
 }

@@ -65,7 +65,7 @@ type Props = {
    * of its monthly rate — so the number on the card is the amount actually
    * transferred, not one the visitor has to multiply in their head.
    */
-  terms?: { months: number; label: string }[];
+  terms?: { months: number; label: string; unit?: string }[];
 };
 
 const {
@@ -115,7 +115,8 @@ const cards = ordered.map((plan) => {
     prices: terms.map((term) => ({
       months: term.months,
       total: plan.price * term.months,
-      unit: term.months === 1 ? plan.unit : term.label,
+      // "/muaj" or "/vit" — the period the number on the card actually buys.
+      unit: term.unit ?? plan.unit,
       sub:
         term.months === 1
           ? `Gjithsej për 1 ${plan.unit}`
@@ -160,8 +161,8 @@ const isTrio = plans.length > 2;
             ))}
           </div>
           <p class="text-muted-foreground text-sm">
-            Paguaj për sa muaj të duash me një transfertë të vetme. Çmimi mujor
-            nuk ndryshon.
+            Paguaj muaj pas muaji, ose një vit me një transfertë të vetme. Çmimi
+            mujor nuk ndryshon.
           </p>
         </div>
       )

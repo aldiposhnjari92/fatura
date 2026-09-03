@@ -8,6 +8,7 @@ import {
   getBankDetails,
   getMethods,
   isBankConfigured,
+  isCardConfigured,
   isPaypalConfigured,
 } from '@/lib/payments';
 import { PLANS, isPaidPlanId, isPlanId, planOf, type PaidPlanId } from '@/lib/plans';
@@ -31,6 +32,13 @@ const bankConfigured = isBankConfigured(env);
 const paypalClientId = isPaypalConfigured(env)
   ? String(env.PUBLIC_PAYPAL_CLIENT_ID)
   : null;
+/*
+  The SDK has to be loaded in the currency the order is opened in, and
+  PAYPAL_CURRENCY is server-only — read it here and hand it to the island
+  rather than letting the browser guess and fail the capture on a mismatch.
+*/
+const paypalCurrency = String(env.PAYPAL_CURRENCY ?? 'EUR');
+const cardFieldsEnabled = isCardConfigured(env);
 
 const [bootstrapResult, historyResult] = await Promise.all([
   supabase.rpc('app_bootstrap'),
@@ -164,6 +172,8 @@ const railFeatures = PLAN_FEATURES[railPlan];
     bank={bank}
     bankConfigured={bankConfigured}
     paypalClientId={paypalClientId}
+    paypalCurrency={paypalCurrency}
+    cardFieldsEnabled={cardFieldsEnabled}
     pending={pending}
     activePlan={activePlan}
     proActive={proActive}

@@ -2,6 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import type { Profile } from '@/lib/types';
 import { invoiceLimitOf, isPaidPlanId, isPlanId, type PlanId } from '@/lib/plans';
+import { isTermMonths } from '@/lib/payments';
 
 const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';
@@ -218,7 +219,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const wantedPlan = url.searchParams.get('plan');
     if (isPaidPlanId(wantedPlan)) {
       const requested = Number.parseInt(url.searchParams.get('muaj') ?? '', 10);
-      const months = [1, 6, 12].includes(requested) ? requested : 1;
+      const months = isTermMonths(requested) ? requested : 1;
       return withHeaders(
         redirect(`/app/abonimi?plan=${wantedPlan}&muaj=${months}`, 302)
       );

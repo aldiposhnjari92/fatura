@@ -42,7 +42,13 @@ import {
   type MethodInfo,
   type PaymentMethod,
 } from '@/lib/payments';
-import { notify } from '@/lib/toast';
+import { flashToast, notify } from '@/lib/toast';
+
+/*
+  Only pulled in when a visitor actually picks card or PayPal. Bank transfer is
+  the path nearly everyone takes, and it has no reason to carry the SDK glue.
+*/
+const PayPalPanel = React.lazy(() => import('@/components/react/PayPalPanel'));
 
 interface PendingPayment {
   id: string;
@@ -62,6 +68,10 @@ interface Props {
   bank: BankDetails;
   bankConfigured: boolean;
   paypalClientId: string | null;
+  /** Settlement currency of the merchant account — must match the order's. */
+  paypalCurrency?: string;
+  /** True once Advanced Card Payments is approved, enabling hosted card fields. */
+  cardFieldsEnabled?: boolean;
   pending: PendingPayment | null;
   /** The tier in force right now — 'free' once a subscription has lapsed. */
   activePlan: PlanId;
@@ -118,6 +128,8 @@ export default function Checkout({
   bank,
   bankConfigured,
   paypalClientId,
+  paypalCurrency = 'EUR',
+  cardFieldsEnabled = false,
   pending,
   activePlan,
   proActive,
@@ -261,6 +273,21 @@ export default function Checkout({
       setBusy(false);
     }
   }
+
+  /*
+    A captured order has already been confirmed by confirm_paid_payment() with
+    the service role. Everything this page shows about the subscription — the
+    period, the plan, the history — is derived server-side, so the truthful way
+    to reflect it is to re-read the page rather than to patch local state.
+  */
+  const onPaypalPaid = React.useCallback(() => {
+    flashToast(
+      'success',
+      'Pagesa u krye.',
+      'Plani u aktivizua menjëherë — faleminderit!'
+    );
+    window.location.reload();
+  }, []);
 
   const errorBanner = error && (
     <p
@@ -604,7 +631,7 @@ export default function Checkout({
             <p className="text-muted-foreground mt-1 text-sm">
               {proActive
                 ? 'Koha e re i shtohet asaj që ke — nuk humbet asnjë ditë.'
-                : 'Paguaj një herë për disa muaj — një transfertë e vetme. Anulo kur të duash.'}
+                : 'Mujor ose vjetor — një transfertë e vetme. Anulo kur të duash.'}
             </p>
           </div>
           {proActive && (
@@ -621,12 +648,12 @@ export default function Checkout({
           )}
         </div>
 
-        {/* Four terms: two rows on a phone, one row once the column is wide. */}
+        {/* Two terms — monthly or yearly — side by side at every width. */}
         <RadioGroup
           value={String(months)}
           onValueChange={(value) => setMonths(Number(value))}
           aria-label="Kohëzgjatja"
-          className="mt-5 grid gap-3 grid-cols-2 lg:grid-cols-4"
+          className="mt-5 grid grid-cols-2 gap-3"
         >
           {terms.map((option) => {
             return (
@@ -816,18 +843,32 @@ export default function Checkout({
           {activeMethod?.available && paypalClientId ? (
             <>
               <p className="text-muted-foreground mt-2 text-sm">
-                Do të paguash {formatALL(selected.total)} për {selected.label} ·{' '}
-                {chosen.name}.
+                Do të paguash {formatALL(selected.total)} për{' '}
+                {selected.periodLabel} · {chosen.name}.
               </p>
-              {/* Mount point for the PayPal SDK buttons; the order is created
-                  and captured by /api/payments/paypal/* so the amount is never
-                  taken from the browser. */}
-              <div
-                id="paypal-buttons"
-                className="mt-4"
-                data-months={months}
-                data-plan={plan}
-              />
+              {/*
+                The SDK mounts here. The order is opened and captured by
+                /api/payments/paypal, so the amount is never taken from the
+                browser — this side sends only the term and the tier.
+              */}
+              <React.Suspense
+                fallback={
+                  <p className="text-muted-foreground mt-4 flex items-center gap-2 text-sm">
+                    <Loader2 className="size-4 animate-spin" />
+                    Po ngarkohet…
+                  </p>
+                }
+              >
+                <PayPalPanel
+                  clientId={paypalClientId}
+                  currency={paypalCurrency}
+                  cardFieldsEnabled={cardFieldsEnabled}
+                  mode={method === 'card' ? 'card' : 'paypal'}
+                  months={months}
+                  plan={plan}
+                  onPaid={onPaypalPaid}
+                />
+              </React.Suspense>
             </>
           ) : (
             <div className="border-warning/40 bg-warning/10 mt-3 rounded-xl border px-4 py-3">

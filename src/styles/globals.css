@@ -461,7 +461,9 @@ html[data-auth='user'] [data-auth-show='anon'] {
   border-bottom-color: var(--color-border);
   box-shadow: 0 1px 2px --alpha(var(--foreground) / 4%),
     0 8px 24px -12px --alpha(var(--foreground) / 12%);
-  padding-block: calc(var(--spacing) * 1);
+  /* Condensed, but still airier than the old 4px — the bar at rest is now
+     py-4/py-5, so collapsing that far read as a jolt rather than a settle. */
+  padding-block: calc(var(--spacing) * 2.5);
 }
 
 /* The logo tightens up a touch once the bar is condensed. */

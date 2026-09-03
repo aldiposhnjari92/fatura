@@ -35,15 +35,18 @@ const proofPoints = [
       <!-- Announcement pill -->
       <a
         href="#si-funksionon"
-        class="eyebrow-pill text-muted-foreground hover:text-foreground animate-rise group"
+        class="eyebrow-pill text-muted-foreground hover:text-foreground animate-rise group max-w-full"
       >
-        <span class="bg-brand size-1.5 rounded-full" aria-hidden="true"></span>
-        <span class="text-foreground font-semibold">E re</span>
-        <span aria-hidden="true" class="bg-border h-3 w-px"></span>
-        Fatura me TVSH dhe logo, në 2 minuta
+        <span class="bg-brand size-1.5 shrink-0 rounded-full" aria-hidden="true"></span>
+        <span class="text-foreground shrink-0 font-semibold">E re</span>
+        <span aria-hidden="true" class="bg-border h-3 w-px shrink-0"></span>
+        <span class="truncate">
+          <span class="sm:hidden">Fatura me TVSH, në 2 minuta</span>
+          <span class="hidden sm:inline">Fatura me TVSH dhe logo, në 2 minuta</span>
+        </span>
         <Icon
           name="arrow-right"
-          class="size-3.5 transition-transform group-hover:translate-x-0.5"
+          class="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5"
         />
       </a>
 

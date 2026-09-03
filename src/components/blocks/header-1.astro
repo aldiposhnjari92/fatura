@@ -52,8 +52,8 @@ type Props = {
 const { class: className, logo, navigation, buttons } = Astro.props
 ---
 
-<Header class={cn("", className)}>
-  <HeaderContainer class="items-center justify-between gap-4">
+<Header class={cn("py-4 sm:py-5", className)}>
+  <HeaderContainer class="items-center justify-between gap-6">
     <HeaderGroup>
       <Logo href={logo.href}>
         <LogoImage
@@ -66,11 +66,11 @@ const { class: className, logo, navigation, buttons } = Astro.props
       </Logo>
     </HeaderGroup>
     <NavigationMenu class="hidden flex-none justify-start lg:flex">
-      <NavigationMenuList class="justify-start">
+      <NavigationMenuList class="justify-start gap-2">
         {
           navigation.map((item, index) => (
             <NavigationMenuItem value={`nav-${index}`}>
-              <NavigationMenuLink href={item.href} active={item.active}>
+              <NavigationMenuLink href={item.href} active={item.active} class="px-3 py-2.5">
                 {item.label}
               </NavigationMenuLink>
             </NavigationMenuItem>
@@ -78,7 +78,7 @@ const { class: className, logo, navigation, buttons } = Astro.props
         }
       </NavigationMenuList>
     </NavigationMenu>
-    <HeaderGroup class="ml-auto hidden flex-1 justify-end lg:flex">
+    <HeaderGroup class="ml-auto hidden flex-1 justify-end gap-3 lg:flex">
       <slot />
       {
         buttons.map(({ label, icon, ...button }) => (
