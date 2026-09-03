@@ -206,6 +206,9 @@ const sq = {
   'inv.pdfDownloadedDesc': 'Fatura {number} u ruajt në pajisjen tënde.',
   'inv.sharedDesc': 'Fatura {number} u dërgua me aplikacionin që zgjodhe.',
   'inv.previewOpenedDesc': 'Kjo është vetëm parapamje — fatura nuk u ruajt.',
+  'inv.previewBlocked': 'Shfletuesi nuk lejoi hapjen e skedës.',
+  'inv.previewBlockedDesc':
+    'Fatura u shkarkua në vend të saj — hape nga skedarët e telefonit.',
   'inv.markedPaidDesc': 'Pagesa u regjistrua më {date}.',
   'inv.markedUnpaidDesc': 'Fatura kthehet te pagesat në pritje.',
   'adm.paymentApprovedDesc': 'Abonimi i përdoruesit u aktivizua.',

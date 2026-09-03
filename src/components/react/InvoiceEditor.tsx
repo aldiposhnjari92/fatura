@@ -34,7 +34,12 @@ import {
   type Profile,
 } from '@/lib/types';
 import { addDays, formatALL, toDateInput } from '@/lib/utils';
-import { downloadInvoicePdf, isPdfEngineLoadError, shareInvoicePdf } from '@/lib/pdf';
+import {
+  downloadInvoicePdf,
+  invoicePdfObjectUrl,
+  isPdfEngineLoadError,
+  shareInvoicePdf,
+} from '@/lib/pdf';
 import { flashToast, notify } from '@/lib/toast';
 import { startNavProgress } from '@/lib/nav-progress';
 
@@ -442,15 +447,61 @@ export default function InvoiceEditor({
       fail(t('inv.errPreviewFailed'), validationError);
       return;
     }
+
+    /*
+      The tab is claimed here, synchronously, while this click is still what
+      the browser considers a user gesture.
+
+      Opening it after the PDF was built is what broke preview on phones:
+      building takes a few hundred milliseconds — the jsPDF chunk has to be
+      fetched on the first go — and by the time the await resolved the gesture
+      had expired. Mobile popup blockers then refuse window.open without
+      raising anything, so the button reported success and nothing appeared.
+
+      `noopener` cannot come along: it makes window.open return null by spec,
+      and the handle is the whole point. The opener link is cut below instead.
+    */
+    const tab = window.open('', '_blank');
+
     setBusyPdf('preview');
     try {
-      const { invoicePdfObjectUrl } = await import('@/lib/pdf');
+      if (!tab) {
+        /*
+          Blocked outright, or opened in a browser that hands back nothing.
+          Downloading is the one thing every phone will do with a PDF, so the
+          invoice still reaches the user — said plainly, not as a success.
+        */
+        await downloadInvoicePdf(pdfInput, selectedClient?.name);
+        notify.info(t('inv.previewBlocked'), t('inv.previewBlockedDesc'));
+        return;
+      }
+
+      // Something to look at while the engine loads on a slow connection.
+      /* A fixed string: the invoice number is the user's own text, and this
+         document is written, not templated. Nothing interpolated goes in. */
+      tab.document.write(
+        '<!doctype html><meta charset="utf-8">' +
+          '<meta name="viewport" content="width=device-width">' +
+          '<title>Fatura</title>' +
+          '<body style="margin:0;padding:24px;font:14px system-ui,sans-serif">' +
+          'Po përgatitet fatura…'
+      );
+      tab.document.close();
+
       const url = await invoicePdfObjectUrl(pdfInput);
-      window.open(url, '_blank', 'noopener');
+      tab.location.href = url;
+      try {
+        tab.opener = null;
+      } catch {
+        // Not writable in every browser; the tab is our own blob either way.
+      }
+
       notify.info(t('inv.previewOpened'), t('inv.previewOpenedDesc'));
       // Give the new tab time to claim the blob before releasing it.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
+      // Never leave the placeholder sitting there after a failure.
+      tab?.close();
       reportPdfError(t('inv.errPreviewFailed'), err);
     } finally {
       setBusyPdf(null);
