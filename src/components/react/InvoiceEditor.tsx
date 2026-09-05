@@ -6,6 +6,7 @@ import {
   FileText,
   List,
   Loader2,
+  Pencil,
   Plus,
   Receipt,
   Save,
@@ -25,6 +26,13 @@ import { Label } from '@/components/ui/react/label';
 import { Textarea } from '@/components/ui/react/textarea';
 import { DatePicker } from '@/components/ui/react/date-picker';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
+import { ProductCombobox } from '@/components/ui/react/product-combobox';
+import {
+  mergeProductCatalogue,
+  mergeProductLine,
+  productLineIndex,
+  type ProductSuggestion,
+} from '@/lib/products';
 import {
   computeTotals,
   type Client,
@@ -33,7 +41,7 @@ import {
   type InvoiceStatus,
   type Profile,
 } from '@/lib/types';
-import { addDays, formatALL, toDateInput } from '@/lib/utils';
+import { addDays, cn, formatALL, toDateInput } from '@/lib/utils';
 import {
   downloadInvoicePdf,
   invoicePdfObjectUrl,
@@ -49,6 +57,8 @@ interface Props {
   invoice?: Invoice | null;
   suggestedNumber: string;
   limitReached?: boolean;
+  /** Products this business has invoiced before, most-used first. */
+  products?: ProductSuggestion[];
 }
 
 /*
@@ -107,6 +117,7 @@ export default function InvoiceEditor({
   invoice,
   suggestedNumber,
   limitReached = false,
+  products = [],
 }: Props) {
   const t = useTranslations();
   const isEdit = Boolean(invoice?.id);
@@ -122,9 +133,17 @@ export default function InvoiceEditor({
   const [dueDate, setDueDate] = React.useState(
     invoice?.due_date ? toDateInput(invoice.due_date) : addDays(new Date(), 15)
   );
-  const [items, setItems] = React.useState<InvoiceItem[]>(
-    invoice?.items?.length ? invoice.items : [emptyItem()]
-  );
+  const [items, setItems] = React.useState<InvoiceItem[]>(invoice?.items ?? []);
+  /*
+    The one row of inputs. Everything already on the invoice is a read-only
+    line below it, so the form stays the same height whether the invoice has
+    one product or thirty. Editing a line pulls it back up into this row.
+  */
+  const [draft, setDraft] = React.useState<InvoiceItem>(emptyItem);
+  const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
+  /* The line the last Shto landed on, highlighted briefly so a merge is seen. */
+  const [flash, setFlash] = React.useState<{ index: number } | null>(null);
+  const descriptionRef = React.useRef<HTMLInputElement>(null);
   const [vatPercent, setVatPercent] = React.useState<number>(invoice?.vat_percent ?? 20);
   const [discount, setDiscount] = React.useState<number>(invoice?.discount ?? 0);
   const [status, setStatus] = React.useState<InvoiceStatus>(invoice?.status ?? 'draft');
@@ -147,10 +166,6 @@ export default function InvoiceEditor({
   });
   const [creatingClient, setCreatingClient] = React.useState(false);
 
-  const totals = React.useMemo(
-    () => computeTotals(items, vatPercent, discount),
-    [items, vatPercent, discount]
-  );
 
   // Set when the PDF chunk can't be fetched — the page is stale, not broken.
   const [needsReload, setNeedsReload] = React.useState(false);
@@ -177,19 +192,101 @@ export default function InvoiceEditor({
 
   const selectedClient = clients.find((c) => c.id === clientId) ?? null;
 
-  function updateItem(index: number, patch: Partial<InvoiceItem>) {
-    setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, ...patch } : item))
-    );
+  /**
+   * Move the composer's line onto the invoice.
+   *
+   * A product already on the invoice has its quantity raised instead of
+   * opening a second identical line — the catalogue exists so nothing is
+   * typed twice, and a repeat entry is a quantity change.
+   */
+  function commitDraft() {
+    const description = draft.description.trim();
+    if (!description) return;
+
+    const line: InvoiceItem = {
+      description,
+      quantity: Number(draft.quantity) || 0,
+      price: Number(draft.price) || 0,
+    };
+
+    if (editingIndex !== null) {
+      setItems((prev) => prev.map((item, i) => (i === editingIndex ? line : item)));
+      setFlash({ index: editingIndex });
+    } else {
+      setFlash({ index: productLineIndex(items, description) });
+      setItems((prev) => mergeProductLine(prev, line));
+    }
+
+    setDraft(emptyItem());
+    setEditingIndex(null);
+    descriptionRef.current?.focus();
   }
 
-  function addItem() {
-    setItems((prev) => [...prev, emptyItem()]);
+  /** Pull a line back into the composer rather than making every row editable. */
+  function editItem(index: number) {
+    setDraft({ ...items[index] });
+    setEditingIndex(index);
+    descriptionRef.current?.focus();
+  }
+
+  function cancelEdit() {
+    setDraft(emptyItem());
+    setEditingIndex(null);
   }
 
   function removeItem(index: number) {
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)));
+    setItems((prev) => prev.filter((_, i) => i !== index));
+    // Keep the composer aimed at the same line it was editing.
+    if (editingIndex === null) return;
+    if (editingIndex === index) cancelEdit();
+    else if (editingIndex > index) setEditingIndex(editingIndex - 1);
   }
+
+  /*
+    A description typed into the composer counts as a line before Shto is
+    pressed, so the totals, the preview and the save all agree with what is on
+    screen — forgetting to press Shto can't silently drop a product. While a
+    line is being edited the list still holds its saved values, so there is
+    nothing pending.
+  */
+  const pendingLine = React.useMemo<InvoiceItem | null>(() => {
+    if (editingIndex !== null) return null;
+    const description = draft.description.trim();
+    if (!description) return null;
+    return {
+      description,
+      quantity: Number(draft.quantity) || 0,
+      price: Number(draft.price) || 0,
+    };
+  }, [draft, editingIndex]);
+
+  /*
+    What the field suggests: the stored catalogue plus everything already on
+    this invoice, so a product entered for the first time can be picked again
+    straight away instead of only after the invoice is saved and reloaded.
+  */
+  const productOptions = React.useMemo(
+    () => mergeProductCatalogue(products, items),
+    [products, items]
+  );
+
+  /** What the invoice would hold if it were saved right now. */
+  const effectiveItems = React.useMemo(
+    () => (pendingLine ? mergeProductLine(items, pendingLine) : items),
+    [items, pendingLine]
+  );
+
+  const totals = React.useMemo(
+    () => computeTotals(effectiveItems, vatPercent, discount),
+    [effectiveItems, vatPercent, discount]
+  );
+
+  // The highlight is an acknowledgement, not a state — let it fade on its own.
+  React.useEffect(() => {
+    if (!flash) return;
+    const timer = window.setTimeout(() => setFlash(null), 1400);
+    return () => window.clearTimeout(timer);
+  }, [flash]);
 
   const pdfInput = React.useMemo(
     () => ({
@@ -197,7 +294,7 @@ export default function InvoiceEditor({
         invoice_number: invoiceNumber,
         issue_date: issueDate,
         due_date: dueDate || null,
-        items,
+        items: effectiveItems,
         vat_percent: vatPercent,
         discount,
         status,
@@ -210,7 +307,7 @@ export default function InvoiceEditor({
       invoiceNumber,
       issueDate,
       dueDate,
-      items,
+      effectiveItems,
       vatPercent,
       discount,
       status,
@@ -224,7 +321,7 @@ export default function InvoiceEditor({
     if (!invoiceNumber.trim()) return t('inv.errNumberRequired');
     if (!clientId) return t('inv.errClientRequired');
     if (!issueDate) return t('inv.errIssueDateRequired');
-    const filled = items.filter((i) => i.description.trim());
+    const filled = effectiveItems.filter((i) => i.description.trim());
     if (filled.length === 0) return t('inv.errNoItems');
     return null;
   }
@@ -291,7 +388,7 @@ export default function InvoiceEditor({
       } = await supabase.auth.getUser();
       if (!user) throw new Error(t('inv.errSessionExpired'));
 
-      const cleanItems = items
+      const cleanItems = effectiveItems
         .filter((item) => item.description.trim())
         .map((item) => ({
           description: item.description.trim(),
@@ -593,21 +690,6 @@ export default function InvoiceEditor({
               </Button>
             </div>
 
-            {selectedClient && !showNewClient && (
-              <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                <p className="font-semibold">{selectedClient.name}</p>
-                {selectedClient.nipt && (
-                  <p className="text-muted-foreground">NIPT: {selectedClient.nipt}</p>
-                )}
-                {selectedClient.address && (
-                  <p className="text-muted-foreground">{selectedClient.address}</p>
-                )}
-                {selectedClient.email && (
-                  <p className="text-muted-foreground">{selectedClient.email}</p>
-                )}
-              </div>
-            )}
-
             {showNewClient && (
               <form
                 onSubmit={handleCreateClient}
@@ -760,68 +842,153 @@ export default function InvoiceEditor({
 
         {/* Items */}
         <Section icon={List} title={t('inv.items')} hint="Çfarë po faturon">
-          <div className="space-y-3">
-            {/* Column headers, desktop only */}
-            <div className="hidden gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid sm:grid-cols-[1fr_80px_120px_110px_40px]">
-              <span>{t('inv.description')}</span>
-              <span className="text-right">{t('inv.quantity')}</span>
-              <span className="text-right">{t('inv.price')}</span>
-              <span className="text-right">{t('inv.amount')}</span>
-              <span />
-            </div>
-
-            {items.map((item, index) => {
-              const lineTotal =
-                (Number(item.quantity) || 0) * (Number(item.price) || 0);
-              return (
-                <div
-                  key={index}
-                  className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_80px_120px_110px_40px] sm:items-center sm:border-0 sm:p-0"
-                >
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateItem(index, { description: e.target.value })}
+          <div className="space-y-4">
+            {/*
+              One row of inputs, always. Each product added drops into the list
+              underneath as a line of text, so an invoice with twenty products
+              is twenty lines to read rather than sixty fields to scroll past.
+              The row sits on the card's own ground: a panel around it would be
+              a third surface inside a section that is already one.
+            */}
+            <div>
+              <div className="grid gap-3 sm:grid-cols-[1fr_84px_124px_auto] sm:items-end sm:gap-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="item-description" className="text-xs">
+                    {t('inv.description')}
+                  </Label>
+                  <ProductCombobox
+                    id="item-description"
+                    inputRef={descriptionRef}
+                    value={draft.description}
+                    onValueChange={(description) =>
+                      setDraft((d) => ({ ...d, description }))
+                    }
+                    onEnter={commitDraft}
+                    products={productOptions}
                     placeholder={t('inv.descriptionPlaceholder')}
-                    aria-label={t('inv.itemDescriptionAria', { n: index + 1 })}
                   />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-2 sm:contents">
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-quantity" className="text-xs">
+                      {t('inv.quantity')}
+                    </Label>
                     <NumberInput
-                      value={item.quantity}
-                      onValueChange={(quantity) => updateItem(index, { quantity })}
+                      id="item-quantity"
+                      value={draft.quantity}
+                      onValueChange={(quantity) => setDraft((d) => ({ ...d, quantity }))}
                       className="sm:text-right"
-                      aria-label={t('inv.itemQtyAria', { n: index + 1 })}
-                    />
-                    <NumberInput
-                      value={item.price}
-                      onValueChange={(price) => updateItem(index, { price })}
-                      className="sm:text-right"
-                      aria-label={t('inv.itemPriceAria', { n: index + 1 })}
                     />
                   </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-price" className="text-xs">
+                      {t('inv.price')}
+                    </Label>
+                    <NumberInput
+                      id="item-price"
+                      value={draft.price}
+                      onValueChange={(price) => setDraft((d) => ({ ...d, price }))}
+                      className="sm:text-right"
+                    />
+                  </div>
+                </div>
 
-                  <p className="text-right text-sm font-semibold tabular-nums">
-                    {formatALL(lineTotal, false)}
-                  </p>
-
+                <div className="flex gap-2">
+                  {editingIndex !== null && (
+                    <Button type="button" variant="ghost" onClick={cancelEdit}>
+                      {t('inv.itemCancelEdit')}
+                    </Button>
+                  )}
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeItem(index)}
-                    disabled={items.length === 1}
-                    aria-label={t('inv.itemDeleteAria', { n: index + 1 })}
-                    className="justify-self-end text-muted-foreground hover:text-destructive"
+                    onClick={commitDraft}
+                    disabled={!draft.description.trim()}
+                    className="flex-1 sm:flex-none"
                   >
-                    <Trash2 />
+                    {editingIndex !== null ? (
+                      <>
+                        <CheckCircle2 /> {t('inv.itemSaveEdit')}
+                      </>
+                    ) : (
+                      <>
+                        <Plus /> {t('inv.addItem')}
+                      </>
+                    )}
                   </Button>
                 </div>
-              );
-            })}
+              </div>
 
-            <Button type="button" variant="outline" onClick={addItem} className="w-full">
-              <Plus /> {t('inv.addItem')}
-            </Button>
+              {productOptions.length > 0 && editingIndex === null && (
+                <p className="text-muted-foreground mt-2 text-xs">
+                  {t('inv.productMemoryHint')}
+                </p>
+              )}
+            </div>
+
+            {items.length === 0 ? (
+              <p className="text-muted-foreground rounded-md border border-dashed px-4 py-5 text-center text-sm">
+                {t('inv.itemsEmpty')}
+              </p>
+            ) : (
+              /*
+                A ledger, not a stack of cards: one line per product, hairlines
+                between them, and the row height set by the icon buttons rather
+                than by padding. `overflow-hidden` is what rounds the first and
+                last rows, so no row carries a corner of its own.
+              */
+              <ul className="divide-border/60 divide-y overflow-hidden rounded-md border">
+                {items.map((item, index) => {
+                  const lineTotal =
+                    (Number(item.quantity) || 0) * (Number(item.price) || 0);
+                  return (
+                    <li
+                      key={index}
+                      className={cn(
+                        'flex items-center gap-2 py-1 pr-1 pl-3 transition-colors sm:gap-3',
+                        editingIndex === index && 'bg-accent/60',
+                        flash?.index === index && 'bg-primary/10'
+                      )}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {item.description}
+                      </span>
+
+                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {item.quantity} × {formatALL(item.price, false)}
+                      </span>
+
+                      <span className="shrink-0 text-sm font-medium tabular-nums">
+                        {formatALL(lineTotal, false)}
+                      </span>
+
+                      <span className="flex shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => editItem(index)}
+                          aria-label={t('inv.itemEditAria', { n: index + 1 })}
+                          className="text-muted-foreground hover:text-foreground size-8 rounded-md [&_svg]:size-3.5"
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(index)}
+                          aria-label={t('inv.itemDeleteAria', { n: index + 1 })}
+                          className="text-muted-foreground hover:text-destructive size-8 rounded-md [&_svg]:size-3.5"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </Section>
 

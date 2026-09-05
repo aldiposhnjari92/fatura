@@ -268,39 +268,53 @@ const activeFilter = filters.find((f) => f.value === status);
     the one in the app bar, writing the same `kerko` param — two boxes, one
     behaviour. The term now shows as a chip instead, so it stays visible and
     removable without being re-offered.
+
+    These are five views of the table below, so they are drawn as tabs sitting
+    on its top edge rather than as five free-floating pills: one rule across
+    the page ties them to what they filter, and the active view is marked by a
+    line under it instead of a solid blob that outweighs the table. The rule
+    runs the full width so the row still reads as a bar when the labels don't
+    fill it, and the tabs scroll sideways on a phone rather than wrapping to a
+    second line.
   */}
-  <div class="mt-5 mb-4 flex flex-wrap items-center gap-1.5">
-    {
-      filters.map((filter) => {
-        const isActive = status === filter.value;
-        return (
-          <Button
-            as="a"
-            href={buildHref({ statusi: filter.value ?? '', faqe: 1 })}
-            size="sm"
-            variant={isActive ? 'default' : 'ghost'}
-            class="rounded-full"
-            aria-current={isActive ? 'page' : undefined}
-          >
-            {filter.label}
-            <span
+  <div class="mt-5 mb-4">
+    <div class="border-border/70 flex overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {
+        filters.map((filter) => {
+          const isActive = status === filter.value;
+          return (
+            <a
+              href={buildHref({ statusi: filter.value ?? '', faqe: 1 })}
+              aria-current={isActive ? 'page' : undefined}
               class:list={[
-                'ml-0.5 rounded-full px-1.5 text-xs tabular-nums',
-                isActive ? 'bg-primary-foreground/20' : 'bg-muted text-muted-foreground',
+                // -mb-px pulls the tab's own border onto the container's, so
+                // the active underline replaces the rule instead of doubling it.
+                '-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 pb-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+                isActive
+                  ? 'border-primary text-foreground'
+                  : 'text-muted-foreground hover:text-foreground border-transparent',
               ]}
             >
-              {filter.count}
-            </span>
-          </Button>
-        );
-      })
-    }
+              {filter.label}
+              <span
+                class:list={[
+                  'rounded px-1.5 py-0.5 text-[11px] leading-none tabular-nums',
+                  isActive ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground',
+                ]}
+              >
+                {filter.count}
+              </span>
+            </a>
+          );
+        })
+      }
+    </div>
 
     {
       search && (
         <a
           href={buildHref({ kerko: '', faqe: 1 })}
-          class="bg-accent text-primary hover:bg-accent/70 ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors"
+          class="bg-accent text-primary hover:bg-accent/70 mt-3 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors"
         >
           <Icon name="search" class="size-3.5" />
           <span class="max-w-[12rem] truncate">{search}</span>

@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { displayStatus } from '@/lib/types';
 import { formatALL, formatDate } from '@/lib/utils';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
+import { suggestProducts } from '@/lib/products';
 import type { Client, Invoice } from '@/lib/types';
 
 export const prerender = false;
@@ -34,9 +35,10 @@ if (!invoiceRow) {
 
 const invoice = invoiceRow as Invoice;
 
-const [{ data: clientsData }, suggestedNumber] = await Promise.all([
+const [{ data: clientsData }, suggestedNumber, products] = await Promise.all([
   supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
   suggestInvoiceNumber(supabase, user!.id),
+  suggestProducts(supabase, user!.id),
 ]);
 
 const clients = (clientsData ?? []) as Client[];
@@ -84,6 +86,7 @@ const t = useTranslations();
     clients={clients}
     invoice={invoice}
     suggestedNumber={suggestedNumber}
+    products={products}
     client:load
   />
 </AppLayout>

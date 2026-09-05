@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
 import { Icon } from '@/components/ui/icon';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
+import { suggestProducts } from '@/lib/products';
 import type { Client } from '@/lib/types';
 import { quotaReached } from '@/lib/plans';
 
@@ -14,7 +15,7 @@ const { supabase, user, profile, plan } = Astro.locals;
 const now = new Date();
 const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-const [clientsResult, monthResult, suggestedNumber] = await Promise.all([
+const [clientsResult, monthResult, suggestedNumber, products] = await Promise.all([
   supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
   supabase
     .from('invoices')
@@ -22,6 +23,9 @@ const [clientsResult, monthResult, suggestedNumber] = await Promise.all([
     .eq('owner_id', user!.id)
     .gte('created_at', monthStart),
   suggestInvoiceNumber(supabase, user!.id),
+  // What this business has invoiced before, so a repeat product is picked
+  // from a list rather than typed out again.
+  suggestProducts(supabase, user!.id),
 ]);
 
 const clients = (clientsResult.data ?? []) as Client[];
@@ -59,6 +63,7 @@ const t = useTranslations();
     clients={clients}
     suggestedNumber={suggestedNumber}
     limitReached={limitReached}
+    products={products}
     client:load
   />
 </AppLayout>
