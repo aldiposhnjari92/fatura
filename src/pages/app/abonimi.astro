@@ -23,9 +23,27 @@ const initialMonths = isTermMonths(requestedMonths) ? requestedMonths : 1;
 const requestedPlan = Astro.url.searchParams.get('plan');
 const fromSignup = Astro.url.searchParams.has('muaj');
 
-// import.meta.env is server-side here; only PUBLIC_* reaches the browser, and
-// the PayPal *secret* is never passed to the island.
-const env = import.meta.env as unknown as Record<string, unknown>;
+/*
+  import.meta.env is server-side here; only PUBLIC_* reaches the browser, and
+  the PayPal *secret* is never passed to the island. Each variable has to be
+  named literally: the build replaces `import.meta.env.FOO` at compile time, so
+  spreading the object and looking keys up dynamically finds nothing once
+  deployed and every helper silently falls back to its placeholder. process.env
+  is the runtime source on the serverless adapter, for values changed in the
+  hosting dashboard without a rebuild.
+*/
+const env: Record<string, unknown> = {
+  BANK_BENEFICIARY: process.env.BANK_BENEFICIARY ?? import.meta.env.BANK_BENEFICIARY,
+  BANK_NAME: process.env.BANK_NAME ?? import.meta.env.BANK_NAME,
+  BANK_IBAN: process.env.BANK_IBAN ?? import.meta.env.BANK_IBAN,
+  BANK_SWIFT: process.env.BANK_SWIFT ?? import.meta.env.BANK_SWIFT,
+  BANK_CURRENCY: process.env.BANK_CURRENCY ?? import.meta.env.BANK_CURRENCY,
+  PUBLIC_PAYPAL_CLIENT_ID:
+    process.env.PUBLIC_PAYPAL_CLIENT_ID ?? import.meta.env.PUBLIC_PAYPAL_CLIENT_ID,
+  PAYPAL_SECRET: process.env.PAYPAL_SECRET ?? import.meta.env.PAYPAL_SECRET,
+  PAYPAL_CARD_FIELDS: process.env.PAYPAL_CARD_FIELDS ?? import.meta.env.PAYPAL_CARD_FIELDS,
+  PAYPAL_CURRENCY: process.env.PAYPAL_CURRENCY ?? import.meta.env.PAYPAL_CURRENCY,
+};
 const methods = getMethods(env);
 const bank = getBankDetails(env);
 const bankConfigured = isBankConfigured(env);
