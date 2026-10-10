@@ -84,7 +84,13 @@ export default defineConfig({
       // through a dynamic import inside an island, so leaving it to lazy
       // discovery makes Vite re-optimise on first "Shkarko PDF" and invalidate
       // the `?v=` hash an already-open tab is holding.
-      include: ['jspdf', 'jspdf-autotable'],
+      // The Excel reader/writer (src/lib/excel.ts) are reached the same way.
+      include: [
+        'jspdf',
+        'jspdf-autotable',
+        'write-excel-file/browser',
+        'read-excel-file/browser',
+      ],
     },
     ssr: {
       // jsPDF must never be pulled into the server bundle — PDF is 100% client-side.
