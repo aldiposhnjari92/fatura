@@ -428,7 +428,11 @@ async function buildInvoicePdf({ invoice, profile, client }: InvoicePdfInput) {
   return doc;
 }
 
-function invoiceFileName(invoiceNumber: string, clientName?: string | null): string {
+export function invoiceFileName(
+  invoiceNumber: string,
+  clientName?: string | null,
+  extension: 'pdf' | 'xlsx' = 'pdf'
+): string {
   const safe = (value: string) =>
     value
       .normalize('NFD')
@@ -438,7 +442,7 @@ function invoiceFileName(invoiceNumber: string, clientName?: string | null): str
       .replace(/^-|-$/g, '');
   const parts = [safe(invoiceNumber || 'fature')];
   if (clientName) parts.push(safe(clientName));
-  return `${parts.filter(Boolean).join('-')}.pdf`;
+  return `${parts.filter(Boolean).join('-')}.${extension}`;
 }
 
 export async function downloadInvoicePdf(input: InvoicePdfInput, clientName?: string | null) {

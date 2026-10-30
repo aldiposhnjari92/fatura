@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { computeTotals, type Client, type InvoiceItem, type InvoiceStatus } from '@/lib/types';
 import { translate } from '@/lib/i18n';
+import { invoiceFileName } from '@/lib/pdf';
 
 /*
   Invoices to and from .xlsx.
@@ -13,8 +14,10 @@ import { translate } from '@/lib/i18n';
   sheet typed by hand does not have to repeat it on every line.
 
   Columns are matched by header, not position, so a user can reorder or drop
-  the optional ones. Subtotal and total are written out for the reader but
-  never read back: `computeTotals` is the only arithmetic that is trusted.
+  the optional ones — and a sheet with headers of its own is mapped by hand
+  (see "Column mapping" below). Subtotal and total are written out for the
+  reader but never read back: `computeTotals` is the only arithmetic that is
+  trusted. A line's amount is read only when the sheet has no unit price.
 
   Both libraries are loaded on demand, like the PDF engine — nobody should
   download a spreadsheet parser to look at their invoice list.
@@ -49,21 +52,21 @@ interface ColumnDef {
 }
 
 const COLUMNS: ColumnDef[] = [
-  { key: 'number', header: 'Numri', width: 16, aliases: ['nr', 'numri i fatures', 'invoice number', 'invoice', 'number'] },
-  { key: 'client', header: 'Klienti', width: 28, aliases: ['emri i klientit', 'client', 'customer'] },
+  { key: 'number', header: 'Numri', width: 16, aliases: ['nr', 'nr fature', 'fatura nr', 'numri i fatures', 'numri fatures', 'invoice number', 'invoice no', 'invoice', 'number'] },
+  { key: 'client', header: 'Klienti', width: 28, aliases: ['klient', 'emri i klientit', 'bleresi', 'subjekti', 'client', 'customer', 'buyer'] },
   { key: 'clientNipt', header: 'NIPT i klientit', width: 16, aliases: ['nipt', 'client nipt', 'tax id'] },
   { key: 'clientEmail', header: 'Email i klientit', width: 24, aliases: ['email', 'client email'] },
   { key: 'clientAddress', header: 'Adresa e klientit', width: 28, aliases: ['adresa', 'client address', 'address'] },
-  { key: 'issueDate', header: 'Data e lëshimit', width: 14, aliases: ['data', 'leshuar', 'issue date', 'date'] },
+  { key: 'issueDate', header: 'Data e lëshimit', width: 14, aliases: ['data', 'dt', 'data e fatures', 'data fatures', 'leshuar', 'issue date', 'invoice date', 'date'] },
   { key: 'dueDate', header: 'Afati', width: 14, aliases: ['afati i pageses', 'due date', 'due'] },
   { key: 'status', header: 'Statusi', width: 13, aliases: ['status'] },
   { key: 'paidAt', header: 'Paguar më', width: 14, aliases: ['data e pageses', 'paid at', 'paid on'] },
   { key: 'vat', header: 'TVSH %', width: 9, aliases: ['tvsh', 'vat', 'vat %'] },
   { key: 'discount', header: 'Zbritja', width: 11, aliases: ['zbritje', 'discount'] },
-  { key: 'description', header: 'Përshkrimi', width: 36, aliases: ['artikulli', 'sherbimi', 'description', 'item'] },
+  { key: 'description', header: 'Përshkrimi', width: 36, aliases: ['pershkrim', 'artikulli', 'artikull', 'sherbimi', 'description', 'item'] },
   { key: 'quantity', header: 'Sasia', width: 9, aliases: ['qty', 'quantity'] },
   { key: 'price', header: 'Çmimi', width: 12, aliases: ['cmimi njesi', 'price', 'unit price'] },
-  { key: 'amount', header: 'Vlera', width: 13, aliases: ['amount'] },
+  { key: 'amount', header: 'Vlera', width: 13, aliases: ['shuma', 'amount', 'line total'] },
   { key: 'subtotal', header: 'Nëntotali', width: 13, aliases: ['subtotal'] },
   { key: 'total', header: 'Totali', width: 13, aliases: ['total'] },
   { key: 'notes', header: 'Shënime', width: 30, aliases: ['shenim', 'notes', 'note'] },
@@ -178,14 +181,15 @@ interface ExportRow {
 /** PostgREST caps a response at 1000 rows by default, so the export reads in pages. */
 const EXPORT_PAGE = 1000;
 
+const EXPORT_SELECT =
+  'invoice_number, issue_date, due_date, items, vat_percent, discount, status, paid_at, notes, clients(name, nipt, email, address)';
+
 async function fetchAllInvoices(supabase: SupabaseClient, ownerId: string): Promise<ExportRow[]> {
   const rows: ExportRow[] = [];
   for (let from = 0; ; from += EXPORT_PAGE) {
     const { data, error } = await supabase
       .from('invoices')
-      .select(
-        'invoice_number, issue_date, due_date, items, vat_percent, discount, status, paid_at, notes, clients(name, nipt, email, address)'
-      )
+      .select(EXPORT_SELECT)
       .eq('owner_id', ownerId)
       .order('issue_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -271,6 +275,27 @@ export async function exportInvoicesToExcel(
   const today = new Date().toISOString().slice(0, 10);
   await writeWorkbook(rows, `faturat-${today}.xlsx`);
   return invoices.length;
+}
+
+/**
+ * Download one invoice as .xlsx, in the same layout as the full export — so
+ * the file can be handed to an accountant or imported back unchanged.
+ */
+export async function exportInvoiceToExcel(
+  supabase: SupabaseClient,
+  invoiceId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(EXPORT_SELECT)
+    .eq('id', invoiceId)
+    .single();
+  if (error) throw error;
+  const invoice = data as unknown as ExportRow;
+  await writeWorkbook(
+    [headerRow(), ...invoiceRows(invoice)],
+    invoiceFileName(invoice.invoice_number, invoice.clients?.name, 'xlsx')
+  );
 }
 
 /** An empty sheet with the right headers and one example invoice, to fill in. */
@@ -361,46 +386,163 @@ function toStatus(value: unknown): ParsedInvoice['status'] | null {
   return null;
 }
 
-function mapHeaders(header: unknown[]): Map<ColumnKey, number> {
-  const lookup = new Map<string, ColumnKey>();
-  for (const column of COLUMNS) {
-    lookup.set(fold(column.header), column.key);
-    for (const alias of column.aliases ?? []) lookup.set(fold(alias), column.key);
-  }
-  const positions = new Map<ColumnKey, number>();
-  header.forEach((cell, index) => {
-    const key = lookup.get(fold(toText(cell)));
-    if (key && !positions.has(key)) positions.set(key, index);
-  });
-  return positions;
+// ---------------------------------------------------------------------
+// Column mapping
+//
+// A user's own spreadsheet rarely says "Numri" and "Data e lëshimit". The
+// import guesses from the headers, and when the guess cannot find what it
+// needs the user points each field at one of their columns instead. Those
+// choices are remembered per header name, so the second import of the same
+// kind of file goes straight to the preview.
+// ---------------------------------------------------------------------
+
+/** Which sheet column (0-based) feeds each field; a field left out is not imported. */
+export type ColumnMapping = Partial<Record<ColumnKey, number>>;
+
+const REQUIRED: ColumnKey[] = ['number', 'client', 'issueDate'];
+/** A line needs at least one of these to be worth importing. */
+const ITEM_SOURCES: ColumnKey[] = ['description', 'price', 'amount'];
+
+export interface ImportField {
+  key: ColumnKey;
+  label: string;
+  required: boolean;
 }
 
-/** Read the first sheet of a workbook into invoices, plus everything that could not be read. */
-export async function parseInvoicesWorkbook(file: File): Promise<ParseResult> {
-  const readSheet = await loadReader();
-  const sheet = (await readSheet(file)) as unknown[][];
+/** Everything the import can read. Subtotal and total are never read: they are recomputed. */
+export const IMPORT_FIELDS: ImportField[] = COLUMNS.filter(
+  (c) => c.key !== 'subtotal' && c.key !== 'total'
+).map((c) => ({ key: c.key, label: c.header, required: REQUIRED.includes(c.key) }));
 
-  const firstFilled = sheet.findIndex((row) => row.some((cell) => toText(cell) !== ''));
-  if (firstFilled === -1) {
-    return { invoices: [], problems: [{ row: 1, message: translate('xls.errEmpty') }] };
+const REMEMBERED_KEY = 'fatura.xls.columns';
+
+/** A header as a lookup key: "Nr. Faturës:" and "nr fatures" are the same column. */
+function headerKey(value: string): string {
+  return fold(value)
+    .replace(/[^a-z0-9% ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function rememberedHeaders(): Record<string, ColumnKey> {
+  try {
+    return JSON.parse(localStorage.getItem(REMEMBERED_KEY) ?? '{}');
+  } catch {
+    return {};
   }
+}
 
-  const required: ColumnKey[] = ['number', 'client', 'issueDate', 'description'];
-  // The header is the first of the opening rows that names every required
-  // column, so a title line or two above it is fine. Failing that, the first
-  // non-empty row, so the error can say which columns it lacks.
-  const found = sheet
-    .slice(0, firstFilled + 10)
-    .findIndex((row) => {
-      const mapped = mapHeaders(row);
-      return required.every((key) => mapped.has(key));
-    });
-  const headerIndex = found === -1 ? firstFilled : found;
+/** Keep the user's choices so the same file layout maps by itself next time. */
+export function rememberMapping(headers: string[], mapping: ColumnMapping): void {
+  try {
+    const remembered = rememberedHeaders();
+    for (const [key, index] of Object.entries(mapping)) {
+      const header = headerKey(headers[index as number] ?? '');
+      if (header) remembered[header] = key as ColumnKey;
+    }
+    localStorage.setItem(REMEMBERED_KEY, JSON.stringify(remembered));
+  } catch {
+    // Private mode or storage full: the mapping still works, it just is not remembered.
+  }
+}
 
-  const positions = mapHeaders(sheet[headerIndex]);
-  const missing = required.filter((key) => !positions.has(key));
+/** Best guess from header names: the user's remembered choices first, then ours. */
+export function guessMapping(header: unknown[]): ColumnMapping {
+  const lookup = new Map<string, ColumnKey>();
+  for (const column of COLUMNS) {
+    lookup.set(headerKey(column.header), column.key);
+    for (const alias of column.aliases ?? []) lookup.set(headerKey(alias), column.key);
+  }
+  for (const [name, key] of Object.entries(rememberedHeaders())) lookup.set(name, key);
+
+  const mapping: ColumnMapping = {};
+  header.forEach((cell, index) => {
+    const key = lookup.get(headerKey(toText(cell)));
+    if (key && mapping[key] === undefined) mapping[key] = index;
+  });
+  return mapping;
+}
+
+/** Required fields the mapping still lacks — the item fields count as one. */
+export function missingFields(mapping: ColumnMapping): ImportField[] {
+  const missing = IMPORT_FIELDS.filter((f) => f.required && mapping[f.key] === undefined);
+  if (ITEM_SOURCES.every((key) => mapping[key] === undefined)) {
+    missing.push(IMPORT_FIELDS.find((f) => f.key === 'description')!);
+  }
+  return missing;
+}
+
+/** "A", "B" … "AA" — what Excel calls a column that has no header. */
+export function columnLetter(index: number): string {
+  let out = '';
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
+    out = String.fromCharCode(65 + ((n - 1) % 26)) + out;
+  }
+  return out;
+}
+
+export interface WorkbookSheet {
+  rows: unknown[][];
+  /** Rows that could be the header — the first few with anything in them. */
+  headerCandidates: number[];
+  headerIndex: number;
+  mapping: ColumnMapping;
+}
+
+/** Read the first sheet and guess where its header is and what each column holds. */
+export async function readInvoicesWorkbook(file: File): Promise<WorkbookSheet> {
+  const readSheet = await loadReader();
+  const rows = (await readSheet(file)) as unknown[][];
+
+  const headerCandidates: number[] = [];
+  for (let i = 0; i < rows.length && headerCandidates.length < 10; i++) {
+    if (rows[i].some((cell) => toText(cell) !== '')) headerCandidates.push(i);
+  }
+  if (headerCandidates.length === 0) throw new Error(translate('xls.errEmpty'));
+
+  // The header is the first of the opening rows the guess fully understands,
+  // so a title line or two above it is fine. Failing that, the row it
+  // recognises most columns in, then the widest row of text — a title line
+  // is one cell, a header row is many — and the user maps the rest.
+  const score = (i: number) => {
+    const texts = rows[i].filter((cell) => typeof cell === 'string' && cell.trim() !== '');
+    return Object.keys(guessMapping(rows[i])).length * 100 + texts.length;
+  };
+  const headerIndex =
+    headerCandidates.find((i) => missingFields(guessMapping(rows[i])).length === 0) ??
+    headerCandidates.reduce((best, i) => (score(i) > score(best) ? i : best));
+
+  return { rows, headerCandidates, headerIndex, mapping: guessMapping(rows[headerIndex]) };
+}
+
+/** The header row's cells as text, one per column the sheet uses. */
+export function sheetHeaders(sheet: WorkbookSheet, headerIndex: number): string[] {
+  const width = Math.max(0, ...sheet.rows.map((row) => row.length));
+  const header = sheet.rows[headerIndex] ?? [];
+  return Array.from({ length: width }, (_, i) => toText(header[i]));
+}
+
+/** The first value under the header in a column, to show what the column holds. */
+export function columnSample(sheet: WorkbookSheet, headerIndex: number, column: number): string {
+  for (let i = headerIndex + 1; i < sheet.rows.length; i++) {
+    const value = sheet.rows[i][column];
+    if (value instanceof Date) return cellToIso(value) ?? '';
+    const text = toText(value);
+    if (text) return text;
+  }
+  return '';
+}
+
+/** Turn the sheet into invoices using the given mapping, plus everything that could not be read. */
+export function parseInvoiceRows(
+  sheet: WorkbookSheet,
+  headerIndex: number,
+  mapping: ColumnMapping
+): ParseResult {
+  const rows = sheet.rows;
+  const missing = missingFields(mapping);
   if (missing.length > 0) {
-    const names = missing.map((key) => COLUMNS.find((c) => c.key === key)!.header).join(', ');
+    const names = missing.map((f) => f.label).join(', ');
     return {
       invoices: [],
       problems: [{ row: headerIndex + 1, message: translate('xls.errMissingColumns', { columns: names }) }],
@@ -408,7 +550,7 @@ export async function parseInvoicesWorkbook(file: File): Promise<ParseResult> {
   }
 
   const get = (row: unknown[], key: ColumnKey) => {
-    const index = positions.get(key);
+    const index = mapping[key];
     return index === undefined ? null : row[index];
   };
 
@@ -417,8 +559,8 @@ export async function parseInvoicesWorkbook(file: File): Promise<ParseResult> {
   const problems: RowProblem[] = [];
   let current: ParsedInvoice | null = null;
 
-  for (let i = headerIndex + 1; i < sheet.length; i++) {
-    const row = sheet[i];
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const row = rows[i];
     const rowNumber = i + 1;
     if (!row.some((cell) => toText(cell) !== '')) continue;
 
@@ -490,14 +632,25 @@ export async function parseInvoicesWorkbook(file: File): Promise<ParseResult> {
     current = invoice;
 
     const description = toText(get(row, 'description'));
-    if (!description) continue;
     const quantity = toNumber(get(row, 'quantity'));
-    const price = toNumber(get(row, 'price'));
+    let price = toNumber(get(row, 'price'));
+    // A sheet that only records what each line came to: the unit price is
+    // worked back from it, so the recomputed total lands on the same number.
+    const amount = toNumber(get(row, 'amount'));
+    if (price == null && amount != null) {
+      price = quantity ? Math.round((amount / quantity) * 100) / 100 : amount;
+    }
+    // Neither a description nor a price is an invoice's own row, not a line.
+    if (!description && !price) continue;
     if ((quantity ?? 1) < 0 || (price ?? 0) < 0) {
       report(`${invoice.invoice_number}: ${translate('xls.errNegativeLine')}`);
       continue;
     }
-    invoice.items.push({ description, quantity: quantity ?? 1, price: price ?? 0 });
+    invoice.items.push({
+      description: description || translate('xls.defaultItem'),
+      quantity: quantity ?? 1,
+      price: price ?? 0,
+    });
   }
 
   const invoices: ParsedInvoice[] = [];

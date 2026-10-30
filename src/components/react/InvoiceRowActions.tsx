@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Download, Loader2, MoreHorizontal, Share2, SquarePen, Trash2 } from 'lucide-react';
+import {
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  MoreHorizontal,
+  Share2,
+  SquarePen,
+  Trash2,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import {
@@ -24,6 +32,7 @@ import {
   shareInvoicePdf,
   type InvoicePdfInput,
 } from '@/lib/pdf';
+import { exportInvoiceToExcel } from '@/lib/excel';
 import { flashToast, notify } from '@/lib/toast';
 import { useTranslations } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
@@ -69,7 +78,7 @@ interface Props {
 
 export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
   const t = useTranslations();
-  const [busy, setBusy] = React.useState<'download' | 'share' | null>(null);
+  const [busy, setBusy] = React.useState<'download' | 'excel' | 'share' | null>(null);
   const [confirming, setConfirming] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
@@ -118,6 +127,21 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
       );
     } catch (err) {
       reportPdfError(t('inv.errPdfFailed'), err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleExcel() {
+    setBusy('excel');
+    try {
+      await exportInvoiceToExcel(supabase, invoiceId);
+      notify.success(
+        t('xls.invoiceExported'),
+        t('xls.invoiceExportedDesc', { number: invoiceNumber })
+      );
+    } catch (err) {
+      notify.error(t('xls.errExport'), (err as Error).message);
     } finally {
       setBusy(null);
     }
@@ -186,6 +210,9 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void handleDownload()} disabled={busy !== null}>
             <Download /> {t('inv.downloadPdf')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void handleExcel()} disabled={busy !== null}>
+            <FileSpreadsheet /> {t('inv.downloadExcel')}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void handleShare()} disabled={busy !== null}>
             <Share2 /> {t('inv.share')}
