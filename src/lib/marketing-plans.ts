@@ -51,6 +51,7 @@ const BASE: Record<PlanId, Omit<MarketingPlan, 'price'>> = {
       'Klientë të palimituar',
       'PDF me logon tënde',
       'TVSH dhe zbritje',
+      'Import dhe eksport në Excel',
     ],
     note: 'Pa kartë krediti',
     button: { label: 'Fillo falas', href: '/regjistrohu', variant: 'outline' },

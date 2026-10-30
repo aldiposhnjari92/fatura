@@ -44,9 +44,17 @@ const supporting = [
     row 1  lead (4 cols)  | ink (2 cols, rows 1-3)
     row 2  TVSH           | WhatsApp
     row 3  logo           | privatësia
+    row 4  Excel (4 cols) | paid is final (2 cols)
   Saved clients used to sit here too, but the showcase above now covers them in
   depth with real UI — repeating it made the page say the same thing twice.
 */
+
+/* The Excel tile's miniature: a customer's own headers landing in ours. */
+const columnMatches = [
+  { theirs: 'Nr. Fature', ours: 'Numri' },
+  { theirs: 'Blerësi', ours: 'Klienti' },
+  { theirs: 'Shuma', ours: 'Vlera' },
+];
 ---
 
 <Section id="vecorite" class={`bg-ground ${className}`}>
@@ -59,7 +67,7 @@ const supporting = [
   </SectionContainer>
 
   <SectionContainer class="max-w-6xl">
-    <div class="grid gap-4 md:grid-cols-6 md:grid-rows-3" data-stagger>
+    <div class="grid gap-4 md:grid-cols-6 md:grid-rows-4" data-stagger>
       <!-- Lead tile: the branded PDF -->
       <article
         class="bg-card shadow-card group relative overflow-hidden rounded-2xl p-7 md:col-span-4 md:row-span-1"
@@ -148,6 +156,66 @@ const supporting = [
           </article>
         ))
       }
+
+      <!-- Excel: the way in for a business that already keeps its invoices in a sheet -->
+      <article class="bg-card shadow-card group rounded-2xl p-7 md:col-span-4">
+        <div class="flex flex-col gap-5 md:flex-row md:items-center md:gap-7">
+          <div class="flex-1">
+            <div
+              class="bg-accent ring-primary/10 flex size-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105"
+            >
+              <Icon name="file-spreadsheet" class="text-primary size-5" />
+            </div>
+            <h3 class="mt-5 text-lg font-semibold tracking-tight">
+              Sill faturat e vjetra nga Excel
+            </h3>
+            <p class="text-muted-foreground mt-2 text-sm leading-relaxed">
+              Ke një Excel që e mban prej vitesh? Ngarkoje ashtu siç është. Na trego një
+              herë çfarë ka në secilën kolonë dhe herën tjetër e dimë vetë. Kur ta kërkojë
+              kontabilisti, e nxjerr çdo faturë në Excel.
+            </p>
+          </div>
+
+          <!-- Miniature of the column matching -->
+          <div
+            class="ring-border w-full shrink-0 rounded-xl bg-white p-3 ring-1 md:w-60"
+            aria-hidden="true"
+          >
+            <p class="text-[9px] font-semibold tracking-wider text-slate/60 uppercase">
+              Përputh kolonat
+            </p>
+            <ul class="mt-2 space-y-1.5">
+              {
+                columnMatches.map((m) => (
+                  <li class="flex items-center gap-1.5 text-[10px]">
+                    <span class="bg-muted text-ink flex-1 truncate rounded px-1.5 py-1">
+                      {m.theirs}
+                    </span>
+                    <Icon name="arrow-right" class="text-primary size-3 shrink-0" />
+                    <span class="bg-accent text-primary flex-1 truncate rounded px-1.5 py-1 font-semibold">
+                      {m.ours}
+                    </span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- Paid is final -->
+      <article class="bg-card shadow-card group lift rounded-2xl p-6 md:col-span-2">
+        <div
+          class="bg-accent ring-primary/10 flex size-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105"
+        >
+          <Icon name="shield-check" class="text-primary size-5" />
+        </div>
+        <h3 class="mt-5 font-semibold tracking-tight">E paguar, e mbyllur</h3>
+        <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          Një faturë e paguar nuk ndryshohet e nuk fshihet më — historiku yt mbetet ashtu
+          siç ndodhi.
+        </p>
+      </article>
     </div>
 
     <div class="flex justify-center">
