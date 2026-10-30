@@ -4,8 +4,7 @@ import { cn } from '@/lib/utils';
   The brand mark, for the React shells.
 
   The same 32×32 rounded square with three rules was inlined in AppShell and
-  again in AdminShell — a third and fourth copy of what src/assets/logo-mark.svg
-  and src/components/Logo.astro already draw. The Astro side cannot be imported
+  again in AdminShell — copies of what src/components/Logo.astro already draws. The Astro side cannot be imported
   into React, so one shared component per renderer is the floor; four was not.
 
   `invert` is the console's block: on ink, the square takes the brand teal and

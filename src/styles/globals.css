@@ -309,46 +309,10 @@
   line-height: 1.65;
 }
 
-/* A hairline that fades at both ends — used to separate bands without the
-   hard edge of a full-width border. */
-@utility rule-fade {
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--color-border) 15%,
-    var(--color-border) 85%,
-    transparent
-  );
-}
-
-/* Soft brand light behind the hero product panel. */
-@utility bg-aurora {
-  background:
-    radial-gradient(60% 50% at 75% 20%, --alpha(var(--brand) / 14%), transparent 70%),
-    radial-gradient(45% 45% at 15% 5%, --alpha(var(--primary) / 8%), transparent 70%);
-}
-
-/* Fine grid, fading downward. Reads as engineered rather than decorative. */
-@utility bg-grid {
-  background-image:
-    linear-gradient(to right, --alpha(var(--foreground) / 5%) 1px, transparent 1px),
-    linear-gradient(to bottom, --alpha(var(--foreground) / 5%) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: linear-gradient(to bottom, black, transparent 75%);
-}
-
 /* Faint dotted ground, used behind the hero. */
 @utility bg-dots {
   background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
   background-size: 24px 24px;
-}
-
-/* Teal glow used on dark sections. */
-@utility glow-brand {
-  box-shadow:
-    0 0 0 1px --alpha(var(--brand) / 20%),
-    0 18px 60px -18px --alpha(var(--brand) / 45%);
 }
 
 /* Thin teal rule under a section eyebrow. */
