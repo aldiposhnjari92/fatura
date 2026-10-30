@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Download, FileSpreadsheet, FileUp, Loader2, Sheet } from 'lucide-react';
+import {
+  CheckCircle2,
+  Download,
+  FileSpreadsheet,
+  FileUp,
+  Info,
+  Loader2,
+  Sheet,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import {
@@ -46,7 +54,7 @@ import {
   type WorkbookSheet,
 } from '@/lib/excel';
 import { flashToast, notify } from '@/lib/toast';
-import { translate, useTranslations } from '@/lib/i18n';
+import { translate, useTranslations, type TranslationKey } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
 
 /*
@@ -89,6 +97,19 @@ type Phase =
   | { kind: 'importing'; total: number; done: number }
   | { kind: 'result'; result: ImportResult };
 
+/** Albanian has one form for 1 and one for everything else, 0 included. */
+function counted(count: number, one: TranslationKey, many: TranslationKey): string {
+  return translate(count === 1 ? one : many, { count });
+}
+
+/** "2 fatura u shtuan. 1 u anashkalua." — the second half only when something was skipped. */
+function importSummary({ imported, skipped }: ImportResult): string {
+  const added = counted(imported, 'xls.importedDescOne', 'xls.importedDesc');
+  return skipped > 0
+    ? `${added} ${counted(skipped, 'xls.skippedDescOne', 'xls.skippedDesc')}`
+    : added;
+}
+
 /** Shown in full up to this many; past it the user needs to fix the file, not read a list. */
 const PROBLEMS_SHOWN = 30;
 
@@ -106,7 +127,7 @@ function ProblemList({ problems }: { problems: RowProblem[] }) {
   return (
     <div className="border-destructive/30 bg-destructive/5 rounded-lg border">
       <p className="text-destructive border-destructive/20 border-b px-3 py-2 text-xs font-semibold">
-        {t('xls.problemsTitle', { count: problems.length })}
+        {counted(problems.length, 'xls.problemsTitleOne', 'xls.problemsTitle')}
       </p>
       <ul className="max-h-48 space-y-1 overflow-y-auto px-3 py-2 text-xs">
         {problems.slice(0, PROBLEMS_SHOWN).map((p, i) => (
@@ -119,7 +140,7 @@ function ProblemList({ problems }: { problems: RowProblem[] }) {
         ))}
         {problems.length > PROBLEMS_SHOWN && (
           <li className="text-muted-foreground">
-            {t('xls.moreProblems', { count: problems.length - PROBLEMS_SHOWN })}
+            {counted(problems.length - PROBLEMS_SHOWN, 'xls.moreProblemsOne', 'xls.moreProblems')}
           </li>
         )}
       </ul>
@@ -250,7 +271,7 @@ export default function InvoiceExcelActions() {
     setBusy('export');
     try {
       const count = await exportInvoicesToExcel(supabase, await currentUserId());
-      notify.success(t('xls.exported'), t('xls.exportedDesc', { count }));
+      notify.success(t('xls.exported'), counted(count, 'xls.exportedDescOne', 'xls.exportedDesc'));
     } catch (err) {
       notify.error(t('xls.errExport'), (err as Error).message);
     } finally {
@@ -323,7 +344,7 @@ export default function InvoiceExcelActions() {
         flashToast(
           'success',
           t('xls.imported'),
-          t('xls.importedDesc', { count: result.imported, skipped: result.skipped })
+          importSummary(result)
         );
         reload();
         return;
@@ -430,41 +451,91 @@ export default function InvoiceExcelActions() {
                 </DialogDescription>
               </DialogHeader>
 
-              <ul className="space-y-1 text-sm">
-                <li>
-                  <span className="font-semibold tabular-nums">{phase.preview.ready.length}</span>{' '}
-                  {t('xls.previewReady')}
-                </li>
-                {phase.preview.duplicates > 0 && (
-                  <li className="text-muted-foreground">
-                    <span className="font-semibold tabular-nums">{phase.preview.duplicates}</span>{' '}
-                    {t('xls.previewDuplicates')}
-                  </li>
-                )}
-              </ul>
+              {phase.preview.ready.length === 0 ? (
+                // Nothing to do: say so in words, not with a "0" and a dead button.
+                <div className="bg-muted/50 rounded-lg px-4 py-3 text-sm">
+                  <p className="font-semibold">{t('xls.nothingToImport')}</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    {phase.preview.problems.length > 0
+                      ? t('xls.nothingToImportFix')
+                      : t('xls.nothingToImportDuplicates')}
+                  </p>
+                </div>
+              ) : (
+                <p className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="text-success mt-0.5 size-4 shrink-0" />
+                  <span>
+                    <span className="font-semibold tabular-nums">
+                      {phase.preview.ready.length}
+                    </span>{' '}
+                    {t(
+                      phase.preview.ready.length === 1
+                        ? 'xls.previewReadyOne'
+                        : 'xls.previewReady'
+                    )}
+                  </span>
+                </p>
+              )}
+
+              {phase.preview.duplicates > 0 && (
+                <p className="text-muted-foreground flex items-start gap-2 text-sm">
+                  <Info className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    {/* "Kjo faturë…" already says how many, so the singular drops the number. */}
+                    {phase.preview.duplicates === 1 ? (
+                      t('xls.previewDuplicatesOne')
+                    ) : (
+                      <>
+                        <span className="font-semibold tabular-nums">
+                          {phase.preview.duplicates}
+                        </span>{' '}
+                        {t('xls.previewDuplicates')}
+                      </>
+                    )}
+                  </span>
+                </p>
+              )}
 
               <ProblemList problems={phase.preview.problems} />
 
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  className="sm:mr-auto"
-                  onClick={() => {
-                    const { source, headerIndex, mapping } = phase.preview;
-                    setPhase({ kind: 'mapping', source, headerIndex, mapping });
-                  }}
-                >
-                  {t('xls.mapEdit')}
-                </Button>
-                <Button variant="ghost" onClick={closeDialog}>
-                  {t('action.cancel')}
-                </Button>
-                <Button
-                  onClick={() => void handleImport(phase.preview)}
-                  disabled={phase.preview.ready.length === 0}
-                >
-                  {t('xls.importCount', { count: phase.preview.ready.length })}
-                </Button>
+                {/* Remapping only helps when rows failed to read; duplicates are not a column problem. */}
+                {phase.preview.problems.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="sm:mr-auto"
+                    onClick={() => {
+                      const { source, headerIndex, mapping } = phase.preview;
+                      setPhase({ kind: 'mapping', source, headerIndex, mapping });
+                    }}
+                  >
+                    {t('xls.mapEdit')}
+                  </Button>
+                )}
+                {phase.preview.ready.length === 0 ? (
+                  <>
+                    <Button variant="ghost" onClick={closeDialog}>
+                      {t('action.close')}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setPhase({ kind: 'closed' });
+                        fileInput.current?.click();
+                      }}
+                    >
+                      <FileUp /> {t('xls.chooseAnother')}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={closeDialog}>
+                      {t('action.cancel')}
+                    </Button>
+                    <Button onClick={() => void handleImport(phase.preview)}>
+                      {counted(phase.preview.ready.length, 'xls.importCountOne', 'xls.importCount')}
+                    </Button>
+                  </>
+                )}
               </DialogFooter>
             </>
           )}
@@ -485,10 +556,7 @@ export default function InvoiceExcelActions() {
               <DialogHeader>
                 <DialogTitle>{t('xls.resultTitle')}</DialogTitle>
                 <DialogDescription>
-                  {t('xls.importedDesc', {
-                    count: phase.result.imported,
-                    skipped: phase.result.skipped,
-                  })}
+                  {importSummary(phase.result)}
                 </DialogDescription>
               </DialogHeader>
               {phase.result.quotaReached && (
