@@ -208,6 +208,9 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Headings only. A geometric face against Inter's neutral body copy is what
+     gives the redesign its sharper voice. */
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* v4 has no `container` component by default — recreate the v3 behaviour. */
@@ -265,17 +268,40 @@
    =================================================================== */
 
 @utility text-display {
-  font-size: clamp(2.5rem, 1.4rem + 3.2vw, 3.75rem);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 1.3rem + 3.8vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 700;
 }
 
 @utility text-section {
+  font-family: var(--font-display);
   font-size: clamp(1.875rem, 1.2rem + 2vw, 3rem);
-  line-height: 1.1;
-  letter-spacing: -0.025em;
-  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+/* A headline phrase filled with the brand gradient. The deepened teal keeps
+   the start of the run above AA on white; the dark theme gets the raw teal. */
+@utility text-gradient {
+  background-image: linear-gradient(100deg, var(--primary) 10%, var(--brand) 55%, var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/*
+  The hero ground: soft brand-tinted light pooled in two corners over a dotted
+  field. Painted once, behind everything, so the floating header reads as
+  glass over colour rather than glass over white.
+*/
+@utility bg-mesh {
+  background:
+    radial-gradient(55% 60% at 85% 10%, --alpha(var(--brand) / 18%), transparent 70%),
+    radial-gradient(40% 45% at 5% 30%, --alpha(var(--primary) / 10%), transparent 70%),
+    radial-gradient(35% 40% at 50% 100%, --alpha(var(--brand) / 8%), transparent 70%);
 }
 
 @utility text-lead {
@@ -436,49 +462,78 @@ html[data-auth='user'] [data-auth-show='anon'] {
 }
 
 /*
-  Sticky marketing header.
+  Floating marketing header.
 
-  At the top of the page it sits flush and transparent; once the sentinel above
-  it scrolls out of view an IntersectionObserver flips `data-stuck`, and it
-  gains a translucent backdrop, a hairline and a soft shadow. Driven by an
-  observer rather than a scroll listener so it costs nothing per frame.
+  The bar is a pill that hovers over the page rather than a full-width strip.
+  At the top of the page it is a light glass panel; once the sentinel above it
+  scrolls out of view an IntersectionObserver flips `data-stuck` and it firms
+  up — more opaque, a deeper shadow — so it stays legible over any section.
+  Driven by an observer rather than a scroll listener so it costs nothing per
+  frame.
 */
-[data-slot='header'] {
+[data-slot='site-header-bar'] {
+  background-color: --alpha(var(--card) / 60%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(14px) saturate(180%);
+  box-shadow: 0 1px 2px --alpha(var(--foreground) / 4%);
   transition:
-    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    padding 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  border-bottom: 1px solid transparent;
-  background-color: transparent;
+    background-color 300ms var(--ease-out-quint),
+    box-shadow 300ms var(--ease-out-quint),
+    max-width 400ms var(--ease-out-quint);
 }
 
-[data-slot='header'][data-stuck='true'] {
-  background-color: --alpha(var(--background) / 80%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
-  border-bottom-color: var(--color-border);
-  box-shadow: 0 1px 2px --alpha(var(--foreground) / 4%),
-    0 8px 24px -12px --alpha(var(--foreground) / 12%);
-  /* Condensed, but still airier than the old 4px — the bar at rest is now
-     py-4/py-5, so collapsing that far read as a jolt rather than a settle. */
-  padding-block: calc(var(--spacing) * 2.5);
+[data-slot='site-header'][data-stuck='true'] [data-slot='site-header-bar'] {
+  background-color: --alpha(var(--card) / 88%);
+  box-shadow:
+    0 1px 2px --alpha(var(--foreground) / 5%),
+    0 12px 32px -14px --alpha(var(--foreground) / 22%);
 }
 
-/* The logo tightens up a touch once the bar is condensed. */
-[data-slot='header'][data-stuck='true'] [data-slot='logo'] {
-  transform: scale(0.95);
+/* The current page or section, as a filled chip inside the pill. */
+[data-slot='site-nav-link'][aria-current] {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
 }
-[data-slot='logo'] {
-  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: left center;
+
+/* Mobile menu: a card that drops from under the pill. Hidden by `hidden`,
+   animated in with the same easing as the reveals. */
+@keyframes menu-drop {
+  from { opacity: 0; translate: 0 -8px; scale: 0.98; }
+  to   { opacity: 1; translate: 0 0; scale: 1; }
+}
+[data-slot='site-menu']:not([hidden]) {
+  animation: menu-drop 0.28s var(--ease-out-quint) both;
+}
+
+/*
+  Mobile quick bar and back-to-top. Both wait until the visitor has scrolled
+  past the hero (the same `data-stuck` flag, mirrored onto <html>) so the first
+  screen stays uncluttered.
+*/
+[data-slot='quick-bar'],
+[data-slot='to-top'] {
+  opacity: 0;
+  translate: 0 16px;
+  pointer-events: none;
+  transition:
+    opacity 300ms var(--ease-out-quint),
+    translate 300ms var(--ease-out-quint);
+}
+html[data-scrolled='true'] [data-slot='quick-bar'],
+html[data-scrolled='true'] [data-slot='to-top'] {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-slot='header'],
-  [data-slot='logo'] {
+  [data-slot='site-header-bar'],
+  [data-slot='quick-bar'],
+  [data-slot='to-top'] {
     transition: none;
+  }
+  [data-slot='site-menu']:not([hidden]) {
+    animation: none;
   }
 }
 

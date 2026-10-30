@@ -121,17 +121,22 @@ const appJsonLd = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
   </Fragment>
 
+  {/*
+    The page follows the header menu, top to bottom: how it works, what it
+    does, what it costs, questions. A visitor who scrolls and one who clicks
+    meet the sections in the same order.
+  */}
   <HeroSection />
 
   <TrustBar />
 
+  <StepsSection />
+
   <ProblemSection />
 
+  <FeaturesSection class="scroll-mt-24" />
+
   <ShowcaseSection />
-
-  <FeaturesSection class="scroll-mt-16" />
-
-  <StepsSection />
 
   <Pricing2
     title="Çmime të thjeshta"
@@ -142,7 +147,7 @@ const appJsonLd = {
 
   <WaitlistSection />
 
-  <div id="faq" class="scroll-mt-16">
+  <div id="faq" class="scroll-mt-24">
   <Faqs1
     class="bg-ground"
     title="Pyetje të shpeshta"
@@ -152,7 +157,7 @@ const appJsonLd = {
   </div>
 
   <Cta1
-    class="bg-brand-deep"
+    class="from-brand-deep to-ink bg-gradient-to-br"
     title="Fatura jote e ardhshme, në 2 minuta"
     description="Krijo llogarinë falas dhe shkarko faturën e parë sot. Pa kartë krediti, pa kontratë."
     buttons={[

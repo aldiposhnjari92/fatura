@@ -22,7 +22,7 @@ const steps = [
 ];
 ---
 
-<Section id="si-funksionon">
+<Section id="si-funksionon" class="scroll-mt-24">
   <SectionContainer data-reveal>
     <SectionHeading
       eyebrow="Si funksionon"
@@ -37,17 +37,32 @@ const steps = [
       the showcase rows above do. A numbered rail with three paragraphs told the
       reader what happens; showing the screen proves it.
     */}
-    <ol class="grid gap-6 md:grid-cols-3" data-stagger>
+    {/*
+      A timeline: numbered markers joined by a rail (across on desktop, down
+      the left edge on mobile), so the three cards read as one sequence rather
+      than as three unrelated features.
+    */}
+    <ol class="relative grid gap-6 md:grid-cols-3" data-stagger>
+      <span
+        class="from-primary/50 via-primary/25 to-primary/50 pointer-events-none absolute top-5 right-[16%] left-[16%] hidden h-px bg-gradient-to-r md:block"
+        aria-hidden="true"
+      ></span>
+      <span
+        class="from-primary/50 to-primary/10 pointer-events-none absolute top-5 bottom-5 left-5 w-px bg-gradient-to-b md:hidden"
+        aria-hidden="true"
+      ></span>
       {
         steps.map((step) => (
-          <li class="bg-card shadow-card lift flex flex-col rounded-2xl p-6">
-            {/* The reference design labels each card "Step 1 / 2 / 3" above the
-                title rather than badging it beside — the label reads as an
-                ordinal, the title stays the heading. */}
+          <li class="relative flex flex-col pl-14 md:items-center md:pl-0">
+            <span class="bg-primary text-primary-foreground ring-background shadow-primary/30 absolute top-0 left-0 flex size-10 items-center justify-center rounded-full text-sm font-bold shadow-lg ring-4 md:static">
+              {Number(step.n)}
+            </span>
+
+            <div class="bg-card shadow-card lift flex w-full flex-1 flex-col rounded-3xl p-6 md:mt-6">
             <span class="text-primary text-[11px] font-bold tracking-[0.14em] uppercase">
               Hapi {Number(step.n)}
             </span>
-            <h3 class="mt-2 text-base font-semibold tracking-tight">{step.title}</h3>
+            <h3 class="mt-2 text-lg font-semibold tracking-tight">{step.title}</h3>
 
             <p class="text-muted-foreground mt-3 text-sm leading-relaxed text-pretty">
               {step.body}
@@ -115,6 +130,7 @@ const steps = [
                   </div>
                 </div>
               )}
+            </div>
             </div>
           </li>
         ))

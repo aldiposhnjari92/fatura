@@ -4,137 +4,155 @@ import { Icon } from '@/components/ui/icon';
 import InvoicePanel from '@/components/sections/InvoicePanel.astro';
 
 /*
-  The centred hero from the reference design: an announcement pill, one large
-  claim, the two CTAs, a line of reassurance, then the product held below on
-  the page's centre line inside a framed, glowing bezel.
+  Split hero: the claim and the two actions on the left, the product on the
+  right, tilted slightly so it reads as an object on a desk rather than as a
+  screenshot pasted into the page.
 
-  This replaced a split hero (copy left, product right). The split gave the eye
-  a diagonal path, but it also capped the product at half the fold — and the
-  product is the argument. Centred, the panel gets the full container width and
-  lands as the first thing a visitor actually looks at.
+  The section pulls itself up under the floating header (`-mt-24 pt-24`) so the
+  gradient field runs edge to edge behind the glass pill instead of starting
+  below a white strip.
 
-  The product panel is built in markup rather than shipped as a screenshot: it
-  stays in step with the design tokens, works in dark mode, is sharp at any
-  pixel density, and costs no image bytes on the page we most want to be fast.
+  Under the actions, three "jump" links take a visitor straight to the part of
+  the page they came for — the same destinations as the header, phrased as the
+  question they answer.
 */
 
-const proofPoints = [
-  'Falas për 5 fatura në muaj',
-  'Pa kartë krediti',
-  'Gati për 2 minuta',
+const proofPoints = ['Falas për 5 fatura në muaj', 'Pa kartë krediti', 'Gati për 2 minuta'];
+
+const jumps = [
+  { href: '#si-funksionon', icon: 'list-ordered', label: 'Si funksionon?' },
+  { href: '#vecorite', icon: 'sparkles', label: 'Çfarë bën?' },
+  { href: '/cmimet', icon: 'tag', label: 'Sa kushton?' },
 ];
 ---
 
-<section class="relative isolate overflow-x-clip">
-  <!-- Ground: aurora wash over a fine grid, both fading before the fold ends. -->
-  <div class="bg-aurora pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
-  <div class="bg-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
+<section class="relative isolate -mt-24 overflow-x-clip pt-24">
+  <div class="bg-mesh pointer-events-none absolute inset-0 -z-10" aria-hidden="true"></div>
+  <div class="bg-dots pointer-events-none absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black,transparent_70%)] opacity-70" aria-hidden="true"></div>
 
   <div class="container">
-    <div class="flex flex-col items-center pt-14 pb-16 text-center sm:pt-20 lg:pt-24">
-      <!-- Announcement pill -->
-      <a
-        href="#si-funksionon"
-        class="eyebrow-pill text-muted-foreground hover:text-foreground animate-rise group max-w-full"
-      >
-        <span class="bg-brand size-1.5 shrink-0 rounded-full" aria-hidden="true"></span>
-        <span class="text-foreground shrink-0 font-semibold">E re</span>
-        <span aria-hidden="true" class="bg-border h-3 w-px shrink-0"></span>
-        <span class="truncate">
-          <span class="sm:hidden">Fatura me TVSH, në 2 minuta</span>
-          <span class="hidden sm:inline">Fatura me TVSH dhe logo, në 2 minuta</span>
-        </span>
-        <Icon
-          name="arrow-right"
-          class="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5"
-        />
-      </a>
-
-      <h1
-        class="text-display text-foreground animate-rise mt-7 max-w-3xl text-balance"
-        style="animation-delay: 70ms"
-      >
-        Fatura profesionale në
-        <span class="text-primary whitespace-nowrap">2 minuta</span>, jo 2 orë.
-      </h1>
-
-      <p
-        class="text-lead text-muted-foreground animate-rise mt-6 max-w-xl text-pretty"
-        style="animation-delay: 140ms"
-      >
-        Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e
-        gatshme për t'u dërguar në WhatsApp, në sekonda.
-      </p>
-
-      <div
-        class="animate-rise mt-9 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row"
-        style="animation-delay: 210ms"
-      >
-        <Button
-          as="a"
-          href="/regjistrohu"
-          size="lg"
-          class="press rounded-full px-6"
-          data-auth-show="anon"
-        >
-          Fillo falas
-          <Icon name="arrow-right" class="size-4" />
-        </Button>
-        <Button
-          as="a"
-          href="/app"
-          size="lg"
-          class="press rounded-full px-6"
-          data-auth-show="user"
-        >
-          Shko te paneli
-          <Icon name="arrow-right" class="size-4" />
-        </Button>
-        <Button
-          as="a"
+    <div class="grid items-center gap-14 pt-12 pb-20 sm:pt-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-12 lg:pt-20 lg:pb-28">
+      <div class="flex flex-col items-start">
+        <a
           href="#si-funksionon"
-          size="lg"
-          variant="outline"
-          class="press bg-card/70 rounded-full px-6 backdrop-blur-sm"
+          class="eyebrow-pill text-muted-foreground hover:text-foreground animate-rise group max-w-full"
         >
-          Shiko si funksionon
-        </Button>
+          <span class="relative flex size-2 shrink-0" aria-hidden="true">
+            <span class="bg-brand absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:hidden"></span>
+            <span class="bg-brand relative inline-flex size-2 rounded-full"></span>
+          </span>
+          <span class="truncate">Fatura me NIPT, TVSH dhe logo</span>
+          <Icon
+            name="arrow-right"
+            class="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5"
+          />
+        </a>
+
+        <h1
+          class="text-display text-foreground animate-rise mt-7 max-w-2xl text-balance"
+          style="animation-delay: 70ms"
+        >
+          Fatura profesionale në <span class="text-gradient whitespace-nowrap">2 minuta</span>,
+          jo 2 orë.
+        </h1>
+
+        <p
+          class="text-lead text-muted-foreground animate-rise mt-6 max-w-xl text-pretty"
+          style="animation-delay: 140ms"
+        >
+          Lëre Word-in. Krijo fatura me NIPT, logo dhe TVSH direkt nga telefoni — PDF e
+          gatshme për t'u dërguar në WhatsApp, në sekonda.
+        </p>
+
+        <div
+          class="animate-rise mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
+          style="animation-delay: 210ms"
+        >
+          <Button
+            as="a"
+            href="/regjistrohu"
+            size="lg"
+            class="press shadow-primary/25 h-12 rounded-full px-7 text-base shadow-lg"
+            data-auth-show="anon"
+          >
+            Fillo falas
+            <Icon name="arrow-right" class="size-4" />
+          </Button>
+          <Button
+            as="a"
+            href="/app"
+            size="lg"
+            class="press shadow-primary/25 h-12 rounded-full px-7 text-base shadow-lg"
+            data-auth-show="user"
+          >
+            Shko te paneli
+            <Icon name="arrow-right" class="size-4" />
+          </Button>
+          <Button
+            as="a"
+            href="#si-funksionon"
+            size="lg"
+            variant="outline"
+            class="press bg-card/70 h-12 rounded-full px-7 text-base backdrop-blur-sm"
+          >
+            <Icon name="play" class="size-4" />
+            Shiko si funksionon
+          </Button>
+        </div>
+
+        <ul
+          class="text-muted-foreground animate-rise mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"
+          style="animation-delay: 280ms"
+        >
+          {
+            proofPoints.map((point) => (
+              <li class="flex items-center gap-1.5">
+                <Icon name="circle-check" class="text-primary size-4 shrink-0" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+
+        <nav
+          aria-label="Shko te"
+          class="animate-rise mt-10 w-full border-t pt-6"
+          style="animation-delay: 340ms"
+        >
+          <ul class="flex flex-wrap gap-2">
+            {
+              jumps.map((jump) => (
+                <li>
+                  <a
+                    href={jump.href}
+                    class="bg-card/70 hover:bg-card hover:border-primary/30 group flex items-center gap-2 rounded-full border py-1.5 pr-3 pl-1.5 text-sm font-medium backdrop-blur-sm"
+                  >
+                    <span class="bg-accent text-primary flex size-7 items-center justify-center rounded-full">
+                      <Icon name={jump.icon} class="size-3.5" />
+                    </span>
+                    {jump.label}
+                    <Icon
+                      name="arrow-down-right"
+                      class="text-muted-foreground group-hover:text-primary size-3.5 transition-colors"
+                    />
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
       </div>
 
-      <!-- Structured microcopy under the CTA: the three objections a small
-           business raises before signing up, answered in one line. -->
-      <ul
-        class="text-muted-foreground animate-rise mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"
-        style="animation-delay: 280ms"
-      >
-        {
-          proofPoints.map((point) => (
-            <li class="flex items-center gap-1.5">
-              <Icon name="check" class="text-primary size-3.5 shrink-0" />
-              {point}
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </div>
-
-  <!-- Product, framed -->
-  {/*
-    The bezel is the reference design's: a wide brand glow pooled beneath the
-    panel, then a translucent frame one step outside the card itself, so the
-    product reads as a screen rather than as another section of the page.
-  */}
-  <div class="container pb-16 sm:pb-20 lg:pb-24">
-    <div class="animate-rise relative mx-auto max-w-4xl" style="animation-delay: 260ms">
-      <div
-        class="bg-brand/25 pointer-events-none absolute -inset-x-10 -top-6 bottom-10 -z-10 rounded-[3rem] blur-3xl"
-        aria-hidden="true"
-      >
-      </div>
-
-      <div class="border-border/60 bg-card/60 rounded-[calc(var(--radius)+1rem)] border p-2 shadow-card-lg backdrop-blur-sm sm:p-3">
-        <InvoicePanel />
+      <!-- Product -->
+      <div class="animate-rise relative mx-auto w-full max-w-xl lg:max-w-none" style="animation-delay: 200ms">
+        <div
+          class="bg-brand/30 pointer-events-none absolute inset-x-6 top-10 bottom-0 -z-10 rounded-[3rem] blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+        <div class="lg:rotate-[1.5deg] lg:transition-transform lg:duration-700 lg:hover:rotate-0">
+          <InvoicePanel />
+        </div>
       </div>
     </div>
   </div>

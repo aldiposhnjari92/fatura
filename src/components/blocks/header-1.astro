@@ -1,42 +1,36 @@
 ---
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Header, HeaderContainer, HeaderGroup } from "@/components/ui/header"
 import { Icon } from "@/components/ui/icon"
-import { Logo, LogoImage, LogoText } from "@/components/ui/logo"
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from "@/components/ui/navigation-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+import Logo from "@/components/Logo.astro"
+
+/*
+  The floating pill header.
+
+  Desktop: logo, the section links as chips in the middle, and the actions on
+  the right, all inside one rounded glass bar. The chip for the current page —
+  or, on the home page, the section in view (see the scroll-spy in
+  MarketingLayout) — is filled, so a visitor always knows where they are.
+
+  Mobile: the same bar with a single menu toggle. The menu drops down as a card
+  under the pill instead of sliding a full-height sheet in from the side: the
+  links stay next to the thumb, each carries an icon and one line saying what
+  is behind it, and the page underneath stays visible for context.
+*/
 
 type Props = {
   class?: string
   logo: {
     label: string
     href: string
-    src?: any
-    srcLight?: any
-    srcDark?: any
-    alt?: string
   }
   navigation: {
     label: string
     href: string
+    icon?: string
+    /** One line under the link in the mobile menu. */
+    description?: string
     active?: boolean
-    links?: {
-      label: string
-      href: string
-    }[]
   }[]
   buttons: {
     label: string
@@ -51,42 +45,42 @@ type Props = {
 const { class: className, logo, navigation, buttons } = Astro.props
 ---
 
-<Header class={cn("py-4 sm:py-5", className)}>
-  <HeaderContainer class="items-center justify-between gap-6">
-    <HeaderGroup>
-      <Logo href={logo.href}>
-        <LogoImage
-          src={logo.src}
-          srcLight={logo.srcLight}
-          srcDark={logo.srcDark}
-          alt={logo.alt}
-        />
-        {logo.label && <LogoText>{logo.label}</LogoText>}
-      </Logo>
-    </HeaderGroup>
-    <NavigationMenu class="hidden flex-none justify-start lg:flex">
-      <NavigationMenuList class="justify-start gap-2">
+<header data-slot="site-header" class={cn("px-3 pt-3 sm:px-4 sm:pt-4", className)}>
+  <div
+    data-slot="site-header-bar"
+    class="border-border/70 mx-auto flex max-w-6xl items-center gap-3 rounded-full border py-2 pr-2 pl-4 sm:pl-5"
+  >
+    <a href={logo.href} class="shrink-0" aria-label={logo.label}>
+      <Logo />
+    </a>
+
+    <nav aria-label="Navigimi kryesor" class="mx-auto hidden lg:block">
+      <ul class="flex items-center gap-1">
         {
-          navigation.map((item, index) => (
-            <NavigationMenuItem value={`nav-${index}`}>
-              <NavigationMenuLink href={item.href} active={item.active} class="px-3 py-2.5">
+          navigation.map((item) => (
+            <li>
+              <a
+                data-slot="site-nav-link"
+                href={item.href}
+                aria-current={item.active ? "page" : undefined}
+                class="text-foreground/75 hover:text-foreground hover:bg-muted rounded-full px-4 py-2 text-sm font-medium"
+              >
                 {item.label}
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+              </a>
+            </li>
           ))
         }
-      </NavigationMenuList>
-    </NavigationMenu>
-    <HeaderGroup class="ml-auto hidden flex-1 justify-end gap-3 lg:flex">
-      <slot />
+      </ul>
+    </nav>
+
+    <div class="ml-auto hidden items-center gap-2 lg:ml-0 lg:flex">
       {
-        buttons.map(({ label, icon, ...button }) => (
+        buttons.map(({ label, icon, variant, ...button }) => (
           <Button
             as="a"
-            size={icon && !label ? "icon-sm" : "sm"}
-            aria-label={label}
-            target={button.href.startsWith("http") ? "_blank" : undefined}
-            rel={button.href.startsWith("http") ? "noreferrer" : undefined}
+            size="sm"
+            variant={variant}
+            class={cn("press rounded-full px-4", variant !== "ghost" && "shadow-sm")}
             {...button}
           >
             {icon && <Icon name={icon} />}
@@ -94,90 +88,119 @@ const { class: className, logo, navigation, buttons } = Astro.props
           </Button>
         ))
       }
-    </HeaderGroup>
-    <Sheet class="lg:hidden">
-      <SheetTrigger
-        variant="ghost"
-        size="icon-sm"
-        class="ml-auto"
-        aria-label="Open menu"
-      >
-        <Icon name="menu" />
-      </SheetTrigger>
-      <SheetContent side="right" class="p-0">
-        <SheetHeader class="sr-only">
-          <SheetTitle>Menu</SheetTitle>
-          <SheetDescription>Site navigation and actions.</SheetDescription>
-        </SheetHeader>
-        <div class="flex h-full flex-col gap-6 px-4 py-12">
-          <nav aria-label="Main navigation" class="flex flex-col gap-1">
-            {/*
-              These were rendering the label with no href at all — every item in
-              the mobile menu was an inert button.
+    </div>
 
-              Button carries `data-slot="dialog-close"` directly (which is all
-              SheetClose does) because SheetClose's prop type does not carry the
-              polymorphic `as`/`href`. Same behaviour, correct types: a real
-              anchor that also dismisses the sheet on tap.
-            */}
-            {
-              navigation.map((item) => (
-                <>
-                  <Button
-                    data-slot="dialog-close"
-                    as="a"
-                    href={item.href}
-                    variant="ghost"
-                    class="justify-start"
-                    aria-current={item.active ? 'page' : undefined}
-                  >
-                    {item.label}
-                  </Button>
+    <button
+      type="button"
+      data-slot="site-menu-toggle"
+      class="hover:bg-muted ml-auto flex size-10 items-center justify-center rounded-full lg:hidden"
+      aria-controls="site-menu"
+      aria-expanded="false"
+      aria-label="Hap menunë"
+    >
+      <Icon name="menu" class="size-5" data-icon="open" />
+      <Icon name="x" class="hidden size-5" data-icon="close" />
+    </button>
+  </div>
 
-                  {item.links?.map((link) => (
-                    <Button
-                      data-slot="dialog-close"
-                      as="a"
-                      href={link.href}
-                      variant="ghost"
-                      class="text-muted-foreground justify-start pl-6 text-sm"
-                    >
-                      {link.label}
-                    </Button>
-                  ))}
-                </>
-              ))
-            }
-          </nav>
-          <div class="mt-auto flex flex-col gap-2">
-            <slot />
-            {/*
-              The action buttons were desktop-only, so on mobile the sheet had
-              no way in at all. Same `buttons` array, rendered full-width and
-              dismissing the sheet on tap; `data-auth-show` rides along in the
-              spread so the anon/user swap still works here.
-            */}
-            {
-              buttons.map(({ label, icon, variant, ...button }) => (
-                <Button
-                  data-slot="dialog-close"
-                  as="a"
-                  size="lg"
-                  variant={variant === "ghost" ? "outline" : variant}
-                  class="w-full"
-                  aria-label={label}
-                  target={button.href.startsWith("http") ? "_blank" : undefined}
-                  rel={button.href.startsWith("http") ? "noreferrer" : undefined}
-                  {...button}
-                >
-                  {icon && <Icon name={icon} />}
-                  {label}
-                </Button>
-              ))
-            }
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  </HeaderContainer>
-</Header>
+  <div
+    id="site-menu"
+    data-slot="site-menu"
+    class="bg-card border-border/70 mx-auto mt-2 max-w-6xl origin-top rounded-3xl border p-2 shadow-xl lg:hidden"
+    hidden
+  >
+    <nav aria-label="Navigimi kryesor">
+      <ul class="flex flex-col">
+        {
+          navigation.map((item) => (
+            <li>
+              <a
+                data-slot="site-nav-link"
+                href={item.href}
+                aria-current={item.active ? "page" : undefined}
+                class="hover:bg-muted flex items-center gap-3.5 rounded-2xl p-3"
+              >
+                {item.icon && (
+                  <span class="bg-accent text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                    <Icon name={item.icon} class="size-[1.125rem]" />
+                  </span>
+                )}
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold">{item.label}</span>
+                  {item.description && (
+                    <span class="text-muted-foreground block truncate text-xs">
+                      {item.description}
+                    </span>
+                  )}
+                </span>
+                <Icon name="chevron-right" class="text-muted-foreground ml-auto size-4 shrink-0" />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="mt-2 grid gap-2 border-t p-2 pt-4 sm:grid-cols-2">
+      {
+        buttons.map(({ label, icon, variant, ...button }) => (
+          <Button
+            as="a"
+            size="lg"
+            variant={variant === "ghost" ? "outline" : variant}
+            class="w-full rounded-full"
+            {...button}
+          >
+            {icon && <Icon name={icon} />}
+            {label}
+          </Button>
+        ))
+      }
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    var toggle = document.querySelector('[data-slot="site-menu-toggle"]');
+    var menu = document.getElementById('site-menu');
+    if (!toggle || !menu) return;
+
+    function set(open) {
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Mbyll menunë' : 'Hap menunë');
+      toggle.querySelector('[data-icon="open"]').classList.toggle('hidden', open);
+      toggle.querySelector('[data-icon="close"]').classList.toggle('hidden', !open);
+    }
+
+    toggle.addEventListener('click', function () {
+      set(menu.hidden);
+    });
+
+    // Any link in the menu — including a same-page #anchor, which would not
+    // unload the page — closes it.
+    menu.addEventListener('click', function (event) {
+      if (event.target.closest('a')) set(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !menu.hidden) {
+        set(false);
+        toggle.focus();
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (menu.hidden) return;
+      if (menu.contains(event.target) || toggle.contains(event.target)) return;
+      set(false);
+    });
+
+    // Rotating a phone to landscape can cross the lg breakpoint with the menu
+    // open; the desktop bar has no toggle to close it from.
+    window.matchMedia('(min-width: 1024px)').addEventListener('change', function (mq) {
+      if (mq.matches) set(false);
+    });
+  })();
+</script>

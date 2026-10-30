@@ -2,7 +2,8 @@
 import BaseLayout from './BaseLayout.astro';
 import Header1 from '@/components/blocks/header-1.astro';
 import Footer1 from '@/components/blocks/footer-1.astro';
-import logoMark from '@/assets/logo-mark.svg';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
 export interface Props {
   title: string;
@@ -13,22 +14,51 @@ export interface Props {
 const { title, description, noindex } = Astro.props;
 const year = new Date().getFullYear();
 const path = Astro.url.pathname;
+
+/*
+  One list drives the header, the mobile menu and the footer's product column,
+  in the same order the sections appear on the home page — so reading the menu
+  left to right is the same as scrolling the page top to bottom.
+*/
+const navigation = [
+  {
+    label: 'Si funksionon',
+    href: '/#si-funksionon',
+    icon: 'list-ordered',
+    description: 'Tri hapa nga regjistrimi te PDF-ja',
+  },
+  {
+    label: 'Veçoritë',
+    href: '/#vecorite',
+    icon: 'sparkles',
+    description: 'NIPT, logo, TVSH, Excel dhe më shumë',
+  },
+  {
+    label: 'Çmimet',
+    href: '/cmimet',
+    icon: 'tag',
+    description: 'Falas, Starter dhe Pro',
+    active: path === '/cmimet',
+  },
+  {
+    label: 'Pyetje',
+    href: '/#faq',
+    icon: 'circle-help',
+    description: 'Përgjigje për pyetjet më të shpeshta',
+  },
+];
 ---
 
 <BaseLayout title={title} description={description} noindex={noindex}>
   <slot name="head" slot="head" />
 
   <!-- Sentinel: while this is on screen the header is at rest. -->
-  <div id="header-sentinel" aria-hidden="true" class="h-px w-full"></div>
+  <div id="header-sentinel" aria-hidden="true" class="absolute top-0 h-24 w-px"></div>
 
   <Header1
     class="sticky top-0 z-50"
-    logo={{ label: 'Fatura.co', href: '/', src: logoMark, alt: 'Fatura.co' }}
-    navigation={[
-      { label: 'Si funksionon', href: '/#si-funksionon' },
-      { label: 'Veçoritë', href: '/#vecorite' },
-      { label: 'Çmimet', href: '/cmimet', active: path === '/cmimet' },
-    ]}
+    logo={{ label: 'Fatura.co', href: '/' }}
+    navigation={navigation}
     buttons={[
       // Both sets ship; CSS + the <head> script show exactly one. See globals.css.
       { label: 'Hyr', href: '/login', variant: 'ghost', 'data-auth-show': 'anon' },
@@ -50,12 +80,7 @@ const path = Astro.url.pathname;
     columns={[
       {
         title: 'Produkti',
-        links: [
-          { label: 'Si funksionon', href: '/#si-funksionon' },
-          { label: 'Veçoritë', href: '/#vecorite' },
-          { label: 'Çmimet', href: '/cmimet' },
-          { label: 'Pyetje të shpeshta', href: '/#faq' },
-        ],
+        links: navigation.map(({ label, href }) => ({ label, href })),
       },
       {
         title: 'Llogaria',
@@ -77,22 +102,109 @@ const path = Astro.url.pathname;
     signature="Bërë me dashuri, Fatura.co"
   />
 
+  {/*
+    Mobile quick bar: once the hero has scrolled away, the one action that
+    matters stays under the thumb. Desktop has the header's buttons for that.
+  */}
+  <div
+    data-slot="quick-bar"
+    class="fixed inset-x-3 bottom-3 z-40 sm:hidden"
+    style="padding-bottom: env(safe-area-inset-bottom)"
+  >
+    <div class="bg-card/90 border-border/70 flex items-center gap-2 rounded-full border p-1.5 pl-4 shadow-xl backdrop-blur-md">
+      <p class="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+        <span data-auth-show="anon">Falas për 5 fatura në muaj</span>
+        <span data-auth-show="user">Mirë se u ktheve</span>
+      </p>
+      <Button as="a" href="/regjistrohu" size="sm" class="rounded-full px-4" data-auth-show="anon">
+        Fillo falas
+        <Icon name="arrow-right" class="size-3.5" />
+      </Button>
+      <Button as="a" href="/app" size="sm" class="rounded-full px-4" data-auth-show="user">
+        Shko te paneli
+        <Icon name="arrow-right" class="size-3.5" />
+      </Button>
+    </div>
+  </div>
+
+  <a
+    href="#top"
+    data-slot="to-top"
+    class="bg-card border-border/70 text-foreground hover:bg-muted fixed right-5 bottom-5 z-40 hidden size-11 items-center justify-center rounded-full border shadow-lg sm:flex"
+    aria-label="Kthehu në fillim të faqes"
+  >
+    <Icon name="arrow-up" class="size-4" />
+  </a>
+
   <script is:inline>
     (function () {
       var sentinel = document.getElementById('header-sentinel');
-      var header = document.querySelector('[data-slot="header"]');
-      if (!sentinel || !header) return;
+      var header = document.querySelector('[data-slot="site-header"]');
+      var root = document.documentElement;
+
+      // Back-to-top: scroll rather than jump, and leave no #top in the URL.
+      var toTop = document.querySelector('[data-slot="to-top"]');
+      if (toTop) {
+        toTop.addEventListener('click', function (event) {
+          event.preventDefault();
+          window.scrollTo({ top: 0 });
+        });
+      }
 
       // No IntersectionObserver (very old browsers): leave the header in its
       // resting style rather than attaching a scroll listener.
-      if (!('IntersectionObserver' in window)) return;
+      if (!sentinel || !header || !('IntersectionObserver' in window)) return;
 
       new IntersectionObserver(
         function (entries) {
-          header.setAttribute('data-stuck', entries[0].isIntersecting ? 'false' : 'true');
+          var stuck = !entries[0].isIntersecting;
+          header.setAttribute('data-stuck', stuck ? 'true' : 'false');
+          root.setAttribute('data-scrolled', stuck ? 'true' : 'false');
         },
         { threshold: 0 }
       ).observe(sentinel);
+
+      /*
+        Scroll-spy, home page only: the header chip for the section in view is
+        marked current. A section counts as "in view" when it crosses a band
+        a third of the way down the viewport, which is where the eye rests.
+      */
+      if (location.pathname !== '/') return;
+
+      var links = [].slice.call(
+        document.querySelectorAll('[data-slot="site-nav-link"][href^="/#"]')
+      );
+      var sections = {};
+      links.forEach(function (link) {
+        var id = link.getAttribute('href').slice(2);
+        var el = document.getElementById(id);
+        if (el) sections[id] = el;
+      });
+
+      function mark(id) {
+        links.forEach(function (link) {
+          if (link.getAttribute('href') === '/#' + id) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      }
+
+      var visible = {};
+      var spy = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            visible[entry.target.id] = entry.isIntersecting;
+          });
+          var current = null;
+          Object.keys(sections).forEach(function (id) {
+            if (visible[id]) current = id;
+          });
+          mark(current);
+        },
+        { rootMargin: '-33% 0px -60% 0px' }
+      );
+      Object.keys(sections).forEach(function (id) {
+        spy.observe(sections[id]);
+      });
     })();
   </script>
 </BaseLayout>

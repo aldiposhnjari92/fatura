@@ -12,49 +12,46 @@ import { Icon } from '@/components/ui/icon';
   the data lives, that the document never leaves the device, and that starting
   costs nothing.
 
-  When there are real customers, this is the slot that becomes the logo wall —
-  which is what the reference design puts here, in the same band.
+  It is a single quiet strip rather than three cards: the hero above and the
+  steps below are both card-heavy, and this band's job is to be read in one
+  glance on the way past.
 */
 
 const signals = [
   {
     icon: 'shield-check',
     title: 'Të dhënat në BE',
-    body: 'Ruajtura të enkriptuara. Vetëm ti ke akses te faturat e tua.',
+    body: 'Të enkriptuara, vetëm ti ke akses',
   },
   {
     icon: 'smartphone',
     title: 'PDF në pajisjen tënde',
-    body: 'Fatura krijohet në telefon. Nuk shkon te asnjë server i tretë.',
+    body: 'Nuk shkon te asnjë server i tretë',
   },
   {
     icon: 'credit-card',
     title: 'Nis pa kartë',
-    body: '5 fatura në muaj falas, përgjithmonë. Pa kontratë.',
+    body: '5 fatura në muaj falas, përgjithmonë',
   },
 ];
 ---
 
-<section class="bg-ground border-y" aria-label="Pse të besosh Fatura.co">
-  <div class="container py-14 sm:py-16">
-    <p class="text-muted-foreground text-center text-sm">
-      Ndërtuar mbi tri premtime që i mbajmë nga dita e parë
-    </p>
-
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-stagger>
+<section class="border-y bg-card/60" aria-label="Pse të besosh Fatura.co">
+  <div class="container">
+    <ul class="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0" data-stagger>
       {
         signals.map((signal) => (
-          <div class="bg-card shadow-card rounded-2xl p-6">
-            <div class="bg-accent text-primary flex size-10 items-center justify-center rounded-full">
+          <li class="flex items-center gap-4 py-6 sm:justify-center sm:px-6">
+            <span class="bg-accent text-primary flex size-11 shrink-0 items-center justify-center rounded-2xl">
               <Icon name={signal.icon} class="size-5" />
+            </span>
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold tracking-tight">{signal.title}</h3>
+              <p class="text-muted-foreground mt-0.5 text-sm text-pretty">{signal.body}</p>
             </div>
-            <h3 class="mt-4 text-sm font-semibold tracking-tight">{signal.title}</h3>
-            <p class="text-muted-foreground mt-1.5 text-sm leading-relaxed text-pretty">
-              {signal.body}
-            </p>
-          </div>
+          </li>
         ))
       }
-    </div>
+    </ul>
   </div>
 </section>
