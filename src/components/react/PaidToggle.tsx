@@ -12,6 +12,14 @@ import {
   type InvoiceStatus,
 } from '@/lib/types';
 
+/**
+ * Fired on `window` when the payment state changes on the server, for the
+ * other islands in the same row (the row's actions menu) that cannot share
+ * React state with this one.
+ */
+export const INVOICE_STATUS_EVENT = 'fatura:invoice-status';
+export type InvoiceStatusEvent = CustomEvent<{ invoiceId: string; status: InvoiceStatus }>;
+
 interface Props {
   invoiceId: string;
   status: InvoiceStatus;
@@ -97,6 +105,9 @@ export default function PaidToggle({
       setStatus(row.status);
       setPaidAt(row.paid_at);
       onStatusChange?.(row.status, row.paid_at);
+      window.dispatchEvent(
+        new CustomEvent(INVOICE_STATUS_EVENT, { detail: { invoiceId, status: row.status } })
+      );
       notify.success(
         row.status === 'paid' ? t('inv.markedPaid') : t('inv.markedUnpaid'),
         row.status === 'paid'

@@ -3,13 +3,15 @@ import { useTranslations } from '@/lib/i18n';
 import AppLayout from '@/layouts/AppLayout.astro';
 import InvoiceEditor from '@/components/react/InvoiceEditor';
 import DeleteInvoiceButton from '@/components/react/DeleteInvoiceButton';
+import InvoiceFileActions from '@/components/react/InvoiceFileActions';
+import InvoiceDetail from '@/components/InvoiceDetail.astro';
 import StatusBadge from '@/components/StatusBadge.astro';
 import { Icon } from '@/components/ui/icon';
 import { displayStatus } from '@/lib/types';
 import { formatALL, formatDate } from '@/lib/utils';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
 import { suggestProducts } from '@/lib/products';
-import type { Client, Invoice } from '@/lib/types';
+import type { Client, Invoice, InvoiceWithClient } from '@/lib/types';
 
 export const prerender = false;
 
@@ -24,7 +26,7 @@ if (!id || !UUID_RE.test(id)) {
 // RLS already scopes this to the owner; the explicit filter keeps it obvious.
 const { data: invoiceRow } = await supabase
   .from('invoices')
-  .select('*')
+  .select('*, clients(id, name, email, nipt, address)')
   .eq('id', id)
   .eq('owner_id', user!.id)
   .maybeSingle();
@@ -33,13 +35,22 @@ if (!invoiceRow) {
   return Astro.redirect('/app/faturat?gabim=nuk-u-gjet', 302);
 }
 
-const invoice = invoiceRow as Invoice;
+const { clients: invoiceClient, ...invoiceFields } = invoiceRow as InvoiceWithClient;
+const invoice = invoiceFields as Invoice;
 
-const [{ data: clientsData }, suggestedNumber, products] = await Promise.all([
-  supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
-  suggestInvoiceNumber(supabase, user!.id),
-  suggestProducts(supabase, user!.id),
-]);
+/*
+  A paid invoice is final (sync_invoice_paid_at), so it opens as a document
+  rather than a form — and skips the three queries only the editor needs.
+*/
+const isPaid = invoice.status === 'paid';
+
+const [{ data: clientsData }, suggestedNumber, products] = isPaid
+  ? [{ data: [] }, '', []]
+  : await Promise.all([
+      supabase.from('clients').select('*').eq('owner_id', user!.id).order('name'),
+      suggestInvoiceNumber(supabase, user!.id),
+      suggestProducts(supabase, user!.id),
+    ]);
 
 const clients = (clientsData ?? []) as Client[];
 const t = useTranslations();
@@ -57,36 +68,71 @@ const t = useTranslations();
       {t('inv.title')}
     </a>
 
-    <div class="mt-3 flex flex-wrap items-start justify-between gap-4">
-      <div>
+    <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
+      <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
             {invoice.invoice_number}
           </h1>
           <StatusBadge status={displayStatus(invoice.status, invoice.due_date)} />
         </div>
-        <p class="text-muted-foreground mt-1 text-sm">
-          Lëshuar më {formatDate(invoice.issue_date)} ·
-          <span class="text-foreground font-medium tabular-nums">
-            {formatALL(invoice.total)}
-          </span>
-        </p>
+        {
+          isPaid ? (
+            // Who and when; the summary card below carries the amount.
+            <p class="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              {invoiceClient?.name && (
+                <span class="inline-flex items-center gap-1.5">
+                  <Icon name="building-2" class="size-4" />
+                  {invoiceClient.name}
+                </span>
+              )}
+              <span class="inline-flex items-center gap-1.5">
+                <Icon name="calendar" class="size-4" />
+                Lëshuar më {formatDate(invoice.issue_date)}
+              </span>
+            </p>
+          ) : (
+            <p class="text-muted-foreground mt-1 text-sm">
+              Lëshuar më {formatDate(invoice.issue_date)} ·
+              <span class="text-foreground font-medium tabular-nums">
+                {formatALL(invoice.total)}
+              </span>
+            </p>
+          )
+        }
       </div>
 
-      <DeleteInvoiceButton
-        invoiceId={invoice.id}
-        invoiceNumber={invoice.invoice_number}
-        client:idle
-      />
+      {
+        // A paid invoice is final (0019_paid_invoice_final.sql): no delete.
+        isPaid ? (
+          <InvoiceFileActions
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoice_number}
+            client:idle
+          />
+        ) : (
+          <DeleteInvoiceButton
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoice_number}
+            client:idle
+          />
+        )
+      }
     </div>
   </div>
 
-  <InvoiceEditor
-    profile={profile}
-    clients={clients}
-    invoice={invoice}
-    suggestedNumber={suggestedNumber}
-    products={products}
-    client:load
-  />
+  {
+    isPaid ? (
+      <InvoiceDetail invoice={invoice} client={invoiceClient} />
+    ) : (
+      <InvoiceEditor
+        profile={profile}
+        clients={clients}
+        invoice={invoice}
+        suggestedNumber={suggestedNumber}
+        products={products}
+        client:load
+      />
+    )
+  }
 </AppLayout>

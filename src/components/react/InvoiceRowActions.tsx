@@ -3,6 +3,7 @@ import {
   Download,
   FileSpreadsheet,
   Loader2,
+  Lock,
   MoreHorizontal,
   Share2,
   SquarePen,
@@ -26,144 +27,45 @@ import {
   DialogTitle,
 } from '@/components/ui/react/dialog';
 import { SuccessNote } from '@/components/ui/react/success-note';
-import {
-  downloadInvoicePdf,
-  isPdfEngineLoadError,
-  shareInvoicePdf,
-  type InvoicePdfInput,
-} from '@/lib/pdf';
-import { exportInvoiceToExcel } from '@/lib/excel';
 import { flashToast, notify } from '@/lib/toast';
 import { useTranslations } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
-import type { Client, Profile } from '@/lib/types';
+import type { InvoiceStatus } from '@/lib/types';
+import { INVOICE_STATUS_EVENT, type InvoiceStatusEvent } from '@/components/react/PaidToggle';
+import { useInvoiceFiles } from '@/components/react/use-invoice-files';
 
-/*
-  The row's own actions, so the common ones stop costing a page load.
-
-  The list deliberately does not select `items` — the whole point of that query
-  is to not drag every invoice's line items across the wire to render a table
-  that never shows them. A PDF needs them, so this fetches the one invoice it
-  was asked about, at the moment it is asked, and no sooner.
-
-  The profile is the same for every row, so it is fetched once per page and
-  shared: twenty-five rows each carrying a copy of the business address in the
-  server-rendered HTML would cost more than the request does.
-*/
-
-let profileRequest: Promise<Partial<Profile> | null> | null = null;
-
-function loadProfile(): Promise<Partial<Profile> | null> {
-  if (!profileRequest) {
-    profileRequest = (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('business_name, nipt, address, city, phone, logo_url')
-        .eq('id', user.id)
-        .maybeSingle();
-      return (data as Partial<Profile>) ?? null;
-    })();
-  }
-  return profileRequest;
-}
+/* The row's own actions, so the common ones stop costing a page load. */
 
 interface Props {
   invoiceId: string;
   invoiceNumber: string;
+  status: InvoiceStatus;
 }
 
-export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
+export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: initialStatus }: Props) {
   const t = useTranslations();
-  const [busy, setBusy] = React.useState<'download' | 'excel' | 'share' | null>(null);
+  const [status, setStatus] = React.useState(initialStatus);
+
+  // The paid toggle is a separate island in the same row; it announces the
+  // change so "Ndrysho" locks the moment the invoice is marked paid.
+  React.useEffect(() => {
+    function onStatus(event: Event) {
+      const { detail } = event as InvoiceStatusEvent;
+      if (detail.invoiceId === invoiceId) setStatus(detail.status);
+    }
+    window.addEventListener(INVOICE_STATUS_EVENT, onStatus);
+    return () => window.removeEventListener(INVOICE_STATUS_EVENT, onStatus);
+  }, [invoiceId]);
+
+  /** Paid is final: no edit, no delete — see 0019_paid_invoice_final.sql. */
+  const locked = status === 'paid';
+  const { busy, download, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
   const [confirming, setConfirming] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
   const timer = React.useRef<number>();
 
   React.useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  async function pdfInput(): Promise<{ input: InvoicePdfInput; clientName: string | null }> {
-    const [invoiceResult, profile] = await Promise.all([
-      supabase
-        .from('invoices')
-        .select(
-          'invoice_number, issue_date, due_date, items, vat_percent, discount, status, notes, clients(name, nipt, address, email)'
-        )
-        .eq('id', invoiceId)
-        .single(),
-      loadProfile(),
-    ]);
-
-    if (invoiceResult.error) throw invoiceResult.error;
-    const row = invoiceResult.data as unknown as InvoicePdfInput['invoice'] & {
-      clients: Partial<Client> | null;
-    };
-    return {
-      input: { invoice: row, profile, client: row.clients ?? null },
-      clientName: row.clients?.name ?? null,
-    };
-  }
-
-  /** The PDF chunk failing to load means the page is stale, not broken. */
-  function reportPdfError(title: string, err: unknown) {
-    notify.error(
-      title,
-      isPdfEngineLoadError(err) ? t('inv.staleReload') : (err as Error).message
-    );
-  }
-
-  async function handleDownload() {
-    setBusy('download');
-    try {
-      const { input, clientName } = await pdfInput();
-      await downloadInvoicePdf(input, clientName);
-      notify.success(
-        t('inv.pdfDownloaded'),
-        t('inv.pdfDownloadedDesc', { number: invoiceNumber })
-      );
-    } catch (err) {
-      reportPdfError(t('inv.errPdfFailed'), err);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleExcel() {
-    setBusy('excel');
-    try {
-      await exportInvoiceToExcel(supabase, invoiceId);
-      notify.success(
-        t('xls.invoiceExported'),
-        t('xls.invoiceExportedDesc', { number: invoiceNumber })
-      );
-    } catch (err) {
-      notify.error(t('xls.errExport'), (err as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleShare() {
-    setBusy('share');
-    try {
-      const { input, clientName } = await pdfInput();
-      const result = await shareInvoicePdf(input, clientName);
-      notify.success(
-        result === 'downloaded' ? t('inv.pdfDownloaded') : t('inv.shared'),
-        result === 'downloaded'
-          ? t('inv.pdfDownloadedDesc', { number: invoiceNumber })
-          : t('inv.sharedDesc', { number: invoiceNumber })
-      );
-    } catch (err) {
-      reportPdfError(t('inv.errShareFailed'), err);
-    } finally {
-      setBusy(null);
-    }
-  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -203,29 +105,51 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber }: Props) {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem asChild>
-            <a href={`/app/faturat/${invoiceId}`}>
-              <SquarePen /> {t('action.edit')}
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void handleDownload()} disabled={busy !== null}>
+          {locked ? (
+            // Disabled items take no pointer events, so the reason is written
+            // into the item itself rather than left to a tooltip nobody sees.
+            <DropdownMenuItem disabled className="items-start">
+              <Lock className="mt-0.5" />
+              <span className="flex flex-col">
+                {t('action.edit')}
+                <span className="text-muted-foreground text-xs">{t('inv.paidNoEdit')}</span>
+              </span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem asChild>
+              <a href={`/app/faturat/${invoiceId}`}>
+                <SquarePen /> {t('action.edit')}
+              </a>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => void download()} disabled={busy !== null}>
             <Download /> {t('inv.downloadPdf')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void handleExcel()} disabled={busy !== null}>
+          <DropdownMenuItem onSelect={() => void excel()} disabled={busy !== null}>
             <FileSpreadsheet /> {t('inv.downloadExcel')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void handleShare()} disabled={busy !== null}>
+          <DropdownMenuItem onSelect={() => void share()} disabled={busy !== null}>
             <Share2 /> {t('inv.share')}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem
-            onSelect={() => setConfirming(true)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 /> {t('action.delete')}
-          </DropdownMenuItem>
+          {locked ? (
+            <DropdownMenuItem disabled className="items-start">
+              <Lock className="mt-0.5" />
+              <span className="flex flex-col">
+                {t('action.delete')}
+                <span className="text-muted-foreground text-xs">{t('inv.paidNoDelete')}</span>
+              </span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onSelect={() => setConfirming(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 /> {t('action.delete')}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

@@ -393,6 +393,7 @@ const activeFilter = filters.find((f) => f.value === status);
                   client:visible
                   invoiceId={invoice.id}
                   invoiceNumber={invoice.invoice_number}
+                  status={invoice.status}
                 />
               </div>
             </li>
@@ -461,6 +462,7 @@ const activeFilter = filters.find((f) => f.value === status);
                     client:visible
                     invoiceId={invoice.id}
                     invoiceNumber={invoice.invoice_number}
+                    status={invoice.status}
                   />
                 </TableCell>
               </TableRow>

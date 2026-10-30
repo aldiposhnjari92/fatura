@@ -85,11 +85,17 @@ export default defineConfig({
       // discovery makes Vite re-optimise on first "Shkarko PDF" and invalidate
       // the `?v=` hash an already-open tab is holding.
       // The Excel reader/writer (src/lib/excel.ts) are reached the same way.
+      // The date picker's libraries too: only the invoice editor imports them,
+      // and discovering them on its first load re-optimised mid-session and
+      // answered the open tab with 504 "Outdated Optimize Dep" — the editor
+      // never hydrated, so no field on the form responded.
       include: [
         'jspdf',
         'jspdf-autotable',
         'write-excel-file/browser',
         'read-excel-file/browser',
+        'react-day-picker',
+        'date-fns/locale',
       ],
     },
     ssr: {

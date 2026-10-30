@@ -1,0 +1,259 @@
+---
+import { Icon } from '@/components/ui/icon';
+import { useTranslations } from '@/lib/i18n';
+import { computeTotals, type Client, type Invoice } from '@/lib/types';
+import { formatALL, formatDate, groupThousands, initials } from '@/lib/utils';
+
+/*
+  A paid invoice, read as a record rather than as paper.
+
+  The PDF is one click away for the paper version; this screen answers what
+  someone opens a settled invoice to check — how much came in, from whom, and
+  whether it came on time — before the line-by-line detail. Same arithmetic as
+  everywhere else (computeTotals), so no figure here can disagree with the PDF.
+*/
+
+interface Props {
+  invoice: Invoice;
+  client: Pick<Client, 'name' | 'nipt' | 'address' | 'email'> | null;
+}
+
+const { invoice, client } = Astro.props;
+const t = useTranslations();
+const items = Array.isArray(invoice.items) ? invoice.items : [];
+const totals = computeTotals(items, invoice.vat_percent, invoice.discount);
+
+/** Quantities can be fractional (2,5 orë); money never is on screen. */
+function qty(value: number): string {
+  const n = Number(value) || 0;
+  return Number.isInteger(n) ? groupThousands(n) : String(n).replace('.', ',');
+}
+
+/** Whole days between two dates, compared as calendar days so the hour never tips it. */
+function daysBetween(from: string, to: string): number {
+  const day = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+  return Math.round((day(to) - day(from)) / 86_400_000);
+}
+
+const paidOn = invoice.paid_at ? invoice.paid_at.slice(0, 10) : null;
+
+// How the payment landed against the deadline — the one judgement this page makes.
+let timing: { text: string; tone: 'good' | 'late' } | null = null;
+if (paidOn && invoice.due_date) {
+  const late = daysBetween(invoice.due_date, paidOn);
+  timing =
+    late > 0
+      ? { text: t('invd.paidLate', { days: late }), tone: 'late' }
+      : late === 0
+        ? { text: t('invd.paidOnDue'), tone: 'good' }
+        : { text: t('invd.paidEarly', { days: -late }), tone: 'good' };
+} else if (paidOn) {
+  const took = daysBetween(invoice.issue_date, paidOn);
+  timing = {
+    text: took <= 0 ? t('invd.paidSameDay') : t('invd.paidAfter', { days: took }),
+    tone: 'good',
+  };
+}
+
+type Step = { label: string; date: string | null; icon: string; final?: boolean };
+
+// Issued, then paid. The due date is left to the chip beside the amount,
+// which already says how the payment landed against it.
+const timeline: Step[] = [
+  { label: t('invd.issued'), date: invoice.issue_date, icon: 'file-text' },
+  { label: t('invd.paid'), date: paidOn, icon: 'circle-check', final: true },
+];
+
+// The dates are on the timeline; this is what it does not show.
+const details: [string, string][] = [
+  [t('invd.number'), invoice.invoice_number],
+  [t('invd.items'), String(items.length)],
+  [t('invd.vat'), `${invoice.vat_percent}%`],
+  ...(totals.discount > 0 ? [[t('invd.discount'), formatALL(totals.discount)] as [string, string]] : []),
+  [t('invd.created'), formatDate(invoice.created_at)],
+];
+---
+
+<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <!-- Summary: the money, and how it arrived -->
+  <section class="bg-card shadow-card overflow-hidden rounded-2xl lg:col-span-2">
+    <div class="flex flex-col gap-7 p-6 sm:p-7 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-muted-foreground text-sm">{t('invd.amountPaid')}</p>
+        <p class="mt-1 text-2xl font-extrabold tracking-[-0.02em] tabular-nums sm:text-3xl">
+          {formatALL(totals.total)}
+        </p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          {
+            timing && (
+              <span
+                class:list={[
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+                  timing.tone === 'good' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning',
+                ]}
+              >
+                <Icon name={timing.tone === 'good' ? 'trending-up' : 'clock'} class="size-3.5" />
+                {timing.text}
+              </span>
+            )
+          }
+        </div>
+      </div>
+
+      <!--
+        Issued → paid. Both steps of a paid invoice have happened, so both
+        are filled; the last is the one that matters and is marked as such.
+        Solid circles on purpose — a tinted one lets the connector show through.
+        Vertical on a phone, a row once there is room.
+      -->
+      <ol class="relative flex flex-col sm:w-72 sm:flex-row sm:justify-between">
+        <!-- One connector from the first circle's centre to the last's, so the
+             last step can sit flush with the card's right edge. -->
+        <span class="bg-success absolute top-[15px] right-4 left-4 hidden h-0.5 sm:block" aria-hidden="true"></span>
+        {
+          timeline.map((step, i) => (
+            <li class="relative flex gap-3 pb-5 last:pb-0 sm:flex-col sm:gap-2.5 sm:pb-0 sm:last:items-end sm:last:text-right">
+              {i < timeline.length - 1 && (
+                <span class="bg-success absolute top-8 bottom-0 left-[15px] w-0.5 sm:hidden" aria-hidden="true" />
+              )}
+              <span
+                class:list={[
+                  'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full',
+                  step.final ? 'bg-success text-white shadow-[0_0_0_4px] shadow-success/20' : 'bg-success text-white',
+                ]}
+              >
+                <Icon name={step.icon} class="size-4" />
+              </span>
+              <span class="pt-1 sm:pt-0">
+                <span class="text-muted-foreground block text-xs">{step.label}</span>
+                <span class="block text-sm font-semibold tabular-nums">{formatDate(step.date)}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- Main column: what was billed -->
+  <div class="flex min-w-0 flex-col gap-5">
+    <section class="bg-card shadow-card overflow-hidden rounded-2xl">
+      <header class="flex items-center justify-between gap-3 px-6 pt-5 pb-3">
+        <h2 class="font-semibold">{t('invd.items')}</h2>
+        <span class="bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
+          {items.length}
+        </span>
+      </header>
+
+      <ul class="divide-y px-6">
+        {
+          items.map((item, i) => (
+            <li class="flex items-start gap-3 py-3.5">
+              <span class="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums">
+                {i + 1}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium break-words">{item.description}</p>
+                <p class="text-muted-foreground text-xs tabular-nums">
+                  {qty(item.quantity)} × {formatALL(item.price)}
+                </p>
+              </div>
+              <p class="shrink-0 font-semibold tabular-nums">
+                {formatALL(Math.round((Number(item.quantity) || 0) * (Number(item.price) || 0)))}
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+
+      <dl class="bg-muted/40 mt-2 flex flex-col gap-2 border-t px-6 py-4 text-sm">
+        <div class="flex justify-between gap-6">
+          <dt class="text-muted-foreground">{t('invd.subtotal')}</dt>
+          <dd class="tabular-nums">{formatALL(totals.subtotal)}</dd>
+        </div>
+        {
+          totals.discount > 0 && (
+            <div class="flex justify-between gap-6">
+              <dt class="text-muted-foreground">{t('invd.discount')}</dt>
+              <dd class="text-success tabular-nums">−{formatALL(totals.discount)}</dd>
+            </div>
+          )
+        }
+        <div class="flex justify-between gap-6">
+          <dt class="text-muted-foreground">{t('invd.vat')} {invoice.vat_percent}%</dt>
+          <dd class="tabular-nums">{formatALL(totals.vatAmount)}</dd>
+        </div>
+        <div class="mt-1 flex justify-between gap-6 border-t pt-3 text-base">
+          <dt class="font-semibold">{t('invd.total')}</dt>
+          <dd class="font-bold tabular-nums">{formatALL(totals.total)}</dd>
+        </div>
+      </dl>
+    </section>
+
+    {
+      invoice.notes && (
+        <section class="bg-card shadow-card rounded-2xl p-6">
+          <h2 class="flex items-center gap-2 font-semibold">
+            <Icon name="sticky-note" class="text-muted-foreground size-4" />
+            {t('invd.notes')}
+          </h2>
+          <p class="text-muted-foreground mt-2 text-sm whitespace-pre-line">{invoice.notes}</p>
+        </section>
+      )
+    }
+  </div>
+
+  <!-- Sidebar: who paid, and the record's facts -->
+  <aside class="flex min-w-0 flex-col gap-5 lg:sticky lg:top-6 lg:self-start">
+    <section class="bg-card shadow-card rounded-2xl p-6">
+      <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+        {t('invd.client')}
+      </h2>
+      <div class="mt-3 flex items-center gap-3">
+        <span class="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold">
+          {initials(client?.name)}
+        </span>
+        <div class="min-w-0">
+          <p class="truncate font-semibold">{client?.name ?? '—'}</p>
+          {client?.nipt && <p class="text-muted-foreground text-xs">NIPT {client.nipt}</p>}
+        </div>
+      </div>
+      {
+        (client?.email || client?.address) && (
+          <ul class="mt-4 space-y-2 border-t pt-4 text-sm">
+            {client?.email && (
+              <li class="flex items-center gap-2">
+                <Icon name="mail" class="text-muted-foreground size-4 shrink-0" />
+                <a href={`mailto:${client.email}`} class="text-primary truncate hover:underline">
+                  {client.email}
+                </a>
+              </li>
+            )}
+            {client?.address && (
+              <li class="text-muted-foreground flex items-start gap-2">
+                <Icon name="map-pin" class="mt-0.5 size-4 shrink-0" />
+                <span class="break-words">{client.address}</span>
+              </li>
+            )}
+          </ul>
+        )
+      }
+    </section>
+
+    <section class="bg-card shadow-card rounded-2xl p-6">
+      <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+        {t('invd.details')}
+      </h2>
+      <dl class="mt-3 divide-y text-sm">
+        {
+          details.map(([label, value]) => (
+            <div class="flex justify-between gap-4 py-2.5">
+              <dt class="text-muted-foreground">{label}</dt>
+              <dd class="text-right font-medium tabular-nums">{value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </section>
+  </aside>
+</div>
