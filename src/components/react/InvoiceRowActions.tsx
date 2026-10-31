@@ -5,6 +5,7 @@ import {
   Loader2,
   Lock,
   MoreHorizontal,
+  Printer,
   Share2,
   SquarePen,
   Trash2,
@@ -57,9 +58,9 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: in
     return () => window.removeEventListener(INVOICE_STATUS_EVENT, onStatus);
   }, [invoiceId]);
 
-  /** Paid is final: no edit, no delete — see 0019_paid_invoice_final.sql. */
+  /** Paid is final: no edit — see 0019/0020. It can still be deleted. */
   const locked = status === 'paid';
-  const { busy, download, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
+  const { busy, download, print, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
   const [confirming, setConfirming] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
@@ -125,6 +126,9 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: in
           <DropdownMenuItem onSelect={() => void download()} disabled={busy !== null}>
             <Download /> {t('inv.downloadPdf')}
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void print()} disabled={busy !== null}>
+            <Printer /> {t('inv.print')}
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void excel()} disabled={busy !== null}>
             <FileSpreadsheet /> {t('inv.downloadExcel')}
           </DropdownMenuItem>
@@ -134,22 +138,12 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: in
 
           <DropdownMenuSeparator />
 
-          {locked ? (
-            <DropdownMenuItem disabled className="items-start">
-              <Lock className="mt-0.5" />
-              <span className="flex flex-col">
-                {t('action.delete')}
-                <span className="text-muted-foreground text-xs">{t('inv.paidNoDelete')}</span>
-              </span>
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              onSelect={() => setConfirming(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 /> {t('action.delete')}
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem
+            onSelect={() => setConfirming(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 /> {t('action.delete')}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

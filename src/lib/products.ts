@@ -82,43 +82,6 @@ export async function suggestProducts(
 }
 
 /**
- * Append a line, or fold it into the one already carrying the same product.
- *
- * A remembered product is entered once: a second entry of it is a quantity
- * change, not a new line. So the quantities add up, and the price entered last
- * wins — that is the one the user just decided on.
- *
- * A price left blank is the exception. The field no longer fills itself in
- * when a product is picked, so blank means "the same as before" far more often
- * than it means "free"; the line keeps the price it had rather than being
- * silently zeroed by a repeat entry.
- */
-export function mergeProductLine(
-  items: InvoiceItem[],
-  line: InvoiceItem
-): InvoiceItem[] {
-  const at = productLineIndex(items, line.description);
-  if (at === items.length) return [...items, line];
-
-  return items.map((item, i) => {
-    if (i !== at) return item;
-    const entered = Number(line.price) || 0;
-    return {
-      ...item,
-      quantity: (Number(item.quantity) || 0) + (Number(line.quantity) || 0),
-      price: entered || Number(item.price) || 0,
-    };
-  });
-}
-
-/** Where `mergeProductLine` puts this product — `items.length` when it is new. */
-export function productLineIndex(items: InvoiceItem[], description: string): number {
-  const key = productKey(description);
-  const at = items.findIndex((item) => productKey(item.description) === key);
-  return at === -1 ? items.length : at;
-}
-
-/**
  * The saved catalogue plus the products on the invoice being written.
  *
  * A product typed for the first time is remembered the moment it is added to

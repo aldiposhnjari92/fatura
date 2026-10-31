@@ -1,4 +1,12 @@
-import { ChevronDown, Download, FileSpreadsheet, FileText, Loader2, Share2 } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  Printer,
+  Share2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/react/button';
 import {
   DropdownMenu,
@@ -22,8 +30,8 @@ interface Props {
 
 export default function InvoiceFileActions({ invoiceId, invoiceNumber }: Props) {
   const t = useTranslations();
-  const { busy, download, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
-  const downloading = busy === 'download' || busy === 'excel';
+  const { busy, download, print, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
+  const downloading = busy === 'download' || busy === 'print' || busy === 'excel';
 
   return (
     <div className="flex items-center gap-2">
@@ -51,6 +59,13 @@ export default function InvoiceFileActions({ invoiceId, invoiceNumber }: Props) 
             <span className="flex flex-col">
               PDF
               <span className="text-muted-foreground text-xs">{t('inv.downloadPdfDesc')}</span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void print()} className="items-start">
+            <Printer className="mt-0.5" />
+            <span className="flex flex-col">
+              {t('inv.print')}
+              <span className="text-muted-foreground text-xs">{t('inv.printDesc')}</span>
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void excel()} className="items-start">

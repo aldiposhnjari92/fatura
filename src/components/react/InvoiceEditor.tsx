@@ -8,6 +8,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Printer,
   Receipt,
   Save,
   Share2,
@@ -27,12 +28,7 @@ import { Textarea } from '@/components/ui/react/textarea';
 import { DatePicker } from '@/components/ui/react/date-picker';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { ProductCombobox } from '@/components/ui/react/product-combobox';
-import {
-  mergeProductCatalogue,
-  mergeProductLine,
-  productLineIndex,
-  type ProductSuggestion,
-} from '@/lib/products';
+import { mergeProductCatalogue, type ProductSuggestion } from '@/lib/products';
 import {
   computeTotals,
   type Client,
@@ -46,6 +42,7 @@ import {
   downloadInvoicePdf,
   invoicePdfObjectUrl,
   isPdfEngineLoadError,
+  printInvoicePdf,
   shareInvoicePdf,
 } from '@/lib/pdf';
 import { flashToast, notify } from '@/lib/toast';
@@ -141,7 +138,7 @@ export default function InvoiceEditor({
   */
   const [draft, setDraft] = React.useState<InvoiceItem>(emptyItem);
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
-  /* The line the last Shto landed on, highlighted briefly so a merge is seen. */
+  /* The line the last Shto landed on, highlighted briefly so it is seen. */
   const [flash, setFlash] = React.useState<{ index: number } | null>(null);
   const descriptionRef = React.useRef<HTMLInputElement>(null);
   const [vatPercent, setVatPercent] = React.useState<number>(invoice?.vat_percent ?? 20);
@@ -151,7 +148,9 @@ export default function InvoiceEditor({
   const [notes, setNotes] = React.useState(invoice?.notes ?? '');
 
   const [saving, setSaving] = React.useState(false);
-  const [busyPdf, setBusyPdf] = React.useState<'download' | 'share' | 'preview' | null>(
+  const [busyPdf, setBusyPdf] = React.useState<
+    'download' | 'print' | 'share' | 'preview' | null
+  >(
     null
   );
   const [error, setError] = React.useState<string | null>(null);
@@ -195,9 +194,9 @@ export default function InvoiceEditor({
   /**
    * Move the composer's line onto the invoice.
    *
-   * A product already on the invoice has its quantity raised instead of
-   * opening a second identical line — the catalogue exists so nothing is
-   * typed twice, and a repeat entry is a quantity change.
+   * Every entry is its own line, even a product already on the invoice: the
+   * same thing is often sold twice at two prices, and folding the repeat into
+   * the first line would overwrite the price that line was sold at.
    */
   function commitDraft() {
     const description = draft.description.trim();
@@ -213,8 +212,8 @@ export default function InvoiceEditor({
       setItems((prev) => prev.map((item, i) => (i === editingIndex ? line : item)));
       setFlash({ index: editingIndex });
     } else {
-      setFlash({ index: productLineIndex(items, description) });
-      setItems((prev) => mergeProductLine(prev, line));
+      setFlash({ index: items.length });
+      setItems((prev) => [...prev, line]);
     }
 
     setDraft(emptyItem());
@@ -272,7 +271,7 @@ export default function InvoiceEditor({
 
   /** What the invoice would hold if it were saved right now. */
   const effectiveItems = React.useMemo(
-    () => (pendingLine ? mergeProductLine(items, pendingLine) : items),
+    () => (pendingLine ? [...items, pendingLine] : items),
     [items, pendingLine]
   );
 
@@ -511,6 +510,22 @@ export default function InvoiceEditor({
       );
     } catch (err) {
       reportPdfError(t('inv.errPdfFailed'), err);
+    } finally {
+      setBusyPdf(null);
+    }
+  }
+
+  async function handlePrint() {
+    const validationError = validate();
+    if (validationError) {
+      fail(t('inv.errPrintFailed'), validationError);
+      return;
+    }
+    setBusyPdf('print');
+    try {
+      await printInvoicePdf(pdfInput);
+    } catch (err) {
+      reportPdfError(t('inv.errPrintFailed'), err);
     } finally {
       setBusyPdf(null);
     }
@@ -1139,19 +1154,19 @@ export default function InvoiceEditor({
             </div>
 
             {/*
-              Three things you can do with the finished PDF, at one weight.
+              Four things you can do with the finished PDF, at one weight.
 
               They were split across two tiers before — download as a
               full-width outline button, view and send as a pair of ghost
               buttons underneath — which implied a hierarchy none of them have
-              over each other. Three-up also gives each a real tap target,
+              over each other. One row also gives each a real tap target,
               which the ghost row did not on a phone.
             */}
             <div>
               <p className="text-muted-foreground mb-2 text-[11px] font-bold tracking-[0.12em] uppercase">
                 {t('inv.pdfActions')}
               </p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -1175,6 +1190,16 @@ export default function InvoiceEditor({
                 >
                   {busyPdf === 'preview' ? <Loader2 className="animate-spin" /> : <Eye />}
                   {t('inv.previewShort')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrint}
+                  disabled={busyPdf !== null}
+                  className="press h-auto flex-col gap-1.5 px-1 py-3 text-xs font-medium"
+                >
+                  {busyPdf === 'print' ? <Loader2 className="animate-spin" /> : <Printer />}
+                  {t('inv.print')}
                 </Button>
                 <Button
                   type="button"

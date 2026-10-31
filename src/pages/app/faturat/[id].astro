@@ -103,13 +103,20 @@ const t = useTranslations();
       </div>
 
       {
-        // A paid invoice is final (0019_paid_invoice_final.sql): no delete.
+        // A paid invoice is read-only (0019) but can still be deleted (0020).
         isPaid ? (
-          <InvoiceFileActions
-            invoiceId={invoice.id}
-            invoiceNumber={invoice.invoice_number}
-            client:idle
-          />
+          <div class="flex items-center gap-2">
+            <DeleteInvoiceButton
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoice_number}
+              client:idle
+            />
+            <InvoiceFileActions
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoice_number}
+              client:idle
+            />
+          </div>
         ) : (
           <DeleteInvoiceButton
             invoiceId={invoice.id}

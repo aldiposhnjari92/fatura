@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import {
   downloadInvoicePdf,
   isPdfEngineLoadError,
+  printInvoicePdf,
   shareInvoicePdf,
   type InvoicePdfInput,
 } from '@/lib/pdf';
@@ -12,7 +13,7 @@ import { useTranslations } from '@/lib/i18n';
 import type { Client, Profile } from '@/lib/types';
 
 /*
-  PDF, Excel and share for one saved invoice, by id — shared by the list's row
+  PDF, print, Excel and share for one saved invoice, by id — shared by the list's row
   menu and the paid invoice's detail view.
 
   The list deliberately does not select `items` — the whole point of that query
@@ -45,7 +46,7 @@ function loadProfile(): Promise<Partial<Profile> | null> {
   return profileRequest;
 }
 
-export type InvoiceFileAction = 'download' | 'excel' | 'share';
+export type InvoiceFileAction = 'download' | 'print' | 'excel' | 'share';
 
 export function useInvoiceFiles(invoiceId: string, invoiceNumber: string) {
   const t = useTranslations();
@@ -97,6 +98,18 @@ export function useInvoiceFiles(invoiceId: string, invoiceNumber: string) {
     }
   }
 
+  async function print() {
+    setBusy('print');
+    try {
+      const { input } = await pdfInput();
+      await printInvoicePdf(input);
+    } catch (err) {
+      reportPdfError(t('inv.errPrintFailed'), err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function excel() {
     setBusy('excel');
     try {
@@ -130,5 +143,5 @@ export function useInvoiceFiles(invoiceId: string, invoiceNumber: string) {
     }
   }
 
-  return { busy, download, excel, share };
+  return { busy, download, print, excel, share };
 }

@@ -456,6 +456,45 @@ export async function invoicePdfObjectUrl(input: InvoicePdfInput): Promise<strin
   return URL.createObjectURL(doc.output('blob'));
 }
 
+/**
+ * Straight to the print dialog, no file saved. The PDF is loaded into a hidden
+ * iframe and printed from there; the blob is same-origin, so the browser lets
+ * us call print() on it. Where that is refused (iOS Safari, some embedded
+ * viewers) the PDF opens in a new tab instead, which prints from its own menu.
+ */
+export async function printInvoicePdf(input: InvoicePdfInput) {
+  const doc = await buildInvoicePdf(input);
+  const url = URL.createObjectURL(doc.output('blob'));
+
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;';
+
+  // The dialog is modal but print() does not say when it closes, so the frame
+  // is kept around long enough to never be pulled out from under it.
+  const cleanup = () => {
+    window.setTimeout(() => {
+      frame.remove();
+      URL.revokeObjectURL(url);
+    }, 60_000);
+  };
+
+  await new Promise<void>((resolve) => {
+    frame.onload = () => {
+      try {
+        frame.contentWindow!.focus();
+        frame.contentWindow!.print();
+      } catch {
+        window.open(url, '_blank', 'noopener');
+      }
+      cleanup();
+      resolve();
+    };
+    frame.src = url;
+    document.body.appendChild(frame);
+  });
+}
+
 /** Share sheet on mobile (WhatsApp/Viber), with a download fallback. */
 export async function shareInvoicePdf(input: InvoicePdfInput, clientName?: string | null) {
   const doc = await buildInvoicePdf(input);

@@ -123,8 +123,9 @@ const sq = {
   'inv.saved': 'Fatura u ruajt.',
   'inv.downloadPdf': 'Shkarko PDF',
   'inv.downloadExcel': 'Shkarko Excel',
+  'inv.print': 'Printo',
   'inv.preview': 'Shiko faturën',
-  /* The PDF trio sits three-up in the summary panel; the long forms above
+  /* The PDF buttons sit four-up in the summary panel; the long forms above
      do not fit a third of a sidebar, and the icon carries the rest. */
   'inv.downloadShort': 'Shkarko',
   'inv.previewShort': 'Shiko',
@@ -140,10 +141,10 @@ const sq = {
   'inv.paidLocked': 'E paguar — përfundimtare',
   'inv.paidLockedHint': 'Një faturë e paguar nuk mund të kthehet në një gjendje tjetër.',
   'inv.paidNoEdit': 'Fatura e paguar nuk mund të ndryshohet',
-  'inv.paidNoDelete': 'Fatura e paguar nuk mund të fshihet',
   'inv.download': 'Shkarko',
   'inv.downloadPdfDesc': 'Për ta printuar ose dërguar',
   'inv.downloadExcelDesc': 'Për kontabilitetin',
+  'inv.printDesc': 'Direkt në printer, pa e ruajtur',
 
   // ---- Paid invoice detail view ----------------------------------------
   'invd.amountPaid': 'Shuma e arkëtuar',
@@ -196,6 +197,7 @@ const sq = {
   'inv.errQuota': 'Ke arritur limitin e planit tënd për këtë muaj. Kalo në një plan më të lartë për më shumë fatura.',
   'inv.errPdfFailed': 'PDF-ja dështoi',
   'inv.errShareFailed': 'Ndarja dështoi',
+  'inv.errPrintFailed': 'Printimi dështoi',
   'inv.errPreviewFailed': 'Hapja e faturës dështoi',
   'inv.warnLimitReached': 'Ke arritur limitin e planit tënd për këtë muaj. Mund ta shkarkosh PDF-në, por ruajtja do të dështojë derisa të kalosh në një plan më të lartë.',
   'inv.warnProfileIncomplete': 'Të dhënat e biznesit janë të paplota.',
