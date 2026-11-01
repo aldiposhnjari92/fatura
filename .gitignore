@@ -29,3 +29,6 @@ pnpm-debug.log*
 # environment variables
 .env
 .env*
+
+# supabase CLI local state
+supabase/.temp/
