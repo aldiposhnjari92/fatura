@@ -1,5 +1,15 @@
 import * as React from 'react';
 import {
+  AlignLeft,
+  AtSign,
+  Calculator,
+  CalendarDays,
+  CheckSquare,
+  ChevronDownSquare,
+  Hash,
+  Link2,
+  Phone,
+  Send,
   BadgeDollarSign,
   BellRing,
   FlipHorizontal2,
@@ -72,6 +82,7 @@ import { cn } from '@/lib/utils';
 import {
   BLOCK_TYPES,
   COLUMN_GRID,
+  FIELD_PALETTE,
   DEFAULT_NAV_GROUP,
   PAGE_ICONS,
   ROOT,
@@ -93,6 +104,8 @@ import {
   type Container,
   type CustomCollection,
   type CustomPage,
+  type CollectionField,
+  type FieldType,
   type LeafBlock,
   type PageIcon,
   type PaletteGroup,
@@ -153,6 +166,22 @@ const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   countdown: Timer,
   progress: TrendingUp,
   cards: LayoutGrid,
+  field: TextCursorInput,
+  submit: Send,
+};
+
+/* Each input type gets its own tile in the "Fushat e formularit" palette. */
+const FIELD_ICONS: Record<FieldType, LucideIcon> = {
+  text: Type,
+  textarea: AlignLeft,
+  number: Hash,
+  date: CalendarDays,
+  select: ChevronDownSquare,
+  checkbox: CheckSquare,
+  email: AtSign,
+  tel: Phone,
+  url: Link2,
+  formula: Calculator,
 };
 
 const BLOCK_LABEL = Object.fromEntries(BLOCK_TYPES.map((b) => [b.type, b.label])) as Record<
@@ -183,8 +212,12 @@ const DEVICE_WIDTH: Record<Device, string> = {
 };
 
 type Panel = 'widgets' | 'edit' | 'page' | 'navigator';
-type DragPayload = { kind: 'new'; type: BlockType } | { kind: 'move'; id: string };
+type DragPayload =
+  | { kind: 'new'; type: BlockType; fieldKind?: FieldType }
+  | { kind: 'move'; id: string };
 type Target = { container: Container; index: number };
+
+const EMPTY_VALUES = {};
 
 /** How long consecutive edits fold into one undo step — a word, not a letter. */
 const COALESCE_MS = 600;
@@ -223,6 +256,10 @@ function summary(block: Block): string {
       return block.frontTitle || BLOCK_LABEL.flipbox;
     case 'image':
       return block.alt || block.caption || BLOCK_LABEL.image;
+    case 'field':
+      return `${block.label || FIELD_PALETTE.find((f) => f.kind === block.kind)?.label || 'Fushë'} · ${block.form}`;
+    case 'submit':
+      return `${block.label || 'Dërgo'} · ${block.form}`;
     default:
       return BLOCK_LABEL[block.type];
   }
@@ -293,6 +330,9 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
       rows: () => [],
       onSaved: () => {},
       onDeleted: () => {},
+      formValues: () => EMPTY_VALUES,
+      setFormValue: () => {},
+      resetForm: () => {},
     }),
     [collectionsById, blocks]
   );
@@ -369,15 +409,34 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
 
   // ---- Blocks --------------------------------------------------------------
 
-  function addBlock(type: BlockType, target: Target | null = insertTarget) {
+  function addBlock(type: BlockType, target: Target | null = insertTarget, fieldKind?: FieldType) {
     // A data block starts on the only collection when there is just one.
-    const block = createBlock(type, collections.length === 1 ? collections[0].id : null);
+    const block = createBlock(type, collections.length === 1 ? collections[0].id : null, fieldKind);
     const where = target ?? { container: ROOT, index: blocks.length };
     setBlocks(insertAt(blocks, where.container, where.index, block));
     setSelectedId(block.id);
     setPanel('edit');
     setTab('content');
     setInsertTarget(null);
+  }
+
+  /** Adds a field to a collection, for a form element that has none to connect to yet. */
+  async function addCollectionField(collectionId: string, field: CollectionField): Promise<boolean> {
+    const collection = collections.find((c) => c.id === collectionId);
+    if (!collection) return false;
+    const { data, error } = await supabase
+      .from('custom_collections')
+      .update({ fields: [...collection.fields, field] })
+      .eq('id', collectionId)
+      .select()
+      .single();
+    if (error) {
+      notify.error('Fusha nuk u shtua', error.message);
+      return false;
+    }
+    setCollections((prev) => prev.map((c) => (c.id === collectionId ? (data as CustomCollection) : c)));
+    notify.success('Fusha u shtua.', `“${field.label}” te ${collection.name}.`);
+    return true;
   }
 
   function updateBlock(updated: Block) {
@@ -468,7 +527,7 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
     const target = dropTarget ?? { container: ROOT, index: blocks.length };
     endDrag();
     if (!payload) return;
-    if (payload.kind === 'new') addBlock(payload.type, target);
+    if (payload.kind === 'new') addBlock(payload.type, target, payload.fieldKind);
     else setBlocks(moveBlock(blocks, payload.id, target.container, target.index));
   }
 
@@ -767,9 +826,9 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
 
   // ---- Render --------------------------------------------------------------
 
-  const visiblePalette = BLOCK_TYPES.filter(
-    (b) => !search.trim() || b.label.toLowerCase().includes(search.trim().toLowerCase())
-  );
+  const q = search.trim().toLowerCase();
+  const visiblePalette = BLOCK_TYPES.filter((b) => b.type !== 'field' && (!q || b.label.toLowerCase().includes(q)));
+  const visibleFields = FIELD_PALETTE.filter((f) => !q || f.label.toLowerCase().includes(q) || 'fushë'.includes(q));
 
   return (
     <div className="flex flex-col gap-4">
@@ -911,13 +970,32 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
                   </div>
                   {PALETTE_GROUPS.map((group) => {
                     const items = visiblePalette.filter((b) => b.group === group);
-                    if (items.length === 0) return null;
+                    const fieldTiles = group === 'Fushat e formularit' ? visibleFields : [];
+                    if (items.length === 0 && fieldTiles.length === 0) return null;
                     return (
                       <div key={group}>
                         <p className="text-muted-foreground mb-2 text-[11px] font-bold tracking-[0.12em] uppercase">
                           {group}
                         </p>
                         <div className="grid grid-cols-3 gap-1.5">
+                          {fieldTiles.map((f) => {
+                            const Icon = FIELD_ICONS[f.kind];
+                            return (
+                              <button
+                                key={f.kind}
+                                type="button"
+                                draggable
+                                onDragStart={(e) => startDrag(e, { kind: 'new', type: 'field', fieldKind: f.kind })}
+                                onDragEnd={endDrag}
+                                onClick={() => addBlock('field', insertTarget, f.kind)}
+                                title="Fushë formulari — tërhiqe ose kliko, pastaj lidhe me koleksionin"
+                                className="hover:border-primary hover:text-primary flex aspect-square cursor-grab flex-col items-center justify-center gap-2 rounded-lg border p-2 text-center transition-colors active:cursor-grabbing"
+                              >
+                                <Icon className="size-5" />
+                                <span className="text-[11px] leading-tight font-medium">{f.label}</span>
+                              </button>
+                            );
+                          })}
                           {items.map((b) => {
                             const Icon = BLOCK_ICONS[b.type];
                             return (
@@ -980,6 +1058,8 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
                       collections={collections}
                       onChange={updateBlock}
                       onManageCollections={() => setCollectionsOpen(true)}
+                      pageBlocks={blocks}
+                      onAddField={addCollectionField}
                     />
                   </div>
                 </>

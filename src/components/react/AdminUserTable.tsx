@@ -135,6 +135,11 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
     }
   }
 
+  /*
+    A manual grant is also a payment: admin_set_pro() records it as confirmed
+    at the plan's price × months (0028), so it counts as revenue on the
+    dashboard and shows in the customer's payment history.
+  */
   const grantPlan = (row: AdminUserRow, plan: PaidPlanId, months: number) =>
     run(
       row.id,
@@ -145,9 +150,10 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
         is_pro: true,
         plan: (d?.plan as PlanId) ?? plan,
         pro_until: d?.pro_until ?? r.pro_until,
+        paid_total: r.paid_total + (Number(d?.amount) || planOf(plan).monthlyALL * months),
       }),
-      `${planOf(plan).name} u aktivizua.`,
-      `${months} muaj për ${row.business_name ?? row.email}.`
+      `${planOf(plan).name} u aktivizua dhe u regjistrua si e paguar.`,
+      `${months} muaj për ${row.business_name ?? row.email} · ${formatALL(planOf(plan).monthlyALL * months)}.`
     );
 
   const revokePro = (row: AdminUserRow) =>
@@ -359,6 +365,9 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                               onSelect={() => grantPlan(row, p.id as PaidPlanId, m)}
                             >
                               <Sparkles /> Jep {p.name} — {m} muaj
+                              <span className="text-muted-foreground ml-auto text-xs tabular-nums">
+                                {formatALL(p.monthlyALL * m, false)}
+                              </span>
                             </DropdownMenuItem>
                           ))}
                         </React.Fragment>

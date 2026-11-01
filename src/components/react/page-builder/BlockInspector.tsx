@@ -16,6 +16,8 @@ import {
   type Size,
 } from '@/lib/page-builder';
 import WidgetInspector, { WIDGET_TYPES } from './WidgetInspector';
+import FormFieldInspector from './FormFieldInspector';
+import type { CollectionField } from '@/lib/page-builder';
 
 /*
   The editor panel for the selected block, in Elementor's three tabs:
@@ -32,9 +34,20 @@ interface Props {
   collections: CustomCollection[];
   onChange: (block: Block) => void;
   onManageCollections: () => void;
+  /** The whole page — a form element needs to see its siblings. */
+  pageBlocks: Block[];
+  onAddField: (collectionId: string, field: CollectionField) => Promise<boolean>;
 }
 
-export default function BlockInspector({ block, tab, collections, onChange, onManageCollections }: Props) {
+export default function BlockInspector({
+  block,
+  tab,
+  collections,
+  onChange,
+  onManageCollections,
+  pageBlocks,
+  onAddField,
+}: Props) {
   // The cast is safe: every caller passes a patch for the block it holds.
   const set = (patch: Partial<Block>) => onChange({ ...block, ...patch } as Block);
   const setStyle = (patch: Partial<BlockStyle>) =>
@@ -45,6 +58,21 @@ export default function BlockInspector({ block, tab, collections, onChange, onMa
 
   const collectionOf = (source: CollectionSource) =>
     collections.find((c) => c.id === source.collectionId);
+
+  if (block.type === 'field' || block.type === 'submit') {
+    return (
+      <div className="grid gap-4">
+        <FormFieldInspector
+          block={block}
+          set={set}
+          collections={collections}
+          pageBlocks={pageBlocks}
+          onManageCollections={onManageCollections}
+          onAddField={onAddField}
+        />
+      </div>
+    );
+  }
 
   if (block.type !== 'columns' && WIDGET_TYPES.has(block.type)) {
     return (

@@ -53,6 +53,10 @@ import {
   pickFields,
   safeHref,
   styleClasses,
+  flattenBlocks,
+  formKey,
+  type FieldBlock,
+  type SubmitBlock,
   type Block,
   type CollectionField,
   type CustomCollection,
@@ -96,6 +100,8 @@ export default function PageBlocks({
   readOnly = false,
 }: Props) {
   const [records, setRecords] = React.useState<CustomRecord[]>(initial);
+  /* Values of every element-built form on the page, by formKey(). */
+  const [forms, setForms] = React.useState<Record<string, Values>>({});
   const byId = React.useMemo(() => new Map(collections.map((c) => [c.id, c])), [collections]);
 
   const ctx = React.useMemo<BlockContext>(
@@ -111,8 +117,17 @@ export default function PageBlocks({
             : [row, ...prev]
         ),
       onDeleted: (id) => setRecords((prev) => prev.filter((r) => r.id !== id)),
+      formValues: (key) => forms[key] ?? NO_VALUES,
+      setFormValue: (key, fieldId, value) =>
+        setForms((prev) => ({ ...prev, [key]: { ...prev[key], [fieldId]: value } })),
+      resetForm: (key) =>
+        setForms((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        }),
     }),
-    [byId, records, readOnly, blocks]
+    [byId, records, readOnly, blocks, forms]
   );
 
   // The preview fetches its rows after opening; follow them when they land.
@@ -162,6 +177,10 @@ export interface BlockContext {
   rows: (collectionId: string | null) => CustomRecord[];
   onSaved: (row: CustomRecord) => void;
   onDeleted: (id: string) => void;
+  /** An element-built form's current values — shared by its field blocks. */
+  formValues: (key: string) => Values;
+  setFormValue: (key: string, fieldId: string, value: RecordValue) => void;
+  resetForm: (key: string) => void;
 }
 
 const Ctx = React.createContext<BlockContext | null>(null);
@@ -291,6 +310,10 @@ export function BlockView({ block }: { block: LeafBlock }) {
           formatValue={formatValue}
         />
       );
+    case 'field':
+      return <FieldElement block={block} />;
+    case 'submit':
+      return <SubmitElement block={block} />;
   }
 }
 
@@ -379,11 +402,13 @@ function FieldInput({
   value,
   onChange,
   idPrefix,
+  placeholder,
 }: {
   field: CollectionField;
   value: RecordValue;
   onChange: (value: RecordValue) => void;
   idPrefix: string;
+  placeholder?: string;
 }) {
   const id = `${idPrefix}-${field.id}`;
   const label = (
@@ -398,7 +423,13 @@ function FieldInput({
       return (
         <div className="space-y-1.5 @lg:col-span-2">
           {label}
-          <Textarea id={id} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} rows={3} />
+          <Textarea
+            id={id}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder || undefined}
+            rows={3}
+          />
         </div>
       );
     case 'number':
@@ -457,7 +488,7 @@ function FieldInput({
             id={id}
             type={field.type === 'email' || field.type === 'tel' || field.type === 'url' ? field.type : 'text'}
             inputMode={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : undefined}
-            placeholder={field.type === 'url' ? 'https://' : undefined}
+            placeholder={placeholder || (field.type === 'url' ? 'https://' : undefined)}
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
           />
@@ -790,6 +821,137 @@ function TableView({ block }: { block: TableBlock }) {
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+// ---- Element-built forms ----------------------------------------------------------
+
+/** One shared empty object, so an untouched form never re-renders its fields. */
+const NO_VALUES: Values = {};
+
+function ElementPlaceholder({ children }: { children: React.ReactNode }) {
+  const ctx = useBlockContext();
+  // Misconfigured on the live page: show nothing rather than a broken input.
+  if (!ctx.preview) return null;
+  return (
+    <div className="text-muted-foreground rounded-lg border border-dashed px-3 py-3 text-left text-xs">
+      {children}
+    </div>
+  );
+}
+
+function FieldElement({ block }: { block: FieldBlock }) {
+  const ctx = useBlockContext();
+  const collection = ctx.collection(block.source.collectionId);
+  const field = collection?.fields.find((f) => f.id === block.fieldId);
+  const key = formKey(block.source.collectionId, block.form);
+  const values = ctx.formValues(key);
+
+  if (!collection || !field) {
+    return (
+      <ElementPlaceholder>
+        {block.label || 'Fushë'} — {collection ? 'lidhe me një fushë të koleksionit' : 'zgjidh koleksionin'}.
+      </ElementPlaceholder>
+    );
+  }
+
+  const shown = { ...field, label: block.label.trim() || field.label };
+
+  return (
+    <div className="grid gap-1 text-left">
+      {field.type === 'formula' ? (
+        // Worked out live from the other fields of the same form.
+        <div className="space-y-1.5">
+          <p className="text-sm leading-none font-medium">{shown.label}</p>
+          <output className="bg-muted flex h-10 items-center justify-end rounded-md px-3 text-sm font-semibold tabular-nums">
+            {formatValue(field, values, collection.fields)}
+          </output>
+        </div>
+      ) : (
+        <FieldInput
+          field={shown}
+          value={values[field.id] ?? (field.type === 'checkbox' ? false : field.type === 'number' ? 0 : '')}
+          onChange={(v) => ctx.setFormValue(key, field.id, v)}
+          idPrefix={block.id}
+          placeholder={block.placeholder}
+        />
+      )}
+      {block.hint && <p className="text-muted-foreground text-xs">{block.hint}</p>}
+    </div>
+  );
+}
+
+/** The fields an element-built form is made of: every connected field block on the page. */
+export function formMembers(blocks: Block[], key: string): FieldBlock[] {
+  return flattenBlocks(blocks).filter(
+    (b): b is FieldBlock =>
+      b.type === 'field' && !!b.fieldId && formKey(b.source.collectionId, b.form) === key
+  );
+}
+
+function SubmitElement({ block }: { block: SubmitBlock }) {
+  const ctx = useBlockContext();
+  const collection = ctx.collection(block.source.collectionId);
+  const key = formKey(block.source.collectionId, block.form);
+  const values = ctx.formValues(key);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const memberIds = new Set(formMembers(ctx.blocks, key).map((b) => b.fieldId));
+  const fields = (collection?.fields ?? []).filter((f) => memberIds.has(f.id));
+
+  if (!collection) {
+    return <ElementPlaceholder>Butoni i dërgimit — zgjidh koleksionin dhe formularin.</ElementPlaceholder>;
+  }
+
+  async function submit() {
+    const missing = missingRequired(fields, values);
+    if (missing) {
+      setError(`Plotëso fushën "${missing.label}".`);
+      return;
+    }
+    const invalid = invalidField(fields, values);
+    if (invalid) {
+      setError(`Fusha "${invalid.label}" nuk ka një vlerë të saktë.`);
+      return;
+    }
+    setError(null);
+    if (ctx.preview) {
+      notify.info('Parapamje', 'Këtu formulari nuk ruan asgjë.');
+      return;
+    }
+    if (fields.filter(isInputField).length === 0) {
+      setError('Ky formular nuk ka fusha të lidhura.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const data = { ...emptyValues(fields), ...storable(fields, values) };
+      const row = await saveRecord(collection!.id, data, null);
+      ctx.onSaved(row);
+      if (block.resetAfter) ctx.resetForm(key);
+      notify.success(block.successText || 'U ruajt.', `Një rresht i ri te ${collection!.name}.`);
+    } catch (err) {
+      const message = (err as Error).message;
+      setError(message);
+      notify.error('Nuk u ruajt', message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      <div>
+        <Button type="button" onClick={submit} disabled={saving} className={cn(block.fullWidth && 'w-full')}>
+          {saving && <Loader2 className="animate-spin" />}
+          {block.label || 'Dërgo'}
+        </Button>
+      </div>
+      {error && (
+        <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-left text-sm">{error}</p>
+      )}
+    </div>
   );
 }
 

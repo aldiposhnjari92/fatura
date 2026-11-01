@@ -25,6 +25,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   bank_transfer: Landmark,
   card: CreditCard,
   paypal: Wallet,
+  manual: Wallet,
 };
 export default function PaymentQueue({
   initial,
@@ -36,6 +37,7 @@ export default function PaymentQueue({
     bank_transfer: t('pay.bankTransfer'),
     card: t('pay.card'),
     paypal: t('pay.paypal'),
+    manual: 'Manuale',
   };
   const [rows, setRows] = React.useState(initial);
   /*

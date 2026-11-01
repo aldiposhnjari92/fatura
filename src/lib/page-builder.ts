@@ -357,6 +357,45 @@ export interface CardsBlock extends BlockBase {
   emptyText: string;
 }
 
+/*
+  A form built element by element: each field is its own block, placed
+  anywhere on the page — even in different columns — and a submit button
+  saves them together. Blocks belong to one form when they share a
+  collection and a form name; their values live in one shared store on the
+  page, so a calculated field updates as the inputs it uses are typed.
+*/
+export const DEFAULT_FORM = 'Formulari 1';
+
+export interface FieldBlock extends BlockBase {
+  type: 'field';
+  source: CollectionSource;
+  /** The collection field this input writes; null until it is connected. */
+  fieldId: string | null;
+  /** What it was added as — the type a new collection field gets. */
+  kind: FieldType;
+  /** Which form on the page it belongs to (with the collection). */
+  form: string;
+  /** Shown instead of the field's own name when set. */
+  label: string;
+  placeholder: string;
+  hint: string;
+}
+
+export interface SubmitBlock extends BlockBase {
+  type: 'submit';
+  source: CollectionSource;
+  form: string;
+  label: string;
+  successText: string;
+  /** Clear the connected fields after a successful save. */
+  resetAfter: boolean;
+  fullWidth: boolean;
+}
+
+/** The key a form's shared values live under. */
+export const formKey = (collectionId: string | null, form: string) =>
+  `${collectionId ?? ''}::${form.trim() || DEFAULT_FORM}`;
+
 export type ColumnsLayout = '1-1' | '2-1' | '1-2' | '1-1-1';
 
 export interface ColumnsBlock extends BlockBase {
@@ -390,7 +429,9 @@ export type LeafBlock =
   | FlipBoxBlock
   | CountdownBlock
   | ProgressBlock
-  | CardsBlock;
+  | CardsBlock
+  | FieldBlock
+  | SubmitBlock;
 
 export type Block = LeafBlock | ColumnsBlock;
 export type BlockType = Block['type'];
@@ -424,7 +465,13 @@ export function newId(): string {
     : Math.random().toString(36).slice(2, 10);
 }
 
-export type PaletteGroup = 'Struktura' | 'Bazë' | 'Përmbajtje' | 'Marketing' | 'Të dhëna';
+export type PaletteGroup =
+  | 'Struktura'
+  | 'Bazë'
+  | 'Përmbajtje'
+  | 'Marketing'
+  | 'Të dhëna'
+  | 'Fushat e formularit';
 
 /** The palette, grouped and ordered the way the editor offers it. */
 export const BLOCK_TYPES: {
@@ -458,6 +505,25 @@ export const BLOCK_TYPES: {
   { type: 'cards', label: 'Kartela', description: 'Një kartelë për çdo rresht', group: 'Të dhëna' },
   { type: 'stat', label: 'Statistikë', description: 'Numër ose shumë', group: 'Të dhëna' },
   { type: 'progress', label: 'Shirit progresi', description: 'Përqindje ose objektiv', group: 'Të dhëna' },
+  { type: 'field', label: 'Fushë', description: 'Një fushë formulari', group: 'Fushat e formularit' },
+  { type: 'submit', label: 'Butoni i dërgimit', description: 'Ruan fushat e lidhura', group: 'Fushat e formularit' },
+];
+
+/*
+  The "Fushat e formularit" palette: one entry per input type, all of them a
+  'field' block that remembers what it was added as.
+*/
+export const FIELD_PALETTE: { kind: FieldType; label: string }[] = [
+  { kind: 'text', label: 'Tekst' },
+  { kind: 'textarea', label: 'Tekst i gjatë' },
+  { kind: 'number', label: 'Numër' },
+  { kind: 'date', label: 'Datë' },
+  { kind: 'select', label: 'Zgjedhje' },
+  { kind: 'checkbox', label: 'Po / Jo' },
+  { kind: 'email', label: 'Email' },
+  { kind: 'tel', label: 'Telefon' },
+  { kind: 'url', label: 'Lidhje' },
+  { kind: 'formula', label: 'Llogaritje' },
 ];
 
 export const COLUMN_COUNTS: Record<ColumnsLayout, number> = {
@@ -467,7 +533,11 @@ export const COLUMN_COUNTS: Record<ColumnsLayout, number> = {
   '1-1-1': 3,
 };
 
-export function createBlock(type: BlockType, collectionId: string | null = null): Block {
+export function createBlock(
+  type: BlockType,
+  collectionId: string | null = null,
+  fieldKind: FieldType = 'text'
+): Block {
   const id = newId();
   const source: CollectionSource = { kind: 'collection', collectionId };
   switch (type) {
@@ -602,6 +672,29 @@ export function createBlock(type: BlockType, collectionId: string | null = null)
     }
     case 'progress':
       return { id, type, label: 'Progresi', mode: 'static', value: 60, source, fieldId: null, target: 100000 };
+    case 'field':
+      return {
+        id,
+        type,
+        source,
+        fieldId: null,
+        kind: fieldKind,
+        form: DEFAULT_FORM,
+        label: '',
+        placeholder: '',
+        hint: '',
+      };
+    case 'submit':
+      return {
+        id,
+        type,
+        source,
+        form: DEFAULT_FORM,
+        label: 'Dërgo',
+        successText: 'U ruajt me sukses.',
+        resetAfter: true,
+        fullWidth: false,
+      };
     case 'cards':
       return {
         id,
