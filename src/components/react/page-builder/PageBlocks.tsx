@@ -24,10 +24,29 @@ import {
   TableRow,
 } from '@/components/ui/react/table';
 import { notify } from '@/lib/toast';
+import {
+  AccordionWidget,
+  AlertWidget,
+  CardsWidget,
+  CountdownWidget,
+  CtaWidget,
+  FlipBoxWidget,
+  IconBoxWidget,
+  IconListWidget,
+  ImageWidget,
+  PriceListWidget,
+  PriceTableWidget,
+  ProgressWidget,
+  RatingWidget,
+  TabsWidget,
+  TestimonialWidget,
+  TocWidget,
+} from './Widgets';
 import { cn, formatDate, groupThousands } from '@/lib/utils';
 import {
   COLUMN_GRID,
   SPACER_HEIGHT,
+  headingAnchor,
   isInputField,
   isNumericField,
   numericValue,
@@ -82,6 +101,7 @@ export default function PageBlocks({
   const ctx = React.useMemo<BlockContext>(
     () => ({
       preview: readOnly,
+      blocks,
       collection: (id) => (id ? byId.get(id) : undefined),
       rows: (id) => (id ? records.filter((r) => r.collection_id === id) : []),
       onSaved: (row) =>
@@ -92,7 +112,7 @@ export default function PageBlocks({
         ),
       onDeleted: (id) => setRecords((prev) => prev.filter((r) => r.id !== id)),
     }),
-    [byId, records, readOnly]
+    [byId, records, readOnly, blocks]
   );
 
   // The preview fetches its rows after opening; follow them when they land.
@@ -136,6 +156,8 @@ export default function PageBlocks({
 
 export interface BlockContext {
   preview: boolean;
+  /** The whole page — what a table of contents reads its headings from. */
+  blocks: Block[];
   collection: (id: string | null) => CustomCollection | undefined;
   rows: (collectionId: string | null) => CustomRecord[];
   onSaved: (row: CustomRecord) => void;
@@ -171,8 +193,9 @@ export function BlockView({ block }: { block: LeafBlock }) {
       const Tag = `h${block.level}` as 'h1' | 'h2' | 'h3';
       return (
         <Tag
+          id={headingAnchor(block.id)}
           className={cn(
-            'font-semibold tracking-tight',
+            'scroll-mt-24 font-semibold tracking-tight',
             block.level === 1 && 'text-2xl @2xl:text-3xl',
             block.level === 2 && 'text-xl',
             block.level === 3 && 'text-base'
@@ -223,6 +246,51 @@ export function BlockView({ block }: { block: LeafBlock }) {
       return <TableView block={block} />;
     case 'stat':
       return <StatView block={block} />;
+    case 'image':
+      return <ImageWidget block={block} />;
+    case 'iconlist':
+      return <IconListWidget block={block} />;
+    case 'alert':
+      return <AlertWidget block={block} />;
+    case 'iconbox':
+      return <IconBoxWidget block={block} />;
+    case 'tabs':
+      return <TabsWidget block={block} />;
+    case 'accordion':
+      return <AccordionWidget block={block} />;
+    case 'toc':
+      return <TocWidget block={block} blocks={ctx.blocks} preview={ctx.preview} />;
+    case 'testimonial':
+      return <TestimonialWidget block={block} />;
+    case 'rating':
+      return <RatingWidget block={block} />;
+    case 'pricetable':
+      return <PriceTableWidget block={block} preview={ctx.preview} />;
+    case 'pricelist':
+      return <PriceListWidget block={block} />;
+    case 'cta':
+      return <CtaWidget block={block} preview={ctx.preview} />;
+    case 'flipbox':
+      return <FlipBoxWidget block={block} preview={ctx.preview} />;
+    case 'countdown':
+      return <CountdownWidget block={block} />;
+    case 'progress':
+      return (
+        <ProgressWidget
+          block={block}
+          collection={ctx.collection(block.source.collectionId)}
+          rows={ctx.rows(block.source.collectionId)}
+        />
+      );
+    case 'cards':
+      return (
+        <CardsWidget
+          block={block}
+          collection={ctx.collection(block.source.collectionId)}
+          rows={ctx.rows(block.source.collectionId)}
+          formatValue={formatValue}
+        />
+      );
   }
 }
 
@@ -260,6 +328,20 @@ function missingRequired(fields: CollectionField[], values: Values): CollectionF
       f.type !== 'checkbox' &&
       (values[f.id] === '' || values[f.id] === null || values[f.id] === undefined)
   );
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** A filled-in email, phone or link that is not one — empty is required's job. */
+function invalidField(fields: CollectionField[], values: Values): CollectionField | undefined {
+  return fields.find((f) => {
+    const v = String(values[f.id] ?? '').trim();
+    if (!v) return false;
+    if (f.type === 'email') return !EMAIL_RE.test(v);
+    if (f.type === 'tel') return !/^[+\d][\d\s()-]{5,}$/.test(v);
+    if (f.type === 'url') return !/^https?:\/\//i.test(v) || !safeHref(v);
+    return false;
+  });
 }
 
 function formatNumber(n: number): string {
@@ -371,7 +453,14 @@ function FieldInput({
       return (
         <div className="space-y-1.5">
           {label}
-          <Input id={id} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
+          <Input
+            id={id}
+            type={field.type === 'email' || field.type === 'tel' || field.type === 'url' ? field.type : 'text'}
+            inputMode={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : undefined}
+            placeholder={field.type === 'url' ? 'https://' : undefined}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+          />
         </div>
       );
   }
@@ -464,6 +553,11 @@ function FormView({ block }: { block: FormBlock }) {
       setError(`Plotëso fushën "${missing.label}".`);
       return;
     }
+    const invalid = invalidField(fields, values);
+    if (invalid) {
+      setError(`Fusha "${invalid.label}" nuk ka një vlerë të saktë.`);
+      return;
+    }
     setError(null);
     if (ctx.preview) {
       notify.info('Parapamje', 'Këtu formulari nuk ruan asgjë.');
@@ -532,6 +626,11 @@ function TableView({ block }: { block: TableBlock }) {
     const missing = missingRequired(allFields, editing.values);
     if (missing) {
       notify.error('Mungon një fushë', `Plotëso "${missing.label}".`);
+      return;
+    }
+    const invalid = invalidField(allFields, editing.values);
+    if (invalid) {
+      notify.error('Vlerë e pasaktë', `Kontrollo fushën "${invalid.label}".`);
       return;
     }
     setBusy(true);

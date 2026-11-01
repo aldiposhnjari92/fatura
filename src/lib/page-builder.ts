@@ -20,6 +20,9 @@ export type FieldType =
   | 'date'
   | 'select'
   | 'checkbox'
+  | 'email'
+  | 'tel'
+  | 'url'
   | 'formula';
 
 export interface CollectionField {
@@ -64,6 +67,9 @@ export const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'date', label: 'Datë' },
   { value: 'select', label: 'Zgjedhje' },
   { value: 'checkbox', label: 'Po / Jo' },
+  { value: 'email', label: 'Email' },
+  { value: 'tel', label: 'Telefon' },
+  { value: 'url', label: 'Lidhje (URL)' },
   { value: 'formula', label: 'Llogaritje' },
 ];
 
@@ -99,6 +105,8 @@ export interface BlockStyle {
   spaceTop?: Size;
   hideOnMobile?: boolean;
   hideOnDesktop?: boolean;
+  /** Played once when the page opens (Elementor's "entrance animation"). */
+  animation?: 'none' | 'fade' | 'slide-up' | 'zoom';
 }
 
 interface BlockBase {
@@ -164,6 +172,191 @@ export interface SpacerBlock extends BlockBase {
   size: Exclude<Size, 'none'>;
 }
 
+/*
+  The widgets below are this app's own takes on what page builders such as
+  Elementor Pro offer, trimmed to what a business back-office page needs.
+  None of them embeds a third-party site (the CSP forbids frames) and an
+  image may only come from the page-assets bucket (see safeImageSrc).
+*/
+
+/** A curated icon set; the names map to icons in page-builder/icons.ts. */
+export const WIDGET_ICONS = [
+  'check',
+  'star',
+  'heart',
+  'phone',
+  'mail',
+  'map-pin',
+  'clock',
+  'calendar',
+  'truck',
+  'package',
+  'shield',
+  'zap',
+  'users',
+  'wallet',
+  'chart',
+  'gift',
+  'award',
+  'info',
+] as const;
+export type WidgetIcon = (typeof WIDGET_ICONS)[number];
+
+export interface ListItem {
+  id: string;
+  text: string;
+}
+
+export interface TitledItem {
+  id: string;
+  title: string;
+  text: string;
+}
+
+export interface ImageBlock extends BlockBase {
+  type: 'image';
+  src: string;
+  alt: string;
+  caption: string;
+  ratio: 'auto' | '16/9' | '4/3' | '1/1';
+  fit: 'cover' | 'contain';
+  rounded: boolean;
+}
+
+export interface IconBoxBlock extends BlockBase {
+  type: 'iconbox';
+  icon: WidgetIcon;
+  title: string;
+  text: string;
+  layout: 'top' | 'left';
+}
+
+export interface AlertBlock extends BlockBase {
+  type: 'alert';
+  variant: 'info' | 'success' | 'warning' | 'danger';
+  title: string;
+  text: string;
+}
+
+export interface IconListBlock extends BlockBase {
+  type: 'iconlist';
+  icon: WidgetIcon;
+  items: ListItem[];
+}
+
+export interface TabsBlock extends BlockBase {
+  type: 'tabs';
+  items: TitledItem[];
+}
+
+export interface AccordionBlock extends BlockBase {
+  type: 'accordion';
+  items: TitledItem[];
+  /** Several open at once (a toggle) rather than one at a time. */
+  multiple: boolean;
+  firstOpen: boolean;
+}
+
+export interface TocBlock extends BlockBase {
+  type: 'toc';
+  title: string;
+  /** The deepest heading level listed. */
+  depth: 2 | 3;
+}
+
+export interface TestimonialBlock extends BlockBase {
+  type: 'testimonial';
+  quote: string;
+  author: string;
+  role: string;
+  rating: number;
+}
+
+export interface RatingBlock extends BlockBase {
+  type: 'rating';
+  label: string;
+  /** 0–5 in halves. */
+  value: number;
+}
+
+export interface PriceFeature extends ListItem {
+  included: boolean;
+}
+
+export interface PriceTableBlock extends BlockBase {
+  type: 'pricetable';
+  title: string;
+  price: string;
+  period: string;
+  features: PriceFeature[];
+  buttonLabel: string;
+  buttonHref: string;
+  featured: boolean;
+  badge: string;
+}
+
+export interface PriceItem extends ListItem {
+  description: string;
+  price: string;
+}
+
+export interface PriceListBlock extends BlockBase {
+  type: 'pricelist';
+  items: PriceItem[];
+}
+
+export interface CtaBlock extends BlockBase {
+  type: 'cta';
+  title: string;
+  text: string;
+  buttonLabel: string;
+  buttonHref: string;
+  tone: 'brand' | 'dark' | 'light';
+}
+
+export interface FlipBoxBlock extends BlockBase {
+  type: 'flipbox';
+  icon: WidgetIcon;
+  frontTitle: string;
+  frontText: string;
+  backTitle: string;
+  backText: string;
+  buttonLabel: string;
+  buttonHref: string;
+}
+
+export interface CountdownBlock extends BlockBase {
+  type: 'countdown';
+  title: string;
+  /** Local date and time, yyyy-mm-ddThh:mm. */
+  target: string;
+  doneText: string;
+}
+
+export interface ProgressBlock extends BlockBase {
+  type: 'progress';
+  label: string;
+  /** A fixed percentage, or the sum of a field against a target. */
+  mode: 'static' | 'goal';
+  value: number;
+  source: CollectionSource;
+  fieldId: string | null;
+  target: number;
+}
+
+/** Elementor Pro's Loop Grid: one card per record of a collection. */
+export interface CardsBlock extends BlockBase {
+  type: 'cards';
+  title: string;
+  source: CollectionSource;
+  titleFieldId: string | null;
+  subtitleFieldId: string | null;
+  valueFieldId: string | null;
+  badgeFieldId: string | null;
+  perRow: 2 | 3 | 4;
+  emptyText: string;
+}
+
 export type ColumnsLayout = '1-1' | '2-1' | '1-2' | '1-1-1';
 
 export interface ColumnsBlock extends BlockBase {
@@ -181,7 +374,23 @@ export type LeafBlock =
   | StatBlock
   | ButtonBlock
   | DividerBlock
-  | SpacerBlock;
+  | SpacerBlock
+  | ImageBlock
+  | IconBoxBlock
+  | AlertBlock
+  | IconListBlock
+  | TabsBlock
+  | AccordionBlock
+  | TocBlock
+  | TestimonialBlock
+  | RatingBlock
+  | PriceTableBlock
+  | PriceListBlock
+  | CtaBlock
+  | FlipBoxBlock
+  | CountdownBlock
+  | ProgressBlock
+  | CardsBlock;
 
 export type Block = LeafBlock | ColumnsBlock;
 export type BlockType = Block['type'];
@@ -215,7 +424,7 @@ export function newId(): string {
     : Math.random().toString(36).slice(2, 10);
 }
 
-export type PaletteGroup = 'Struktura' | 'Bazë' | 'Të dhëna';
+export type PaletteGroup = 'Struktura' | 'Bazë' | 'Përmbajtje' | 'Marketing' | 'Të dhëna';
 
 /** The palette, grouped and ordered the way the editor offers it. */
 export const BLOCK_TYPES: {
@@ -230,9 +439,25 @@ export const BLOCK_TYPES: {
   { type: 'heading', label: 'Titull', description: 'Një titull seksioni', group: 'Bazë' },
   { type: 'text', label: 'Tekst', description: 'Një paragraf ose shënim', group: 'Bazë' },
   { type: 'button', label: 'Buton', description: 'Lidhje me një faqe', group: 'Bazë' },
+  { type: 'image', label: 'Imazh', description: 'Një foto e ngarkuar', group: 'Bazë' },
+  { type: 'iconlist', label: 'Listë me ikona', description: 'Pika me ikonë', group: 'Bazë' },
+  { type: 'alert', label: 'Njoftim', description: 'Kuti informacioni ose paralajmërimi', group: 'Bazë' },
+  { type: 'iconbox', label: 'Kuti me ikonë', description: 'Ikonë, titull dhe tekst', group: 'Përmbajtje' },
+  { type: 'tabs', label: 'Skeda', description: 'Përmbajtje në skeda', group: 'Përmbajtje' },
+  { type: 'accordion', label: 'Fizarmonikë', description: 'Pyetje që hapen e mbyllen', group: 'Përmbajtje' },
+  { type: 'toc', label: 'Përmbajtja', description: 'Lista e titujve të faqes', group: 'Përmbajtje' },
+  { type: 'testimonial', label: 'Dëshmi', description: 'Citat me autor', group: 'Përmbajtje' },
+  { type: 'rating', label: 'Vlerësim', description: 'Yje 0–5', group: 'Përmbajtje' },
+  { type: 'pricetable', label: 'Tabelë çmimi', description: 'Paketë me çmim dhe veçori', group: 'Marketing' },
+  { type: 'pricelist', label: 'Listë çmimesh', description: 'Artikuj me çmim', group: 'Marketing' },
+  { type: 'cta', label: 'Thirrje për veprim', description: 'Banner me buton', group: 'Marketing' },
+  { type: 'flipbox', label: 'Kuti që rrotullohet', description: 'Dy anë, kthehet me hover', group: 'Marketing' },
+  { type: 'countdown', label: 'Numërim mbrapsht', description: 'Kohë deri në një datë', group: 'Marketing' },
   { type: 'form', label: 'Formular', description: 'Fusha që ruajnë të dhëna', group: 'Të dhëna' },
   { type: 'table', label: 'Tabelë', description: 'Liston të dhënat e ruajtura', group: 'Të dhëna' },
+  { type: 'cards', label: 'Kartela', description: 'Një kartelë për çdo rresht', group: 'Të dhëna' },
   { type: 'stat', label: 'Statistikë', description: 'Numër ose shumë', group: 'Të dhëna' },
+  { type: 'progress', label: 'Shirit progresi', description: 'Përqindje ose objektiv', group: 'Të dhëna' },
 ];
 
 export const COLUMN_COUNTS: Record<ColumnsLayout, number> = {
@@ -272,6 +497,124 @@ export function createBlock(type: BlockType, collectionId: string | null = null)
       return { id, type, size: 'md' };
     case 'columns':
       return { id, type, layout: '1-1', columns: [[], []] };
+    case 'image':
+      return { id, type, src: '', alt: '', caption: '', ratio: 'auto', fit: 'cover', rounded: true };
+    case 'iconbox':
+      return { id, type, icon: 'star', title: 'Pse ne', text: 'Një përshkrim i shkurtër.', layout: 'top' };
+    case 'alert':
+      return { id, type, variant: 'info', title: 'Kujdes', text: 'Një mesazh i rëndësishëm.' };
+    case 'iconlist':
+      return {
+        id,
+        type,
+        icon: 'check',
+        items: [
+          { id: newId(), text: 'Pika e parë' },
+          { id: newId(), text: 'Pika e dytë' },
+        ],
+      };
+    case 'tabs':
+      return {
+        id,
+        type,
+        items: [
+          { id: newId(), title: 'Skeda 1', text: 'Përmbajtja e skedës së parë.' },
+          { id: newId(), title: 'Skeda 2', text: 'Përmbajtja e skedës së dytë.' },
+        ],
+      };
+    case 'accordion':
+      return {
+        id,
+        type,
+        multiple: false,
+        firstOpen: true,
+        items: [
+          { id: newId(), title: 'Pyetja e parë?', text: 'Përgjigjja këtu.' },
+          { id: newId(), title: 'Pyetja e dytë?', text: 'Përgjigjja këtu.' },
+        ],
+      };
+    case 'toc':
+      return { id, type, title: 'Në këtë faqe', depth: 3 };
+    case 'testimonial':
+      return {
+        id,
+        type,
+        quote: 'Shërbim i shpejtë dhe korrekt.',
+        author: 'Emri Mbiemri',
+        role: 'Klient',
+        rating: 5,
+      };
+    case 'rating':
+      return { id, type, label: 'Vlerësimi', value: 4.5 };
+    case 'pricetable':
+      return {
+        id,
+        type,
+        title: 'Paketa Standard',
+        price: '2 500 Lekë',
+        period: 'në muaj',
+        features: [
+          { id: newId(), text: 'Veçoria e parë', included: true },
+          { id: newId(), text: 'Veçoria e dytë', included: true },
+          { id: newId(), text: 'Veçoria e tretë', included: false },
+        ],
+        buttonLabel: 'Zgjidh',
+        buttonHref: '/app',
+        featured: false,
+        badge: '',
+      };
+    case 'pricelist':
+      return {
+        id,
+        type,
+        items: [
+          { id: newId(), text: 'Shërbimi i parë', description: 'Përshkrim i shkurtër', price: '1 000 Lekë' },
+          { id: newId(), text: 'Shërbimi i dytë', description: 'Përshkrim i shkurtër', price: '1 500 Lekë' },
+        ],
+      };
+    case 'cta':
+      return {
+        id,
+        type,
+        title: 'Gati për hapin tjetër?',
+        text: 'Një fjali që të bind të veprosh.',
+        buttonLabel: 'Fillo tani',
+        buttonHref: '/app',
+        tone: 'brand',
+      };
+    case 'flipbox':
+      return {
+        id,
+        type,
+        icon: 'zap',
+        frontTitle: 'Shpejt',
+        frontText: 'Kalo miun për më shumë.',
+        backTitle: 'Si funksionon',
+        backText: 'Shpjegimi në anën e pasme.',
+        buttonLabel: 'Më shumë',
+        buttonHref: '/app',
+      };
+    case 'countdown': {
+      const inAWeek = new Date(Date.now() + 7 * 86_400_000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const target = `${inAWeek.getFullYear()}-${pad(inAWeek.getMonth() + 1)}-${pad(inAWeek.getDate())}T09:00`;
+      return { id, type, title: 'Afati', target, doneText: 'Afati ka kaluar.' };
+    }
+    case 'progress':
+      return { id, type, label: 'Progresi', mode: 'static', value: 60, source, fieldId: null, target: 100000 };
+    case 'cards':
+      return {
+        id,
+        type,
+        title: '',
+        source,
+        titleFieldId: null,
+        subtitleFieldId: null,
+        valueFieldId: null,
+        badgeFieldId: null,
+        perRow: 3,
+        emptyText: 'Nuk ka ende të dhëna.',
+      };
   }
 }
 
@@ -443,6 +786,12 @@ const BACKGROUND = {
   brand: 'bg-brand/10 rounded-2xl',
 } as const;
 const ALIGN = { left: '', center: 'text-center', right: 'text-right' } as const;
+const ANIMATION = {
+  none: '',
+  fade: 'animate-in fade-in duration-700',
+  'slide-up': 'animate-in fade-in slide-in-from-bottom-6 duration-700',
+  zoom: 'animate-in fade-in zoom-in-95 duration-700',
+} as const;
 
 export function styleClasses(style: BlockStyle | undefined): string {
   if (!style) return '';
@@ -455,6 +804,7 @@ export function styleClasses(style: BlockStyle | undefined): string {
     ALIGN[style.align ?? 'left'],
     style.hideOnMobile ? '@max-2xl:hidden' : '',
     style.hideOnDesktop ? '@2xl:hidden' : '',
+    ANIMATION[style.animation ?? 'none'],
   ]
     .filter(Boolean)
     .join(' ');
@@ -667,6 +1017,20 @@ export function safeHref(href: string): string | null {
     return null;
   }
 }
+
+/**
+ * Images come only from this app's own public bucket: an arbitrary URL would
+ * be blocked by the CSP anyway, and refusing it here keeps a stored layout
+ * from pointing a customer's browser somewhere else.
+ */
+export function safeImageSrc(src: string): string | null {
+  const base = (import.meta.env.PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
+  if (!base || !src) return null;
+  return src.startsWith(`${base}/storage/v1/object/public/page-assets/`) ? src : null;
+}
+
+/** The id a heading carries, so a table of contents can link to it. */
+export const headingAnchor = (blockId: string) => `h-${blockId}`;
 
 /** The fields a form or table shows, in the configured order. */
 export function pickFields(collection: CustomCollection | undefined, ids: string[]) {

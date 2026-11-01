@@ -15,6 +15,7 @@ import {
   type CustomCollection,
   type Size,
 } from '@/lib/page-builder';
+import WidgetInspector, { WIDGET_TYPES } from './WidgetInspector';
 
 /*
   The editor panel for the selected block, in Elementor's three tabs:
@@ -44,6 +45,19 @@ export default function BlockInspector({ block, tab, collections, onChange, onMa
 
   const collectionOf = (source: CollectionSource) =>
     collections.find((c) => c.id === source.collectionId);
+
+  if (block.type !== 'columns' && WIDGET_TYPES.has(block.type)) {
+    return (
+      <div className="grid gap-4">
+        <WidgetInspector
+          block={block}
+          set={set}
+          collections={collections}
+          onManageCollections={onManageCollections}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4">
@@ -351,6 +365,20 @@ function AdvancedTab({ block, setStyle }: { block: Block; setStyle: (p: Partial<
         />
       </Field>
 
+      <Field label="Animacioni i hyrjes">
+        <Segmented
+          value={style.animation ?? 'none'}
+          options={[
+            { value: 'none', label: 'Asnjë' },
+            { value: 'fade', label: 'Shfaqje' },
+            { value: 'slide-up', label: 'Ngjitje' },
+            { value: 'zoom', label: 'Zmadhim' },
+          ]}
+          onChange={(animation) => setStyle({ animation: animation as BlockStyle['animation'] })}
+        />
+        <p className="text-muted-foreground text-[11px]">Luhet një herë, kur klienti hap faqen.</p>
+      </Field>
+
       <Field label="Dukshmëria">
         <div className="grid gap-2 rounded-lg border p-3">
           <label className="flex items-center gap-2.5 text-sm">
@@ -426,7 +454,7 @@ export function Segmented({
   );
 }
 
-function SourcePicker({
+export function SourcePicker({
   source,
   collections,
   onChange,

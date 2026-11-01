@@ -1,5 +1,21 @@
 import * as React from 'react';
 import {
+  BadgeDollarSign,
+  BellRing,
+  FlipHorizontal2,
+  Image as ImageIcon,
+  LayoutGrid,
+  ListChecks,
+  ListOrdered,
+  ListCollapse,
+  Megaphone,
+  PanelTop,
+  Quote,
+  Receipt,
+  SquareStack,
+  Star,
+  Timer,
+  TrendingUp,
   ArrowDown,
   ArrowLeft,
   ArrowUp,
@@ -121,6 +137,22 @@ const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   form: TextCursorInput,
   table: Table2,
   stat: Sigma,
+  image: ImageIcon,
+  iconlist: ListChecks,
+  alert: BellRing,
+  iconbox: SquareStack,
+  tabs: PanelTop,
+  accordion: ListCollapse,
+  toc: ListOrdered,
+  testimonial: Quote,
+  rating: Star,
+  pricetable: BadgeDollarSign,
+  pricelist: Receipt,
+  cta: Megaphone,
+  flipbox: FlipHorizontal2,
+  countdown: Timer,
+  progress: TrendingUp,
+  cards: LayoutGrid,
 };
 
 const BLOCK_LABEL = Object.fromEntries(BLOCK_TYPES.map((b) => [b.type, b.label])) as Record<
@@ -128,7 +160,7 @@ const BLOCK_LABEL = Object.fromEntries(BLOCK_TYPES.map((b) => [b.type, b.label])
   string
 >;
 
-const PALETTE_GROUPS: PaletteGroup[] = ['Struktura', 'Bazë', 'Të dhëna'];
+const PALETTE_GROUPS: PaletteGroup[] = ['Struktura', 'Bazë', 'Përmbajtje', 'Marketing', 'Të dhëna'];
 
 const ICON_LABELS: Record<PageIcon, string> = {
   file: 'Dokument',
@@ -173,6 +205,24 @@ function summary(block: Block): string {
       return block.label || BLOCK_LABEL.button;
     case 'columns':
       return `${BLOCK_LABEL.columns} ${block.layout.replace(/-/g, ' / ')}`;
+    case 'iconbox':
+    case 'alert':
+    case 'pricetable':
+    case 'cta':
+    case 'toc':
+    case 'countdown':
+      return block.title || BLOCK_LABEL[block.type];
+    case 'cards':
+      return block.title || BLOCK_LABEL.cards;
+    case 'progress':
+    case 'rating':
+      return block.label || BLOCK_LABEL[block.type];
+    case 'testimonial':
+      return block.author || BLOCK_LABEL.testimonial;
+    case 'flipbox':
+      return block.frontTitle || BLOCK_LABEL.flipbox;
+    case 'image':
+      return block.alt || block.caption || BLOCK_LABEL.image;
     default:
       return BLOCK_LABEL[block.type];
   }
@@ -238,12 +288,13 @@ export default function PageBuilder({ owner, pages: initialPages, collections: i
   const canvasContext = React.useMemo<BlockContext>(
     () => ({
       preview: true,
+      blocks,
       collection: (id) => (id ? collectionsById.get(id) : undefined),
       rows: () => [],
       onSaved: () => {},
       onDeleted: () => {},
     }),
-    [collectionsById]
+    [collectionsById, blocks]
   );
 
   // ---- State changes -------------------------------------------------------
