@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Profile } from './lib/types';
 import type { PlanId } from './lib/plans';
+import type { CustomPageNav } from './lib/page-builder';
 
 declare global {
   namespace App {
@@ -26,6 +27,8 @@ declare global {
       plan: PlanId;
       /** Invoices allowed this month; null on Pro, which is unlimited. */
       invoiceLimit: number | null;
+      /** Published page-builder pages for the sidebar — from app_bootstrap(). */
+      customPages: CustomPageNav[];
     }
   }
 

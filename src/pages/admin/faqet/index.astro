@@ -1,0 +1,104 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const search = (Astro.url.searchParams.get('kerko') ?? '').trim().slice(0, 80);
+
+// The same business list as /admin/perdoruesit, narrowed to what picking a
+// customer needs: who they are, and how many pages they already have.
+const { data: usersData, error } = await supabase.rpc('admin_users', {
+  p_search: search || null,
+  p_filter: 'all',
+  p_limit: 50,
+  p_offset: 0,
+});
+
+const rows = ((usersData as { rows?: unknown[] })?.rows ?? []) as {
+  id: string;
+  email: string;
+  business_name: string | null;
+  city: string | null;
+}[];
+
+const { data: pageRows } = rows.length
+  ? await supabase
+      .from('custom_pages')
+      .select('owner_id, published')
+      .in(
+        'owner_id',
+        rows.map((r) => r.id)
+      )
+  : { data: [] };
+
+const counts = new Map<string, { total: number; published: number }>();
+for (const p of (pageRows ?? []) as { owner_id: string; published: boolean }[]) {
+  const c = counts.get(p.owner_id) ?? { total: 0, published: 0 };
+  c.total += 1;
+  if (p.published) c.published += 1;
+  counts.set(p.owner_id, c);
+}
+
+// Businesses that already have pages first — they are the ones being worked on.
+rows.sort((a, b) => (counts.get(b.id)?.total ?? 0) - (counts.get(a.id)?.total ?? 0));
+---
+
+<AdminLayout
+  title="Ndërtuesi i faqeve — Admin Fatura.co"
+  heading="Ndërtuesi i faqeve"
+  subheading="Zgjidh një biznes për t'i ndërtuar faqe të personalizuara."
+  active="builder"
+>
+  {
+    error && (
+      <p class="border-destructive/30 bg-destructive/10 text-destructive mb-4 rounded-lg border px-4 py-3 text-sm">
+        {error.message}
+      </p>
+    )
+  }
+
+  <form method="GET" action="/admin/faqet" class="bg-card shadow-card mb-4 flex gap-2 rounded-2xl p-3">
+    <div class="relative flex-1 sm:max-w-sm">
+      <Icon
+        name="search"
+        class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+      />
+      <Input type="search" name="kerko" value={search} placeholder="Emër biznesi, email ose NIPT…" class="pl-8" />
+    </div>
+    <Button type="submit" variant="outline" class="h-10 shrink-0">Kërko</Button>
+  </form>
+
+  <div class="bg-card shadow-card divide-y overflow-hidden rounded-2xl">
+    {
+      rows.length === 0 ? (
+        <p class="text-muted-foreground px-6 py-12 text-center text-sm">Asnjë biznes nuk u gjet.</p>
+      ) : (
+        rows.map((row) => {
+          const c = counts.get(row.id);
+          return (
+            <a
+              href={`/admin/faqet/${row.id}`}
+              class="hover:bg-muted/60 flex items-center gap-4 px-5 py-3.5 transition-colors"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium">{row.business_name ?? 'Pa emër biznesi'}</p>
+                <p class="text-muted-foreground truncate text-xs">
+                  {row.email}
+                  {row.city ? ` · ${row.city}` : ''}
+                </p>
+              </div>
+              <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
+                {c ? `${c.total} faqe · ${c.published} të publikuara` : 'Asnjë faqe'}
+              </span>
+              <Icon name="chevron-right" class="text-muted-foreground size-4 shrink-0" />
+            </a>
+          );
+        })
+      )
+    }
+  </div>
+</AdminLayout>

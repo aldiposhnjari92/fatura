@@ -162,6 +162,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.invoicesThisMonth = 0;
   locals.plan = 'free';
   locals.invoiceLimit = invoiceLimitOf('free');
+  locals.customPages = [];
 
   /*
     Never trust getSession() alone for an authorization decision — but
@@ -238,6 +239,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     locals.profile = (bootstrap?.profile as Profile) ?? null;
     locals.invoicesThisMonth = Number(bootstrap?.invoices_this_month ?? 0);
+    locals.customPages = Array.isArray(bootstrap?.custom_pages) ? bootstrap.custom_pages : [];
 
     /*
       The tier comes from active_plan() rather than profiles.plan, so an expired

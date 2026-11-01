@@ -1,0 +1,51 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageBuilder from '@/components/react/page-builder/PageBuilder';
+import { Icon } from '@/components/ui/icon';
+import type { CustomCollection, CustomPage } from '@/lib/page-builder';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const { id } = Astro.params;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!id || !UUID_RE.test(id)) {
+  return Astro.redirect('/admin/faqet', 302);
+}
+
+// admin_user_detail() re-checks is_admin(); the page queries below are
+// readable only through the admin RLS policies on the builder tables.
+const [detailResult, pagesResult, collectionsResult] = await Promise.all([
+  supabase.rpc('admin_user_detail', { p_user: id }),
+  supabase.from('custom_pages').select('*').eq('owner_id', id).order('position'),
+  supabase.from('custom_collections').select('*').eq('owner_id', id).order('created_at'),
+]);
+
+const profile = (detailResult.data as { profile?: { business_name: string | null; email: string } })
+  ?.profile;
+if (!profile) {
+  return Astro.redirect('/admin/faqet', 302);
+}
+
+const ownerName = profile.business_name ?? profile.email;
+const pages = (pagesResult.data ?? []) as CustomPage[];
+const collections = (collectionsResult.data ?? []) as CustomCollection[];
+---
+
+<AdminLayout
+  title={`Faqet e ${ownerName} — Admin Fatura.co`}
+  heading={ownerName}
+  subheading="Faqet e personalizuara dhe koleksionet e tyre."
+  active="builder"
+>
+  <a
+    href="/admin/faqet"
+    class="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+  >
+    <Icon name="arrow-left" class="size-4" />
+    Të gjitha bizneset
+  </a>
+
+  <PageBuilder owner={{ id, name: ownerName }} pages={pages} collections={collections} client:load />
+</AdminLayout>

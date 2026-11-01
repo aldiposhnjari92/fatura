@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   ScrollText,
   Users,
@@ -58,7 +59,8 @@ export type AdminNavKey =
   | 'users'
   | 'payments'
   | 'waitlist'
-  | 'audit';
+  | 'audit'
+  | 'builder';
 
 export type AdminIconKey =
   | 'layout-dashboard'
@@ -67,7 +69,8 @@ export type AdminIconKey =
   | 'users'
   | 'credit-card'
   | 'clipboard-list'
-  | 'scroll-text';
+  | 'scroll-text'
+  | 'layout-template';
 
 const ICONS: Record<AdminIconKey, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
@@ -77,6 +80,7 @@ const ICONS: Record<AdminIconKey, LucideIcon> = {
   'credit-card': CreditCard,
   'clipboard-list': ClipboardList,
   'scroll-text': ScrollText,
+  'layout-template': LayoutTemplate,
 };
 
 export interface AdminNavItem {

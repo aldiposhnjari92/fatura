@@ -1,14 +1,23 @@
 import * as React from 'react';
 import {
+  Calendar,
+  ClipboardList,
+  File,
   FileText,
   LayoutDashboard,
   LifeBuoy,
+  Package,
   PackageOpen,
+  ShoppingCart,
   SquarePen,
+  Star,
+  Table2,
   Truck,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
+import type { PageIcon } from '@/lib/page-builder';
 import {
   Sidebar,
   SidebarContent,
@@ -55,14 +64,17 @@ export type NavKey =
   | 'clients'
   | 'suppliers'
   | 'supplies'
-  | 'settings';
+  | 'settings'
+  /** A page-builder page, keyed by its slug. */
+  | `page:${string}`;
 export type IconKey =
   | 'layout-dashboard'
   | 'file-text'
   | 'square-pen'
   | 'users'
   | 'truck'
-  | 'package-open';
+  | 'package-open'
+  | PageIcon;
 
 const ICONS: Record<IconKey, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
@@ -71,6 +83,14 @@ const ICONS: Record<IconKey, LucideIcon> = {
   users: Users,
   truck: Truck,
   'package-open': PackageOpen,
+  file: File,
+  'clipboard-list': ClipboardList,
+  table: Table2,
+  package: Package,
+  'shopping-cart': ShoppingCart,
+  calendar: Calendar,
+  wallet: Wallet,
+  star: Star,
 };
 
 export interface NavItem {

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   ChevronDown,
+  LayoutTemplate,
   Loader2,
   ShieldCheck,
   ShieldOff,
@@ -373,6 +374,12 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                       )}
 
                       <DropdownMenuSeparator />
+
+                      <DropdownMenuItem asChild>
+                        <a href={`/admin/faqet/${row.id}`}>
+                          <LayoutTemplate /> Faqet e personalizuara
+                        </a>
+                      </DropdownMenuItem>
 
                       {/* Screens only some businesses asked for. */}
                       <DropdownMenuLabel className="text-muted-foreground text-[11px]">

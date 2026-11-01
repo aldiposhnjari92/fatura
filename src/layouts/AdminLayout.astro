@@ -8,7 +8,15 @@ export interface Props {
   title: string;
   heading: string;
   subheading?: string;
-  active: 'overview' | 'invoices' | 'activity' | 'users' | 'payments' | 'waitlist' | 'audit';
+  active:
+    | 'overview'
+    | 'invoices'
+    | 'activity'
+    | 'users'
+    | 'payments'
+    | 'waitlist'
+    | 'audit'
+    | 'builder';
   /** Pending-payment count, rendered as a badge on the Payments item. */
   pendingCount?: number;
 }
@@ -63,6 +71,12 @@ const nav: AdminNavGroup[] = isAdmin
         group: 'Administrimi',
         items: [
           { key: 'users', href: '/admin/perdoruesit', label: t('adm.users'), icon: 'users' },
+          {
+            key: 'builder',
+            href: '/admin/faqet',
+            label: 'Ndërtuesi i faqeve',
+            icon: 'layout-template',
+          },
           {
             key: 'payments',
             href: '/admin/pagesat',

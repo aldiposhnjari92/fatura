@@ -5,6 +5,7 @@ import AppShell from '@/components/react/AppShell';
 import type { NavGroup, NavItem, NavKey } from '@/components/react/AppShell';
 import { normalizeQuery } from '@/lib/search';
 import { hasFeature } from '@/lib/features';
+import { DEFAULT_NAV_GROUP, isPageIcon } from '@/lib/page-builder';
 
 export interface Props {
   title: string;
@@ -15,7 +16,7 @@ export interface Props {
 const { title, heading, active = 'dashboard' } = Astro.props;
 // All three come from the single app_bootstrap() call in the middleware —
 // this layout issues no queries of its own.
-const { profile, user, invoicesThisMonth, plan } = Astro.locals;
+const { profile, user, invoicesThisMonth, plan, customPages } = Astro.locals;
 const t = useTranslations();
 
 // For an admin, bare /app redirects to the console — so the in-app "Paneli"
@@ -98,6 +99,21 @@ if (hasFeature(profile, 'suppliers')) {
     ],
   });
 }
+
+// Pages the admin built for this account, under the heading each was given.
+// Already in sidebar order; groups appear in the order their first page does.
+const pageGroups = new Map<string, NavItem[]>();
+for (const page of customPages) {
+  const group = page.nav_group?.trim() || DEFAULT_NAV_GROUP;
+  if (!pageGroups.has(group)) pageGroups.set(group, []);
+  pageGroups.get(group)!.push({
+    key: `page:${page.slug}`,
+    href: `/app/p/${page.slug}`,
+    label: page.title,
+    icon: isPageIcon(page.icon) ? page.icon : 'file',
+  });
+}
+for (const [group, items] of pageGroups) nav.push({ group, items });
 
 // The three destinations the phone's bottom bar carries — compose has its own
 // floating button down there, so it is left out.

@@ -1,0 +1,74 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import PageBlocks from '@/components/react/page-builder/PageBlocks';
+import {
+  flattenBlocks,
+  knownBlocks,
+  type CustomCollection,
+  type CustomPage,
+  type CustomRecord,
+} from '@/lib/page-builder';
+
+export const prerender = false;
+
+const { supabase, user } = Astro.locals;
+const { slug } = Astro.params;
+
+if (!slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+  return Astro.redirect('/app', 302);
+}
+
+// RLS returns a draft to nobody but the admin; the owner filter keeps an
+// admin on their own account from opening someone else's page by slug.
+const { data: pageRow } = await supabase
+  .from('custom_pages')
+  .select('*')
+  .eq('owner_id', user!.id)
+  .eq('slug', slug)
+  .eq('published', true)
+  .maybeSingle();
+
+if (!pageRow) {
+  return Astro.redirect('/app', 302);
+}
+
+const page = pageRow as CustomPage;
+const blocks = knownBlocks(page.blocks);
+
+// Only the collections this page's blocks read from, and only their rows.
+const collectionIds = [
+  ...new Set(
+    flattenBlocks(blocks)
+      .map((b) => ('source' in b ? b.source.collectionId : null))
+      .filter((id): id is string => !!id)
+  ),
+];
+
+const [collectionsResult, recordsResult] = collectionIds.length
+  ? await Promise.all([
+      supabase
+        .from('custom_collections')
+        .select('*')
+        .eq('owner_id', user!.id)
+        .in('id', collectionIds),
+      supabase
+        .from('custom_records')
+        .select('*')
+        .eq('owner_id', user!.id)
+        .in('collection_id', collectionIds)
+        .order('created_at', { ascending: false })
+        .limit(2000),
+    ])
+  : [{ data: [] }, { data: [] }];
+
+const collections = (collectionsResult.data ?? []) as CustomCollection[];
+const records = (recordsResult.data ?? []) as CustomRecord[];
+---
+
+<AppLayout title={`${page.title} — Fatura.co`} active={`page:${page.slug}`}>
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">{page.title}</h1>
+  </div>
+
+  <PageBlocks blocks={blocks} collections={collections} records={records} client:load />
+</AppLayout>
