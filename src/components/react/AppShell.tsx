@@ -3,7 +3,9 @@ import {
   FileText,
   LayoutDashboard,
   LifeBuoy,
+  PackageOpen,
   SquarePen,
+  Truck,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -46,14 +48,29 @@ import type { PlanId } from '@/lib/plans';
   normally and are never re-rendered by anything happening out here.
 */
 
-export type NavKey = 'dashboard' | 'invoices' | 'new' | 'clients' | 'settings';
-export type IconKey = 'layout-dashboard' | 'file-text' | 'square-pen' | 'users';
+export type NavKey =
+  | 'dashboard'
+  | 'invoices'
+  | 'new'
+  | 'clients'
+  | 'suppliers'
+  | 'supplies'
+  | 'settings';
+export type IconKey =
+  | 'layout-dashboard'
+  | 'file-text'
+  | 'square-pen'
+  | 'users'
+  | 'truck'
+  | 'package-open';
 
 const ICONS: Record<IconKey, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
   'file-text': FileText,
   'square-pen': SquarePen,
   users: Users,
+  truck: Truck,
+  'package-open': PackageOpen,
 };
 
 export interface NavItem {

@@ -5,6 +5,8 @@ import {
   ShieldCheck,
   ShieldOff,
   Sparkles,
+  ToggleLeft,
+  ToggleRight,
   Trash2,
   TriangleAlert,
   X,
@@ -39,6 +41,7 @@ import {
 } from '@/components/ui/react/table';
 import { formatALL, formatDate } from '@/lib/utils';
 import { PAID_PLANS, planOf, type PaidPlanId, type PlanId } from '@/lib/plans';
+import { FEATURES, type FeatureDef } from '@/lib/features';
 
 export interface AdminUserRow {
   id: string;
@@ -51,6 +54,8 @@ export interface AdminUserRow {
   plan?: PlanId;
   is_admin: boolean;
   is_manager?: boolean;
+  /** Per-account screens switched on — see lib/features.ts. */
+  features?: string[] | null;
   pro_until: string | null;
   created_at: string;
   invoice_count: number;
@@ -165,6 +170,16 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
       value
         ? `${row.business_name ?? row.email} ka akses në panelin e menaxhimit.`
         : `${row.business_name ?? row.email} nuk ka më akses në panel.`
+    );
+
+  const setFeature = (row: AdminUserRow, feature: FeatureDef, enabled: boolean) =>
+    run(
+      row.id,
+      'admin_set_feature',
+      { p_user: row.id, p_feature: feature.key, p_enabled: enabled },
+      (r, d) => ({ ...r, features: (d?.features as string[]) ?? r.features }),
+      enabled ? `${feature.label} u aktivizua.` : `${feature.label} u çaktivizua.`,
+      `Për ${row.business_name ?? row.email}.`
     );
 
   async function openDelete(row: AdminUserRow) {
@@ -358,6 +373,33 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
                       )}
 
                       <DropdownMenuSeparator />
+
+                      {/* Screens only some businesses asked for. */}
+                      <DropdownMenuLabel className="text-muted-foreground text-[11px]">
+                        Veçoritë
+                      </DropdownMenuLabel>
+                      {FEATURES.map((feature) => {
+                        const on = row.features?.includes(feature.key) ?? false;
+                        return (
+                          <DropdownMenuItem
+                            key={feature.key}
+                            onSelect={() => setFeature(row, feature, !on)}
+                            className="items-start"
+                          >
+                            {on ? (
+                              <ToggleRight className="text-primary mt-0.5" />
+                            ) : (
+                              <ToggleLeft className="mt-0.5" />
+                            )}
+                            <span className="flex flex-col">
+                              {feature.label}
+                              <span className="text-muted-foreground text-xs">
+                                {on ? 'Aktive — kliko për ta çaktivizuar' : feature.description}
+                              </span>
+                            </span>
+                          </DropdownMenuItem>
+                        );
+                      })}
 
                       <DropdownMenuSeparator />
 

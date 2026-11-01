@@ -5,11 +5,22 @@ interface NumberInputProps
   extends Omit<React.ComponentProps<'input'>, 'value' | 'onChange' | 'type'> {
   value: number;
   onValueChange: (value: number) => void;
+  /** Allow two decimals (Euro cents). Comma or point both work as the separator. */
+  decimal?: boolean;
 }
 
 /** Digits only, no leading zeros. Zero is written as '' so the placeholder shows. */
 function canonical(raw: string): string {
   return raw.replace(/\D/g, '').replace(/^0+/, '');
+}
+
+/** The same, keeping one separator and at most two decimals: '0,5' → '0.5'. */
+function canonicalDecimal(raw: string): string {
+  let s = raw.replace(/,/g, '.').replace(/[^\d.]/g, '');
+  const dot = s.indexOf('.');
+  if (dot !== -1) s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+  s = s.replace(/^0+(?=\d)/, '');
+  return s.startsWith('.') ? `0${s}` : s;
 }
 
 /**
@@ -22,7 +33,7 @@ function canonical(raw: string): string {
  * value when it isn't canonical, so what's on screen and what's stored agree.
  */
 const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ value, onValueChange, placeholder = '0', ...props }, ref) => {
+  ({ value, onValueChange, placeholder = '0', decimal = false, ...props }, ref) => {
     const [draft, setDraft] = React.useState(() => (value === 0 ? '' : String(value)));
 
     // Follow the value when it changes from the outside (loaded invoice, reset).
@@ -33,7 +44,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     }, [value]);
 
     function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-      const next = canonical(e.target.value);
+      const next = decimal ? canonicalDecimal(e.target.value) : canonical(e.target.value);
       // React bails out of re-rendering when `next` equals the current draft, so
       // fix the DOM here rather than relying on the render pass to do it.
       if (next !== e.target.value) e.target.value = next;
@@ -47,7 +58,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         // Text, not number: a `number` input reports '' for junk like '1e',
         // which would silently wipe the value instead of ignoring the keystroke.
         type="text"
-        inputMode="numeric"
+        inputMode={decimal ? 'decimal' : 'numeric'}
         autoComplete="off"
         placeholder={placeholder}
         value={draft}

@@ -39,6 +39,16 @@ export function formatALL(amount: number, withSuffix = true): string {
   return withSuffix ? `${formatted} Lekë` : formatted;
 }
 
+/** Euro with cents: 1 234,50 €. Same separators as formatALL, no Intl. */
+export function formatEUR(amount: number, withSuffix = true): string {
+  const value = Number.isFinite(amount) ? amount : 0;
+  const cents = Math.round(Math.abs(value) * 100);
+  const whole = groupThousands(Math.floor(cents / 100));
+  const sign = value < 0 && cents > 0 ? '-' : '';
+  const formatted = `${sign}${whole},${String(cents % 100).padStart(2, '0')}`;
+  return withSuffix ? `${formatted} €` : formatted;
+}
+
 /** dd.MM.yyyy — the Albanian convention, computed without Intl (see above). */
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';

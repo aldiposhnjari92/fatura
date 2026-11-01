@@ -1,0 +1,38 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import SuppliersManager from '@/components/react/SuppliersManager';
+import { hasFeature } from '@/lib/features';
+import type { Supplier } from '@/lib/types';
+
+export const prerender = false;
+
+const { supabase, user, profile } = Astro.locals;
+
+// Only for accounts with the feature on; RLS refuses the rows otherwise anyway.
+if (!hasFeature(profile, 'suppliers')) {
+  return Astro.redirect('/app', 302);
+}
+
+const { data } = await supabase
+  .from('suppliers')
+  .select('id, owner_id, name, description, value, payment, balance, created_at')
+  .eq('owner_id', user!.id)
+  .order('name')
+  .limit(500);
+
+const suppliers = (data ?? []) as Supplier[];
+---
+
+<AppLayout title="Furnitorët — Fatura.co" active="suppliers">
+  <div class="mb-6">
+    <p class="text-muted-foreground text-sm font-medium">Furnitorët</p>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+      {suppliers.length} {suppliers.length === 1 ? 'furnitor' : 'furnitorë'}
+    </h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      Vlera, sa ke paguar dhe teprica që ka mbetur për secilin furnitor.
+    </p>
+  </div>
+
+  <SuppliersManager suppliers={suppliers} client:load />
+</AppLayout>

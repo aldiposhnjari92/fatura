@@ -28,6 +28,8 @@ const ACTION: Record<string, { label: string; icon: string; tone: string }> = {
   'admin.revoke': { label: 'Hoqi adminin', icon: 'shield-off', tone: 'text-destructive' },
   'payment.approve': { label: 'Konfirmoi pagesën', icon: 'badge-check', tone: 'text-success' },
   'payment.reject': { label: 'Refuzoi pagesën', icon: 'ban', tone: 'text-destructive' },
+  'feature.enable': { label: 'Aktivizoi një veçori', icon: 'toggle-right', tone: 'text-primary' },
+  'feature.disable': { label: 'Çaktivizoi një veçori', icon: 'toggle-left', tone: 'text-destructive' },
 };
 
 const time = (iso: string) => {

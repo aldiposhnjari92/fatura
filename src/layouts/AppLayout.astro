@@ -4,6 +4,7 @@ import BaseLayout from './BaseLayout.astro';
 import AppShell from '@/components/react/AppShell';
 import type { NavGroup, NavItem, NavKey } from '@/components/react/AppShell';
 import { normalizeQuery } from '@/lib/search';
+import { hasFeature } from '@/lib/features';
 
 export interface Props {
   title: string;
@@ -86,6 +87,17 @@ const nav: NavGroup[] = [
     items: [{ key: 'clients', href: '/app/klientet', label: t('nav.clients'), icon: 'users' }],
   },
 ];
+
+// Screens only some accounts have — switched on per account from the console.
+if (hasFeature(profile, 'suppliers')) {
+  nav.push({
+    group: 'Blerjet',
+    items: [
+      { key: 'suppliers', href: '/app/furnitoret', label: 'Furnitorët', icon: 'truck' },
+      { key: 'supplies', href: '/app/furnizimet', label: 'Furnizimet', icon: 'package-open' },
+    ],
+  });
+}
 
 // The three destinations the phone's bottom bar carries — compose has its own
 // floating button down there, so it is left out.
