@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import type { Profile } from '@/lib/types';
 import { invoiceLimitOf, isPaidPlanId, isPlanId, type PlanId } from '@/lib/plans';
 import { isTermMonths } from '@/lib/payments';
+import { safeNextPath } from '@/lib/utils';
 
 const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';
@@ -78,8 +79,10 @@ function securityHeaders(supabaseOrigin: string): Record<string, string> {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    // blob: is the generated PDF preview; data: covers inlined logos.
-    "img-src 'self' data: blob: https://*.supabase.co",
+    // blob: is the generated PDF preview; data: covers inlined logos. Only this
+    // project's storage — `*.supabase.co` let any project on Supabase serve
+    // images (and log who loaded them) into a page here.
+    `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
     `connect-src 'self' ${supabaseOrigin} ${supabaseSocket}`.trim(),
     "frame-ancestors 'none'",
     "object-src 'none'",
@@ -226,10 +229,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       );
     }
 
-    const rawNext = url.searchParams.get('next') ?? '';
-    const safeNext =
-      rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
-    return withHeaders(redirect(safeNext, 302));
+    return withHeaders(redirect(safeNextPath(url.searchParams.get('next')), 302));
   }
 
   if (user) {

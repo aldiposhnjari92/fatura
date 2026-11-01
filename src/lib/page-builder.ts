@@ -11,6 +11,8 @@
   eval'd. A layout can describe a page but never carry code into one.
 */
 
+import { safeNextPath } from '@/lib/utils';
+
 // ---- Collections ------------------------------------------------------
 
 export type FieldType =
@@ -1102,7 +1104,7 @@ export function slugify(value: string): string {
  */
 export function safeHref(href: string): string | null {
   const value = href.trim();
-  if (value.startsWith('/') && !value.startsWith('//')) return value;
+  if (value.startsWith('/')) return safeNextPath(value, '') || null;
   try {
     const url = new URL(value);
     return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;

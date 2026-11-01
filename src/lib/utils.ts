@@ -6,6 +6,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * A redirect target that is guaranteed to stay on this site, or `fallback`.
+ *
+ * Checking `startsWith('/') && !startsWith('//')` is not enough: browsers read
+ * `/\evil.com` as `//evil.com` and drop tabs and newlines, so `/\t/evil.com`
+ * gets there too. Resolving it the way the browser will, and comparing
+ * origins, closes every such spelling at once.
+ */
+export function safeNextPath(raw: string | null | undefined, fallback = '/app'): string {
+  if (!raw || !raw.startsWith('/')) return fallback;
+  const base = 'https://same-site.invalid';
+  try {
+    const url = new URL(raw, base);
+    return url.origin === base ? url.pathname + url.search + url.hash : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Every money value in Fatura.co is a whole Lek integer. There are no cents in
  * everyday Albanian invoicing, so we never introduce float rounding at all.
  */

@@ -31,6 +31,19 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const CURRENCY = import.meta.env.PAYPAL_CURRENCY ?? 'EUR';
+
+/** What PayPal is asked to charge for a payment row of `amount` Lek. */
+function orderValue(amount: number): string {
+  return (amount / Number(import.meta.env.PAYPAL_ALL_PER_UNIT ?? 100)).toFixed(2);
+}
+
+/** True when PayPal's amount object is exactly what this payment costs. */
+function amountMatches(paid: unknown, amount: number): boolean {
+  const a = paid as { currency_code?: unknown; value?: unknown } | undefined;
+  return a?.currency_code === CURRENCY && Number(a?.value) === Number(orderValue(amount));
+}
+
 async function accessToken(): Promise<string | null> {
   const id = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID;
   const secret = import.meta.env.PAYPAL_SECRET;
@@ -108,8 +121,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
               // PayPal has no ALL support for card processing in most accounts,
               // so the merchant account's settlement currency is used and the
               // Lek figure is kept as the source of truth in our own records.
-              currency_code: import.meta.env.PAYPAL_CURRENCY ?? 'EUR',
-              value: (amount / Number(import.meta.env.PAYPAL_ALL_PER_UNIT ?? 100)).toFixed(2),
+              currency_code: CURRENCY,
+              value: orderValue(amount),
             },
           },
         ],
@@ -117,7 +130,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     if (!response.ok) {
-      return json({ error: 'PAYPAL_CREATE_FAILED', detail: await response.text() }, 502);
+      console.error('[paypal] create failed:', await response.text());
+      return json({ error: 'PAYPAL_CREATE_FAILED' }, 502);
     }
     const order = await response.json();
     return json({ id: order.id, reference, amount, months, plan });
@@ -126,7 +140,42 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   // ---------- capture ----------
   if (body.action === 'capture') {
     const orderId = String(body.orderId ?? '');
-    if (!orderId) return json({ error: 'MISSING_ORDER' }, 400);
+    if (!/^[A-Z0-9]{1,64}$/.test(orderId)) return json({ error: 'MISSING_ORDER' }, 400);
+
+    /*
+      The client id is public, so anyone can open a PayPal order against this
+      merchant account themselves — for 0.01, with custom_id set to one of
+      their own pending payments. Capturing whatever order id arrives and
+      confirming the custom_id would sell a year of Pro for a cent. So before
+      anything is captured, the order must point at a pending payment the
+      caller owns, for exactly that payment's price.
+    */
+    const orderResponse = await fetch(
+      `${PAYPAL_API}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!orderResponse.ok) return json({ error: 'PAYPAL_ORDER_NOT_FOUND' }, 400);
+    const order = await orderResponse.json();
+    const unit = order?.purchase_units?.[0];
+    const paymentId = String(unit?.custom_id ?? '');
+
+    // RLS limits this to the caller's own rows, so someone else's id is "not found".
+    const { data: payment } = await supabase
+      .from('payments')
+      .select('id, amount, status, method, reference')
+      .eq('id', paymentId)
+      .maybeSingle();
+
+    if (
+      !payment ||
+      payment.method !== 'paypal' ||
+      payment.status !== 'pending' ||
+      unit?.reference_id !== payment.reference ||
+      !amountMatches(unit?.amount, payment.amount)
+    ) {
+      console.error('[paypal] order does not match a pending payment', { orderId, paymentId });
+      return json({ error: 'PAYPAL_ORDER_MISMATCH' }, 400);
+    }
 
     const response = await fetch(
       `${PAYPAL_API}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
@@ -138,15 +187,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const result = await response.json();
 
     if (!response.ok || result.status !== 'COMPLETED') {
-      return json({ error: 'PAYPAL_CAPTURE_FAILED', detail: result }, 502);
+      console.error('[paypal] capture failed:', JSON.stringify(result));
+      return json({ error: 'PAYPAL_CAPTURE_FAILED' }, 502);
     }
 
-    // The payment id travelled in custom_id, so we credit exactly the row this
-    // order was created for rather than trusting anything the client sends.
-    const paymentId = result?.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id
-      ?? result?.purchase_units?.[0]?.custom_id;
-
-    if (!paymentId) return json({ error: 'PAYMENT_LINK_MISSING' }, 502);
+    // And what was actually taken, not just what the order asked for.
+    const capture = result?.purchase_units?.[0]?.payments?.captures?.[0];
+    if (capture?.status !== 'COMPLETED' || !amountMatches(capture?.amount, payment.amount)) {
+      console.error('[paypal] captured amount does not match', { orderId, paymentId });
+      return json({ error: 'PAYPAL_AMOUNT_MISMATCH' }, 400);
+    }
 
     // Confirmation runs with the SERVICE ROLE, never the caller's session —
     // otherwise a user could invoke confirm_paid_payment on their own pending

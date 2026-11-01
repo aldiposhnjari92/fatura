@@ -45,10 +45,15 @@ function parseCookieHeader(header: string): { name: string; value: string }[] {
     .map((pair) => {
       const index = pair.indexOf('=');
       if (index === -1) return { name: pair.trim(), value: '' };
-      return {
-        name: pair.slice(0, index).trim(),
-        value: decodeURIComponent(pair.slice(index + 1).trim()),
-      };
+      const raw = pair.slice(index + 1).trim();
+      let value = raw;
+      try {
+        value = decodeURIComponent(raw);
+      } catch {
+        // A malformed cookie (any site on the domain can set one) must not
+        // 500 every signed-in page; keep it raw and let auth ignore it.
+      }
+      return { name: pair.slice(0, index).trim(), value };
     })
     .filter((c) => c.name.length > 0);
 }

@@ -1,12 +1,12 @@
 ---
 import AuthLayout from '@/layouts/AuthLayout.astro';
 import AuthForm from '@/components/react/AuthForm';
+import { safeNextPath } from '@/lib/utils';
 
 export const prerender = false;
 
-const rawNext = Astro.url.searchParams.get('next') ?? '/app';
 // Only ever redirect within this site.
-const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
+const next = safeNextPath(Astro.url.searchParams.get('next'));
 const linkFailed = Astro.url.searchParams.get('gabim') === 'lidhja';
 ---
 

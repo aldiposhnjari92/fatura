@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { safeNextPath } from '@/lib/utils';
 
 export const prerender = false;
 
@@ -9,8 +10,7 @@ export const prerender = false;
  */
 export const GET: APIRoute = async ({ url, cookies, request, redirect }) => {
   const code = url.searchParams.get('code');
-  const rawNext = url.searchParams.get('next') ?? '/app';
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
+  const next = safeNextPath(url.searchParams.get('next'));
 
   if (!code) {
     return redirect('/login?gabim=lidhja', 303);
