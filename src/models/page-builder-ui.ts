@@ -12,6 +12,7 @@ import type {
   LeafBlock,
   RecordValue,
   SubmitBlock,
+  WidgetIcon,
 } from '@/models/page-builder';
 
 export type WidgetPatch = Partial<LeafBlock>;
@@ -21,6 +22,61 @@ export interface WidgetInspectorProps {
   set: (patch: WidgetPatch) => void;
   collections: CustomCollection[];
   onManageCollections: () => void;
+}
+
+// ---- Widget inspector controls ------------------------------------------------------
+
+export interface CheckProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+export interface IconPickerProps {
+  value: WidgetIcon;
+  onChange: (icon: WidgetIcon) => void;
+}
+
+export interface StarsInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  allowZero?: boolean;
+}
+
+export interface LinkFieldsProps {
+  label: string;
+  href: string;
+  onChange: (label: string, href: string) => void;
+}
+
+export interface FieldSelectProps {
+  label: string;
+  collection: CustomCollection | undefined;
+  value: string | null;
+  onChange: (id: string | null) => void;
+  numericOnly?: boolean;
+  allowNone?: boolean;
+}
+
+export interface ItemListProps<T extends { id: string }> {
+  label: string;
+  items: T[];
+  onChange: (items: T[]) => void;
+  create: () => T;
+  render: (item: T, update: (patch: Partial<T>) => void) => React.ReactNode;
+}
+
+export interface MiniButtonProps {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}
+
+export interface ImageUploadProps {
+  src: string;
+  onChange: (src: string) => void;
 }
 
 export interface PageBlocksProps {
