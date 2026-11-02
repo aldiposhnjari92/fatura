@@ -1,3 +1,5 @@
+import type * as React from 'react';
+
 /** Furnitorët — someone this business buys from, and where the account stands. */
 export interface Supplier {
   id: string;
@@ -83,3 +85,34 @@ export type SupplyPrices = Pick<
   SupplyDraft,
   'quantity' | 'cost_all' | 'cost_eur' | 'sale_price_all' | 'sale_price_eur'
 >;
+
+export interface SupplyFormDialogProps {
+  /** Null while the dialog is closed. */
+  draft: SupplyDraft | null;
+  onChange: (draft: SupplyDraft) => void;
+  suppliers: SuppliesManagerProps['suppliers'];
+  saving: boolean;
+  error: string | null;
+  onSubmit: (event: React.FormEvent) => void;
+  onClose: () => void;
+}
+
+export interface MoneyFieldProps {
+  id: string;
+  /** The accessible name; the currency is shown inside the field. */
+  label: string;
+  currency: string;
+  value: number;
+  onValueChange: (value: number) => void;
+  decimal?: boolean;
+}
+
+export interface SupplyTotalRowProps {
+  label: string;
+  /** How the number is worked out, shown under the label. */
+  formula: string;
+  all: number;
+  eur: number;
+  /** Colour profit and loss — only the difference has a sign worth showing. */
+  signed?: boolean;
+}

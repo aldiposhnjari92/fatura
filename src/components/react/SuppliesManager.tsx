@@ -3,17 +3,7 @@ import { Loader2, PackageOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
-import { NumberInput } from '@/components/ui/react/number-input';
-import { Label } from '@/components/ui/react/label';
-import { DatePicker } from '@/components/ui/react/date-picker';
-import { SearchableSelect } from '@/components/ui/react/searchable-select';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/react/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/react/dialog';
 import {
   Table,
   TableBody,
@@ -25,7 +15,9 @@ import {
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { notify } from '@/lib/toast';
 import { cn, formatALL, formatDate, formatEUR, toDateInput } from '@/lib/utils';
-import type { SuppliesManagerProps, Supply, SupplyDraft, SupplyPrices } from '@/models/supplier';
+import SupplyFormDialog from './supplies/SupplyFormDialog';
+import { differenceTone, round2, valueAll, valueEur } from './supplies/supply-math';
+import type { SuppliesManagerProps, Supply, SupplyDraft } from '@/models/supplier';
 
 /*
   Furnizimet: one product per delivery — what came in, from whom, how many
@@ -51,19 +43,6 @@ const emptyDraft = (): SupplyDraft => ({
   sale_price_all: 0,
   sale_price_eur: 0,
 });
-
-/** Cents-exact, so 0.1 × 3 shows what the database will store. */
-const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
-
-const valueAll = (d: SupplyPrices) => round2(d.cost_all * d.quantity);
-const valueEur = (d: SupplyPrices) => round2(d.cost_eur * d.quantity);
-const differenceAll = (d: SupplyPrices) => round2((d.sale_price_all - d.cost_all) * d.quantity);
-const differenceEur = (d: SupplyPrices) => round2((d.sale_price_eur - d.cost_eur) * d.quantity);
-
-/** A loss reads as one; a profit is just the number. */
-function differenceTone(n: number) {
-  return n < 0 ? 'text-destructive' : n > 0 ? 'text-success' : 'text-muted-foreground';
-}
 
 const CONFIRM_MS = 1000;
 
@@ -387,158 +366,15 @@ export default function SuppliesManager({ supplies: initial, suppliers }: Suppli
       )}
 
       {/* Create / edit */}
-      <Dialog open={draft !== null} onOpenChange={(open) => !open && !saving && setDraft(null)}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{draft?.id ? 'Ndrysho furnizimin' : 'Furnizim i ri'}</DialogTitle>
-          </DialogHeader>
-
-          {draft && (
-            <form onSubmit={handleSave} className="grid gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="sp-product">Emri i produktit *</Label>
-                <Input
-                  id="sp-product"
-                  value={draft.product_name}
-                  onChange={(e) => setDraft({ ...draft, product_name: e.target.value })}
-                  placeholder="p.sh. Miell tip 00, thes 25 kg"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Furnitori *</Label>
-                  <SearchableSelect
-                    value={draft.supplier_id}
-                    onValueChange={(supplier_id) => setDraft({ ...draft, supplier_id })}
-                    aria-label="Furnitori"
-                    placeholder="Zgjidh furnitorin"
-                    searchPlaceholder="Kërko furnitor…"
-                    emptyText="Asnjë rezultat"
-                    options={suppliers.map((s) => ({
-                      value: s.id,
-                      label: s.name,
-                      hint: s.description ?? undefined,
-                    }))}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-date">Data</Label>
-                  <DatePicker
-                    id="sp-date"
-                    value={draft.supply_date}
-                    onChange={(supply_date) => setDraft({ ...draft, supply_date })}
-                    aria-label="Data e furnizimit"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-qty">Sasia (copë)</Label>
-                  <NumberInput
-                    id="sp-qty"
-                    value={draft.quantity}
-                    onValueChange={(quantity) => setDraft({ ...draft, quantity })}
-                    className="text-right"
-                  />
-                </div>
-              </div>
-
-              {/* Each cost sits next to the value it produces. */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-cost-all">Kosto për copë (Lekë)</Label>
-                  <NumberInput
-                    id="sp-cost-all"
-                    value={draft.cost_all}
-                    onValueChange={(cost_all) => setDraft({ ...draft, cost_all })}
-                    className="text-right"
-                  />
-                </div>
-
-                <Computed label="Vlera në Lekë (kosto × sasia)" amount={formatALL(valueAll(draft))} />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-cost-eur">Kosto për copë (Euro)</Label>
-                  <NumberInput
-                    id="sp-cost-eur"
-                    value={draft.cost_eur}
-                    onValueChange={(cost_eur) => setDraft({ ...draft, cost_eur })}
-                    decimal
-                    className="text-right"
-                  />
-                </div>
-
-                <Computed label="Vlera në Euro (kosto × sasia)" amount={formatEUR(valueEur(draft))} />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-sale-all">Çmimi i shitjes për copë (Lekë)</Label>
-                  <NumberInput
-                    id="sp-sale-all"
-                    value={draft.sale_price_all}
-                    onValueChange={(sale_price_all) => setDraft({ ...draft, sale_price_all })}
-                    className="text-right"
-                  />
-                </div>
-
-                <Computed
-                  label="Diferenca në Lekë ((shitje − kosto) × sasia)"
-                  amount={formatALL(differenceAll(draft))}
-                  className={differenceTone(differenceAll(draft))}
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="sp-sale-eur">Çmimi i shitjes për copë (Euro)</Label>
-                  <NumberInput
-                    id="sp-sale-eur"
-                    value={draft.sale_price_eur}
-                    onValueChange={(sale_price_eur) => setDraft({ ...draft, sale_price_eur })}
-                    decimal
-                    className="text-right"
-                  />
-                </div>
-
-                <Computed
-                  label="Diferenca në Euro ((shitje − kosto) × sasia)"
-                  amount={formatEUR(differenceEur(draft))}
-                  className={differenceTone(differenceEur(draft))}
-                />
-              </div>
-
-              {error && (
-                <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-                  {error}
-                </p>
-              )}
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setDraft(null)}
-                  disabled={saving}
-                >
-                  Anulo
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving && <Loader2 className="animate-spin" />}
-                  Ruaj
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <SupplyFormDialog
+        draft={draft}
+        onChange={setDraft}
+        suppliers={suppliers}
+        saving={saving}
+        error={error}
+        onSubmit={handleSave}
+        onClose={() => setDraft(null)}
+      />
 
       {/* Delete confirm */}
       <Dialog
@@ -581,32 +417,6 @@ export default function SuppliesManager({ supplies: initial, suppliers }: Suppli
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-/** A read-only result next to the field it is calculated from. */
-function Computed({
-  label,
-  amount,
-  className,
-}: {
-  label: string;
-  amount: string;
-  className?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <p className="text-sm leading-none font-medium">{label}</p>
-      <output
-        aria-live="polite"
-        className={cn(
-          'bg-muted flex h-10 items-center justify-end rounded-md px-3 text-sm font-semibold tabular-nums',
-          className
-        )}
-      >
-        {amount}
-      </output>
     </div>
   );
 }
