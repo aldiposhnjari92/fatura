@@ -11,7 +11,9 @@
   `t('nav.invoices')`.
 */
 
-const sq = {
+import type { InvoiceStrings, TranslationKey } from '@/models/i18n';
+
+export const sq = {
   // ---- Chrome: navigation, shell, generic actions ----------------------
   'nav.dashboard': 'Paneli',
   'nav.invoices': 'Faturat',
@@ -479,8 +481,6 @@ const sq = {
   'mk.createAccount': 'Krijo llogari',
 } as const;
 
-export type TranslationKey = keyof typeof sq;
-
 /**
  * Look up a string. `vars` fills `{name}` placeholders.
  *
@@ -518,30 +518,6 @@ export function useTranslations() {
    Consumed by src/lib/pdf.ts as `invoiceStrings()`. Invoices used to carry a
    per-document language; every invoice is Albanian now.
    ===================================================================== */
-
-export interface InvoiceStrings {
-  invoice: string;
-  from: string;
-  billTo: string;
-  invoiceNo: string;
-  issueDate: string;
-  dueDate: string;
-  nipt: string;
-  description: string;
-  qty: string;
-  unitPrice: string;
-  amount: string;
-  subtotal: string;
-  discount: string;
-  vat: string;
-  total: string;
-  notes: string;
-  status: string;
-  thanks: string;
-  generatedWith: string;
-  currency: string;
-  statuses: { draft: string; paid: string; unpaid: string; overdue: string };
-}
 
 const INVOICE_STRINGS: InvoiceStrings = {
   "invoice": "FATURË",

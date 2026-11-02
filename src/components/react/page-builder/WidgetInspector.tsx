@@ -8,32 +8,16 @@ import { Textarea } from '@/components/ui/react/textarea';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import {
-  WIDGET_ICONS,
-  isNumericField,
-  newId,
-  safeHref,
-  safeImageSrc,
-  type CustomCollection,
-  type LeafBlock,
-  type WidgetIcon,
-} from '@/lib/page-builder';
+import { WIDGET_ICONS, isNumericField, newId, safeHref, safeImageSrc } from '@/lib/page-builder';
 import { Field, Segmented, SourcePicker } from './BlockInspector';
 import { WIDGET_ICON_COMPONENTS } from './icons';
+import type { CustomCollection, LeafBlock, WidgetIcon } from '@/models/page-builder';
+import type { WidgetInspectorProps } from '@/models/page-builder-ui';
 
 /*
   Përmbajtja tab for the richer widgets (see Widgets.tsx). Split from
   BlockInspector so neither file is a wall of switch cases.
 */
-
-type Patch = Partial<LeafBlock>;
-
-interface Props {
-  block: LeafBlock;
-  set: (patch: Patch) => void;
-  collections: CustomCollection[];
-  onManageCollections: () => void;
-}
 
 export const WIDGET_TYPES = new Set<LeafBlock['type']>([
   'image',
@@ -54,7 +38,7 @@ export const WIDGET_TYPES = new Set<LeafBlock['type']>([
   'cards',
 ]);
 
-export default function WidgetInspector({ block, set, collections, onManageCollections }: Props) {
+export default function WidgetInspector({ block, set, collections, onManageCollections }: WidgetInspectorProps) {
   const collectionOf = (id: string | null) => collections.find((c) => c.id === id);
 
   switch (block.type) {

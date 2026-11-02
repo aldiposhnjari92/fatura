@@ -1,9 +1,6 @@
 ---
-export interface Props {
-  class?: string;
-  /** Use on dark surfaces (hero, footer) where the wordmark must read light. */
-  invert?: boolean;
-}
+import type { LogoProps as Props } from '@/models/marketing';
+
 const { class: className = '', invert = false } = Astro.props;
 ---
 

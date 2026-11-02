@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
 import Logo from "@/components/Logo.astro"
+import type { Header1Props as Props } from '@/models/marketing';
 
 /*
   The floating pill header.
@@ -17,30 +18,6 @@ import Logo from "@/components/Logo.astro"
   links stay next to the thumb, each carries an icon and one line saying what
   is behind it, and the page underneath stays visible for context.
 */
-
-type Props = {
-  class?: string
-  logo: {
-    label: string
-    href: string
-  }
-  navigation: {
-    label: string
-    href: string
-    icon?: string
-    /** One line under the link in the mobile menu. */
-    description?: string
-    active?: boolean
-  }[]
-  buttons: {
-    label: string
-    href: string
-    icon?: string
-    variant?: "default" | "outline" | "secondary" | "ghost"
-    /** Show this button only to signed-out ('anon') or signed-in ('user') visitors. */
-    'data-auth-show'?: 'anon' | 'user'
-  }[]
-}
 
 const { class: className, logo, navigation, buttons } = Astro.props
 ---

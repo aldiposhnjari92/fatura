@@ -1,17 +1,8 @@
 ---
-import {
-  STATUS_BADGE_BASE,
-  STATUS_META,
-  toInvoiceStatus,
-  type InvoiceStatus,
-} from '@/lib/types';
+import { STATUS_BADGE_BASE, STATUS_META, toInvoiceStatus } from '@/lib/invoices';
+import type { StatusBadgeProps as Props } from '@/models/invoice';
 import { useTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-
-export interface Props {
-  status: InvoiceStatus;
-  class?: string;
-}
 
 const { status, class: className } = Astro.props;
 

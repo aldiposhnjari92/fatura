@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 import { applyInvoiceSearch, matchingClientIds, normalizeQuery } from '@/lib/search';
-import { displayStatus } from '@/lib/types';
-import type { Client, InvoiceWithClient } from '@/lib/types';
+import { displayStatus } from '@/lib/invoices';
 import { formatALL, formatDate } from '@/lib/utils';
+import type { Client } from '@/models/client';
+import type { InvoiceWithClient } from '@/models/invoice';
 
 export const prerender = false;
 

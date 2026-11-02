@@ -1,7 +1,8 @@
 ---
 import { Icon } from '@/components/ui/icon';
 import { useTranslations } from '@/lib/i18n';
-import { computeTotals, type Client, type Invoice } from '@/lib/types';
+import { computeTotals } from '@/lib/invoices';
+import type { InvoiceDetailProps as Props, InvoiceTimelineStep } from '@/models/invoice';
 import { formatALL, formatDate, groupThousands, initials } from '@/lib/utils';
 
 /*
@@ -12,11 +13,6 @@ import { formatALL, formatDate, groupThousands, initials } from '@/lib/utils';
   whether it came on time — before the line-by-line detail. Same arithmetic as
   everywhere else (computeTotals), so no figure here can disagree with the PDF.
 */
-
-interface Props {
-  invoice: Invoice;
-  client: Pick<Client, 'name' | 'nipt' | 'address' | 'email'> | null;
-}
 
 const { invoice, client } = Astro.props;
 const t = useTranslations();
@@ -55,11 +51,9 @@ if (paidOn && invoice.due_date) {
   };
 }
 
-type Step = { label: string; date: string | null; icon: string; final?: boolean };
-
 // Issued, then paid. The due date is left to the chip beside the amount,
 // which already says how the payment landed against it.
-const timeline: Step[] = [
+const timeline: InvoiceTimelineStep[] = [
   { label: t('invd.issued'), date: invoice.issue_date, icon: 'file-text' },
   { label: t('invd.paid'), date: paidOn, icon: 'circle-check', final: true },
 ];

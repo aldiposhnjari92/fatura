@@ -1,11 +1,7 @@
 ---
 import { Section, SectionContainer } from '@/components/ui/section';
 import { Typography } from '@/components/ui/typography';
-
-export interface Props {
-  heading: string;
-  updated: string;
-}
+import type { LegalPageProps as Props } from '@/models/marketing';
 
 const { heading, updated } = Astro.props;
 ---

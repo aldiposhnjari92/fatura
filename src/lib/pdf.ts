@@ -3,9 +3,10 @@
  * Edge Function, no API route, no cost per invoice. The user's browser does
  * all the work, which is exactly why Fatura.co can run at $0 marginal cost.
  */
-import { computeTotals, type Client, type Invoice, type Profile } from './types';
+import { computeTotals } from './invoices';
 import { groupThousands } from './utils';
 import { invoiceStrings } from './i18n';
+import type { InvoicePdfInput } from '@/models/invoice';
 
 /*
   Layout is tuned so the items table gets as much of the page as possible: the
@@ -34,22 +35,6 @@ const MUTED: [number, number, number] = [110, 118, 129];
 const HAIRLINE: [number, number, number] = [222, 226, 230];
 const PAID: [number, number, number] = [4, 120, 87];
 const OVERDUE: [number, number, number] = [180, 35, 40];
-
-export interface InvoicePdfInput {
-  invoice: Pick<
-    Invoice,
-    | 'invoice_number'
-    | 'issue_date'
-    | 'due_date'
-    | 'items'
-    | 'vat_percent'
-    | 'discount'
-    | 'status'
-    | 'notes'
-  >;
-  profile: Partial<Profile> | null;
-  client: Partial<Client> | null;
-}
 
 /**
  * Money on the PDF: grouped thousands, no decimals. Shares groupThousands()

@@ -9,22 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Section, SectionContainer } from "@/components/ui/section"
 import SectionHeading from "@/components/sections/SectionHeading.astro"
-
-type Props = {
-  class?: string
-  title: string
-  description: string
-  faqs: {
-    id: string
-    question: string
-    answer: string
-  }[]
-  buttons?: {
-    label: string
-    href: string
-    variant?: "default" | "outline" | "secondary" | "ghost"
-  }[]
-}
+import type { Faqs1Props as Props } from '@/models/marketing';
 
 const { class: className, title, description, faqs, buttons } = Astro.props
 ---

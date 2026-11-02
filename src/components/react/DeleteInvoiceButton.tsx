@@ -13,16 +13,12 @@ import {
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { flashToast, notify } from '@/lib/toast';
 import { startNavProgress } from '@/lib/nav-progress';
+import type { DeleteInvoiceButtonProps } from '@/models/invoice';
 
 /* How long the confirmation is held before the list takes over. */
 const CONFIRM_MS = 1000;
 
-interface Props {
-  invoiceId: string;
-  invoiceNumber: string;
-}
-
-export default function DeleteInvoiceButton({ invoiceId, invoiceNumber }: Props) {
+export default function DeleteInvoiceButton({ invoiceId, invoiceNumber }: DeleteInvoiceButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [done, setDone] = React.useState(false);

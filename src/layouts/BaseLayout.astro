@@ -3,20 +3,13 @@ import VercelAnalytics from '@/components/VercelAnalytics.astro';
 import NavigationProgress from '@/components/NavigationProgress.astro';
 
 import '@/styles/globals.css';
+import type { BaseLayoutProps as Props } from '@/models/layout';
 
 /*
   Analytics ships nothing — no script, no beforeSend hook — until this is set.
   Read at build time like every PUBLIC_* var, so turning it on is a redeploy.
 */
 const analyticsEnabled = import.meta.env.PUBLIC_VERCEL_ANALYTICS === 'true';
-
-export interface Props {
-  title: string;
-  description?: string;
-  canonical?: string;
-  image?: string;
-  noindex?: boolean;
-}
 
 const {
   title,

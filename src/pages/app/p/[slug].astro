@@ -1,13 +1,8 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import PageBlocks from '@/components/react/page-builder/PageBlocks';
-import {
-  flattenBlocks,
-  knownBlocks,
-  type CustomCollection,
-  type CustomPage,
-  type CustomRecord,
-} from '@/lib/page-builder';
+import { flattenBlocks, knownBlocks } from '@/lib/page-builder';
+import type { CustomCollection, CustomPage, CustomRecord } from '@/models/page-builder';
 
 export const prerender = false;
 

@@ -8,15 +8,7 @@ import { PasswordField } from '@/components/ui/react/password-field';
 import { Label } from '@/components/ui/react/label';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { startNavProgress } from '@/lib/nav-progress';
-
-type Mode = 'login' | 'register';
-
-interface Props {
-  mode: Mode;
-  next?: string;
-  /** Overrides the submit label — the Pro signup is not "falas". */
-  submitLabel?: string;
-}
+import type { AuthFormProps } from '@/models/account';
 
 const ALBANIAN_CITIES = [
   'Fier',
@@ -65,7 +57,7 @@ function translateError(message: string): string {
   return message;
 }
 
-export default function AuthForm({ mode, next = '/app', submitLabel }: Props) {
+export default function AuthForm({ mode, next = '/app', submitLabel }: AuthFormProps) {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [businessName, setBusinessName] = React.useState('');

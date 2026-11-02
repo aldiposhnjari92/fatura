@@ -3,28 +3,7 @@ import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
 import Logo from "@/components/Logo.astro"
 import { Section, SectionContainer } from "@/components/ui/section"
-
-type Props = {
-  class?: string
-  brandName: string
-  brandHref: string
-  description: string
-  socials?: {
-    label: string
-    href: string
-    icon: string
-  }[]
-  columns: {
-    title: string
-    links: {
-      label: string
-      href: string
-    }[]
-  }[]
-  copyright: string
-  /** Sign-off shown opposite the legal line, e.g. "Bërë me dashuri". */
-  signature?: string
-}
+import type { Footer1Props as Props } from '@/models/marketing';
 
 const {
   class: className,

@@ -19,7 +19,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import type { WidgetIcon } from '@/lib/page-builder';
+import type { WidgetIcon } from '@/models/page-builder';
 
 /* The icons a widget may show, by the names stored in a page's JSON. */
 export const WIDGET_ICON_COMPONENTS: Record<WidgetIcon, LucideIcon> = {

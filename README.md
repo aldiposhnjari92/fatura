@@ -160,7 +160,7 @@ Everything lives in [`src/lib/pdf.ts`](src/lib/pdf.ts) and runs **only in the br
    bundle (also enforced via `vite.ssr.external` in `astro.config.mjs`).
 2. The logo is fetched from the public `logos` bucket and inlined as a data URL. If that
    fails for any reason, the invoice still renders — the business name is used instead.
-3. `computeTotals()` in [`src/lib/types.ts`](src/lib/types.ts) is the single source of
+3. `computeTotals()` in [`src/lib/invoices.ts`](src/lib/invoices.ts) is the single source of
    truth for the arithmetic, shared by the editor UI and the PDF, so the number on screen
    and the number on paper can never drift.
 4. Three outputs: `downloadInvoicePdf()`, `invoicePdfObjectUrl()` for a preview tab, and
@@ -481,7 +481,6 @@ names are interpolated into file paths, so they are validated against
 `/^[a-z0-9][a-z0-9-]*$/` first — `../../../etc/passwd` is rejected.
 
 **If you add more Fulldev blocks, check them for `eager: true` globs.**
-
 
 Per-request round trips to Supabase, for an app page:
 

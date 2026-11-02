@@ -1,9 +1,10 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
-import type { Profile } from '@/lib/types';
-import { invoiceLimitOf, isPaidPlanId, isPlanId, type PlanId } from '@/lib/plans';
+import { invoiceLimitOf, isPaidPlanId, isPlanId } from '@/lib/plans';
 import { isTermMonths } from '@/lib/payments';
 import { safeNextPath } from '@/lib/utils';
+import type { Profile } from '@/models/account';
+import type { PlanId } from '@/models/billing';
 
 const PROTECTED_PREFIX = '/app';
 const ADMIN_PREFIX = '/admin';

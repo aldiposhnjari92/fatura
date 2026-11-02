@@ -8,22 +8,7 @@
  * numbers without a round trip. Change one side, change the other.
  */
 
-export type PlanId = 'free' | 'starter' | 'pro';
-
-/** Tiers that are actually bought. Free is what you lapse to, not what you buy. */
-export type PaidPlanId = Exclude<PlanId, 'free'>;
-
-export interface PlanSpec {
-  id: PlanId;
-  /** Display name, as it appears on the pricing cards. */
-  name: string;
-  /** Uppercase chip in the app shell. */
-  badge: string;
-  /** Whole Lek per month. */
-  monthlyALL: number;
-  /** Invoices per calendar month; null means unlimited. */
-  invoiceLimit: number | null;
-}
+import type { PaidPlanId, PlanId, PlanSpec } from '@/models/billing';
 
 export const PLANS: Record<PlanId, PlanSpec> = {
   free: { id: 'free', name: 'Falas', badge: 'FALAS', monthlyALL: 0, invoiceLimit: 5 },

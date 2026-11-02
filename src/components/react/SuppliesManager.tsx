@@ -25,7 +25,7 @@ import {
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { notify } from '@/lib/toast';
 import { cn, formatALL, formatDate, formatEUR, toDateInput } from '@/lib/utils';
-import type { Supplier, Supply } from '@/lib/types';
+import type { SuppliesManagerProps, Supply, SupplyDraft, SupplyPrices } from '@/models/supplier';
 
 /*
   Furnizimet: one product per delivery — what came in, from whom, how many
@@ -40,24 +40,7 @@ import type { Supplier, Supply } from '@/lib/types';
   the same arithmetic live so the numbers are known before saving.
 */
 
-interface Props {
-  supplies: Supply[];
-  suppliers: Pick<Supplier, 'id' | 'name' | 'description'>[];
-}
-
-interface Draft {
-  id: string | null;
-  product_name: string;
-  supplier_id: string;
-  supply_date: string;
-  quantity: number;
-  cost_all: number;
-  cost_eur: number;
-  sale_price_all: number;
-  sale_price_eur: number;
-}
-
-const emptyDraft = (): Draft => ({
+const emptyDraft = (): SupplyDraft => ({
   id: null,
   product_name: '',
   supplier_id: '',
@@ -69,15 +52,13 @@ const emptyDraft = (): Draft => ({
   sale_price_eur: 0,
 });
 
-type Prices = Pick<Draft, 'quantity' | 'cost_all' | 'cost_eur' | 'sale_price_all' | 'sale_price_eur'>;
-
 /** Cents-exact, so 0.1 × 3 shows what the database will store. */
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
-const valueAll = (d: Prices) => round2(d.cost_all * d.quantity);
-const valueEur = (d: Prices) => round2(d.cost_eur * d.quantity);
-const differenceAll = (d: Prices) => round2((d.sale_price_all - d.cost_all) * d.quantity);
-const differenceEur = (d: Prices) => round2((d.sale_price_eur - d.cost_eur) * d.quantity);
+const valueAll = (d: SupplyPrices) => round2(d.cost_all * d.quantity);
+const valueEur = (d: SupplyPrices) => round2(d.cost_eur * d.quantity);
+const differenceAll = (d: SupplyPrices) => round2((d.sale_price_all - d.cost_all) * d.quantity);
+const differenceEur = (d: SupplyPrices) => round2((d.sale_price_eur - d.cost_eur) * d.quantity);
 
 /** A loss reads as one; a profit is just the number. */
 function differenceTone(n: number) {
@@ -86,10 +67,10 @@ function differenceTone(n: number) {
 
 const CONFIRM_MS = 1000;
 
-export default function SuppliesManager({ supplies: initial, suppliers }: Props) {
+export default function SuppliesManager({ supplies: initial, suppliers }: SuppliesManagerProps) {
   const [supplies, setSupplies] = React.useState<Supply[]>(initial);
   const [search, setSearch] = React.useState('');
-  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [draft, setDraft] = React.useState<SupplyDraft | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Supply | null>(null);

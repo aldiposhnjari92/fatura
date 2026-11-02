@@ -9,35 +9,8 @@
  * charges; only the wording is a per-page decision, and it is passed in.
  */
 
-import { PLANS, type PlanId } from '@/lib/plans';
-
-/** Per-page wording. Anything omitted falls back to the shared copy. */
-export interface PlanCopy {
-  description?: string;
-  features?: string[];
-}
-
-export type PlanCopyOverrides = Partial<Record<PlanId, PlanCopy>>;
-
-interface Button {
-  label: string;
-  href: string;
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-}
-
-export interface MarketingPlan {
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  unit: string;
-  features: string[];
-  featured?: boolean;
-  badge?: string;
-  note?: string;
-  button: Button;
-  authedButton?: Button;
-}
+import { PLANS } from '@/lib/plans';
+import type { MarketingPlan, PlanCopyOverrides, PlanId } from '@/models/billing';
 
 /* The shared card copy. Prices are deliberately absent — they come from PLANS. */
 const BASE: Record<PlanId, Omit<MarketingPlan, 'price'>> = {

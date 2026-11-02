@@ -6,20 +6,7 @@ import { notify } from '@/lib/toast';
 import { Button } from '@/components/ui/react/button';
 import { formatALL, formatDate } from '@/lib/utils';
 import { planOf } from '@/lib/plans';
-
-interface PendingPayment {
-  id: string;
-  reference: string;
-  method: string;
-  amount: number;
-  months: number;
-  /** Tier this payment buys; absent on rows created before Starter existed. */
-  plan?: string | null;
-  created_at: string;
-  provider_ref: string | null;
-  business_name: string | null;
-  city: string | null;
-}
+import type { QueuedPayment } from '@/models/billing';
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   bank_transfer: Landmark,
@@ -30,7 +17,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function PaymentQueue({
   initial,
 }: {
-  initial: PendingPayment[];
+  initial: QueuedPayment[];
 }) {
   const t = useTranslations();
   const LABELS: Record<string, string> = {

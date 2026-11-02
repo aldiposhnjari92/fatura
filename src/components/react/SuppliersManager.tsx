@@ -24,7 +24,7 @@ import {
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { notify } from '@/lib/toast';
 import { cn, formatALL } from '@/lib/utils';
-import type { Supplier } from '@/lib/types';
+import type { Supplier, SupplierDraft, SuppliersManagerProps } from '@/models/supplier';
 
 /*
   Furnitorët: each supplier is an account — what the goods are worth (vlera),
@@ -33,19 +33,7 @@ import type { Supplier } from '@/lib/types';
   same subtraction live so the number is known before saving.
 */
 
-interface Props {
-  suppliers: Supplier[];
-}
-
-interface Draft {
-  id: string | null;
-  name: string;
-  description: string;
-  value: number;
-  payment: number;
-}
-
-const emptyDraft = (): Draft => ({
+const emptyDraft = (): SupplierDraft => ({
   id: null,
   name: '',
   description: '',
@@ -61,10 +49,10 @@ function balanceTone(balance: number) {
   return balance > 0 ? 'text-warning' : 'text-muted-foreground';
 }
 
-export default function SuppliersManager({ suppliers: initial }: Props) {
+export default function SuppliersManager({ suppliers: initial }: SuppliersManagerProps) {
   const [suppliers, setSuppliers] = React.useState<Supplier[]>(initial);
   const [search, setSearch] = React.useState('');
-  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [draft, setDraft] = React.useState<SupplierDraft | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Supplier | null>(null);

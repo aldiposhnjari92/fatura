@@ -1,7 +1,7 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import StatusBadge from '@/components/StatusBadge.astro';
-import { displayStatus } from '@/lib/types';
+import { displayStatus } from '@/lib/invoices';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import StatCell from '@/components/StatCell.astro';
@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatALL, formatDate } from '@/lib/utils';
-import type { InvoiceWithClient } from '@/lib/types';
+import type { InvoiceWithClient } from '@/models/invoice';
 import { PLANS, planOf, quotaReached, usageRatio } from '@/lib/plans';
 
 export const prerender = false;

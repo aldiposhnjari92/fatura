@@ -1,16 +1,12 @@
 import * as React from 'react';
 import { supabase } from '@/lib/supabase';
-import {
-  downloadInvoicePdf,
-  isPdfEngineLoadError,
-  printInvoicePdf,
-  shareInvoicePdf,
-  type InvoicePdfInput,
-} from '@/lib/pdf';
+import { downloadInvoicePdf, isPdfEngineLoadError, printInvoicePdf, shareInvoicePdf } from '@/lib/pdf';
 import { exportInvoiceToExcel } from '@/lib/excel';
 import { notify } from '@/lib/toast';
 import { useTranslations } from '@/lib/i18n';
-import type { Client, Profile } from '@/lib/types';
+import type { Profile } from '@/models/account';
+import type { Client } from '@/models/client';
+import type { InvoiceFileAction, InvoicePdfInput } from '@/models/invoice';
 
 /*
   PDF, print, Excel and share for one saved invoice, by id — shared by the list's row
@@ -45,8 +41,6 @@ function loadProfile(): Promise<Partial<Profile> | null> {
   }
   return profileRequest;
 }
-
-export type InvoiceFileAction = 'download' | 'print' | 'excel' | 'share';
 
 export function useInvoiceFiles(invoiceId: string, invoiceNumber: string) {
   const t = useTranslations();

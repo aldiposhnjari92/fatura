@@ -41,35 +41,11 @@ import {
   TableRow,
 } from '@/components/ui/react/table';
 import { formatALL, formatDate } from '@/lib/utils';
-import { PAID_PLANS, planOf, type PaidPlanId, type PlanId } from '@/lib/plans';
-import { FEATURES, type FeatureDef } from '@/lib/features';
-
-export interface AdminUserRow {
-  id: string;
-  email: string;
-  business_name: string | null;
-  city: string | null;
-  nipt: string | null;
-  is_pro: boolean;
-  /** Tier in force, from active_plan() — already accounts for expiry. */
-  plan?: PlanId;
-  is_admin: boolean;
-  is_manager?: boolean;
-  /** Per-account screens switched on — see lib/features.ts. */
-  features?: string[] | null;
-  pro_until: string | null;
-  created_at: string;
-  invoice_count: number;
-  client_count: number;
-  invoiced_total: number;
-  paid_total: number;
-  last_invoice_at: string | null;
-}
-
-interface Props {
-  rows: AdminUserRow[];
-  currentAdminId: string;
-}
+import { PAID_PLANS, planOf } from '@/lib/plans';
+import { FEATURES } from '@/lib/features';
+import type { FeatureDef } from '@/models/account';
+import type { AdminUserRow, AdminUserTableProps, UserDeletePreview } from '@/models/admin';
+import type { PaidPlanId, PlanId } from '@/models/billing';
 
 function proActive(row: AdminUserRow) {
   return row.is_pro && (!row.pro_until || new Date(row.pro_until) > new Date());
@@ -81,25 +57,8 @@ function planOfRow(row: AdminUserRow): PlanId {
   return proActive(row) ? 'pro' : 'free';
 }
 
-interface DeletePreview {
-  id: string;
-  business_name: string | null;
-  email: string;
-  is_admin: boolean;
-  is_manager?: boolean;
-  is_self: boolean;
-  pro_active: boolean;
-  pro_until: string | null;
-  invoices: number;
-  clients: number;
-  payments: number;
-  paid_total: number;
-  last_payment_at: string | null;
-  other_admins: number;
-}
-
-export default function AdminUserTable({ rows: initial, currentAdminId }: Props) {
-  const [preview, setPreview] = React.useState<DeletePreview | null>(null);
+export default function AdminUserTable({ rows: initial, currentAdminId }: AdminUserTableProps) {
+  const [preview, setPreview] = React.useState<UserDeletePreview | null>(null);
   const [previewing, setPreviewing] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [confirmText, setConfirmText] = React.useState('');
@@ -198,7 +157,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: Props)
         p_user: row.id,
       });
       if (rpcError) throw rpcError;
-      setPreview(data as DeletePreview);
+      setPreview(data as UserDeletePreview);
     } catch (err) {
       setError((err as Error).message);
     } finally {

@@ -3,6 +3,7 @@ import { Section, SectionContainer } from '@/components/ui/section';
 import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import SectionHeading from '@/components/sections/SectionHeading.astro';
+import type { FeaturesSectionProps as Props } from '@/models/marketing';
 
 /*
   Replaces Fulldev's features-2, which is a flat 3-column grid of centred icons —
@@ -11,9 +12,6 @@ import SectionHeading from '@/components/sections/SectionHeading.astro';
   generated on-device) get the large tiles, the rest fill in around them.
 */
 
-export interface Props {
-  class?: string;
-}
 const { class: className = '' } = Astro.props;
 
 const supporting = [

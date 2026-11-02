@@ -1,4 +1,4 @@
-import type { Profile } from './types';
+import type { FeatureDef, FeatureKey, Profile } from '@/models/account';
 
 /*
   Screens switched on per account by the admin (profiles.features).
@@ -8,15 +8,6 @@ import type { Profile } from './types';
   refuses keys it does not know, and each table a feature owns checks
   has_feature() in RLS, so the sidebar hiding a page is not the only lock.
 */
-
-export type FeatureKey = 'suppliers';
-
-export interface FeatureDef {
-  key: FeatureKey;
-  /** What the admin sees on the switch. */
-  label: string;
-  description: string;
-}
 
 export const FEATURES: FeatureDef[] = [
   {

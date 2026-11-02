@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import AdminUserTable, { type AdminUserRow } from '@/components/react/AdminUserTable';
+import AdminUserTable from '@/components/react/AdminUserTable';
+import type { AdminUserRow, BusinessFilter } from '@/models/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
@@ -10,12 +11,11 @@ export const prerender = false;
 const { supabase, user } = Astro.locals;
 const params = Astro.url.searchParams;
 
-const FILTERS = ['all', 'paid', 'starter', 'pro', 'free', 'admin', 'inactive'] as const;
-type Filter = (typeof FILTERS)[number];
+const FILTERS: readonly BusinessFilter[] = ['all', 'paid', 'starter', 'pro', 'free', 'admin', 'inactive'];
 
 const rawFilter = params.get('filtri');
-const filter: Filter = FILTERS.includes(rawFilter as Filter)
-  ? (rawFilter as Filter)
+const filter: BusinessFilter = FILTERS.includes(rawFilter as BusinessFilter)
+  ? (rawFilter as BusinessFilter)
   : 'all';
 const search = (params.get('kerko') ?? '').trim().slice(0, 80);
 
@@ -41,7 +41,7 @@ const total = payload.total ?? 0;
 const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 const pendingCount = (pendingResult.data as { total?: number })?.total ?? 0;
 
-const LABELS: Record<Filter, string> = {
+const LABELS: Record<BusinessFilter, string> = {
   all: 'Të gjitha',
   paid: 'Me pagesë',
   starter: 'Starter',

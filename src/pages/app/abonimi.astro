@@ -11,7 +11,8 @@ import {
   isCardConfigured,
   isPaypalConfigured,
 } from '@/lib/payments';
-import { PLANS, isPaidPlanId, isPlanId, planOf, type PaidPlanId } from '@/lib/plans';
+import { PLANS, isPaidPlanId, isPlanId, planOf } from '@/lib/plans';
+import type { PaidPlanId } from '@/models/billing';
 
 export const prerender = false;
 

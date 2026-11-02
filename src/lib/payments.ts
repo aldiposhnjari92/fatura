@@ -9,9 +9,8 @@
  * then.
  */
 
-import { PLANS, planOf, type PaidPlanId } from '@/lib/plans';
-
-export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
+import { PLANS, planOf } from '@/lib/plans';
+import type { BankDetails, MethodInfo, PaidPlanId, TermMeta, TermOption } from '@/models/billing';
 
 /*
   Terms on offer: monthly or yearly, the same two for every plan.
@@ -23,23 +22,6 @@ export type PaymentMethod = 'bank_transfer' | 'card' | 'paypal';
   subscription buyer already knows.
 */
 export const TERM_MONTHS = [1, 12] as const;
-
-export interface TermOption {
-  months: number;
-  /** Name of the term, as a card or toggle title: "Mujor" / "Vjetor". */
-  label: string;
-  /** Unit noun for a price line, rendered as "/muaj" or "/vit". */
-  unit: string;
-  /** The term as a span of time, for running text: "një muaj" / "një vit". */
-  periodLabel: string;
-  /** Total in Lek for this plan over this term. */
-  total: number;
-  /** Marketing note, e.g. a discount hint. */
-  note?: string;
-  best?: boolean;
-}
-
-type TermMeta = Omit<TermOption, 'months' | 'total'>;
 
 const TERM_META: Record<number, TermMeta> = {
   1: { label: 'Mujor', unit: 'muaj', periodLabel: 'një muaj' },
@@ -78,14 +60,6 @@ export function isTermMonths(value: unknown): boolean {
   return TERM_MONTHS.includes(Number(value) as (typeof TERM_MONTHS)[number]);
 }
 
-export interface BankDetails {
-  beneficiary: string;
-  bank: string;
-  iban: string;
-  swift: string;
-  currency: string;
-}
-
 /**
  * Read on the server only. Falls back to obvious placeholders so the page still
  * renders during setup — `isBankConfigured()` reports whether they are real.
@@ -116,15 +90,6 @@ export function isPaypalConfigured(env: Record<string, unknown>): boolean {
  */
 export function isCardConfigured(env: Record<string, unknown>): boolean {
   return isPaypalConfigured(env) && String(env.PAYPAL_CARD_FIELDS ?? '') === 'true';
-}
-
-export interface MethodInfo {
-  id: PaymentMethod;
-  label: string;
-  description: string;
-  icon: string;
-  available: boolean;
-  unavailableReason?: string;
 }
 
 export function getMethods(env: Record<string, unknown>): MethodInfo[] {

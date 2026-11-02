@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import type { ToastStatus } from '@/models/ui';
 
 /*
   One entry point for action feedback.
@@ -15,8 +16,6 @@ import { toast } from 'sonner';
   would leak the message into every other tab — and the Toaster on the next page
   consumes it on mount.
 */
-
-export type ToastStatus = 'success' | 'error' | 'warning' | 'info';
 
 const FLASH_KEY = 'fatura:flash-toast';
 

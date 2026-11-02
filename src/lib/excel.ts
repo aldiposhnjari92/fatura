@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { computeTotals, type Client, type InvoiceItem, type InvoiceStatus } from '@/lib/types';
+import { computeTotals } from '@/lib/invoices';
 import { translate } from '@/lib/i18n';
 import { invoiceFileName } from '@/lib/pdf';
+import type { ColumnMapping, ExcelCell, ExcelColumnDef, ExcelColumnKey, ExcelExportRow, ImportField, ImportResult, ParsedInvoice, ParseResult, RowProblem, WorkbookSheet } from '@/models/excel';
 
 /*
   Invoices to and from .xlsx.
@@ -23,35 +24,7 @@ import { invoiceFileName } from '@/lib/pdf';
   download a spreadsheet parser to look at their invoice list.
 */
 
-type ColumnKey =
-  | 'number'
-  | 'client'
-  | 'clientNipt'
-  | 'clientEmail'
-  | 'clientAddress'
-  | 'issueDate'
-  | 'dueDate'
-  | 'status'
-  | 'paidAt'
-  | 'vat'
-  | 'discount'
-  | 'description'
-  | 'quantity'
-  | 'price'
-  | 'amount'
-  | 'subtotal'
-  | 'total'
-  | 'notes';
-
-interface ColumnDef {
-  key: ColumnKey;
-  header: string;
-  width: number;
-  /** Other headers accepted on import, so an English or hand-made sheet still maps. */
-  aliases?: string[];
-}
-
-const COLUMNS: ColumnDef[] = [
+const COLUMNS: ExcelColumnDef[] = [
   { key: 'number', header: 'Numri', width: 16, aliases: ['nr', 'nr fature', 'fatura nr', 'numri i fatures', 'numri fatures', 'invoice number', 'invoice no', 'invoice', 'number'] },
   { key: 'client', header: 'Klienti', width: 28, aliases: ['klient', 'emri i klientit', 'bleresi', 'subjekti', 'client', 'customer', 'buyer'] },
   { key: 'clientNipt', header: 'NIPT i klientit', width: 16, aliases: ['nipt', 'client nipt', 'tax id'] },
@@ -165,27 +138,14 @@ function cellToIso(value: unknown): string | null {
 // Export
 // ---------------------------------------------------------------------
 
-interface ExportRow {
-  invoice_number: string;
-  issue_date: string;
-  due_date: string | null;
-  items: InvoiceItem[] | null;
-  vat_percent: number;
-  discount: number;
-  status: InvoiceStatus;
-  paid_at: string | null;
-  notes: string | null;
-  clients: Pick<Client, 'name' | 'nipt' | 'email' | 'address'> | null;
-}
-
 /** PostgREST caps a response at 1000 rows by default, so the export reads in pages. */
 const EXPORT_PAGE = 1000;
 
 const EXPORT_SELECT =
   'invoice_number, issue_date, due_date, items, vat_percent, discount, status, paid_at, notes, clients(name, nipt, email, address)';
 
-async function fetchAllInvoices(supabase: SupabaseClient, ownerId: string): Promise<ExportRow[]> {
-  const rows: ExportRow[] = [];
+async function fetchAllInvoices(supabase: SupabaseClient, ownerId: string): Promise<ExcelExportRow[]> {
+  const rows: ExcelExportRow[] = [];
   for (let from = 0; ; from += EXPORT_PAGE) {
     const { data, error } = await supabase
       .from('invoices')
@@ -195,31 +155,29 @@ async function fetchAllInvoices(supabase: SupabaseClient, ownerId: string): Prom
       .order('created_at', { ascending: true })
       .range(from, from + EXPORT_PAGE - 1);
     if (error) throw error;
-    rows.push(...((data ?? []) as unknown as ExportRow[]));
+    rows.push(...((data ?? []) as unknown as ExcelExportRow[]));
     if (!data || data.length < EXPORT_PAGE) return rows;
   }
 }
 
-type Cell = { value?: unknown; type?: unknown; format?: string; fontWeight?: 'bold' } | null;
-
-function textCell(value: string | null | undefined): Cell {
+function textCell(value: string | null | undefined): ExcelCell {
   return value ? { value, type: String } : null;
 }
 
-function numberCell(value: number, format?: string): Cell {
+function numberCell(value: number, format?: string): ExcelCell {
   return { value, type: Number, format };
 }
 
-function dateCell(iso: string | null | undefined): Cell {
+function dateCell(iso: string | null | undefined): ExcelCell {
   const date = isoToCellDate(iso);
   return date ? { value: date, type: Date, format: DATE_FORMAT } : null;
 }
 
-function headerRow(): Cell[] {
+function headerRow(): ExcelCell[] {
   return COLUMNS.map((c) => ({ value: c.header, type: String, fontWeight: 'bold' }));
 }
 
-function invoiceRows(invoice: ExportRow): Cell[][] {
+function invoiceRows(invoice: ExcelExportRow): ExcelCell[][] {
   const items = Array.isArray(invoice.items) && invoice.items.length > 0
     ? invoice.items
     : [{ description: '', quantity: 0, price: 0 }];
@@ -227,7 +185,7 @@ function invoiceRows(invoice: ExportRow): Cell[][] {
   const status = translate(`status.${invoice.status}` as 'status.draft');
 
   return items.map((item) => {
-    const byKey: Record<ColumnKey, Cell> = {
+    const byKey: Record<ExcelColumnKey, ExcelCell> = {
       number: textCell(invoice.invoice_number),
       client: textCell(invoice.clients?.name),
       clientNipt: textCell(invoice.clients?.nipt),
@@ -254,7 +212,7 @@ function invoiceRows(invoice: ExportRow): Cell[][] {
   });
 }
 
-async function writeWorkbook(rows: Cell[][], fileName: string) {
+async function writeWorkbook(rows: ExcelCell[][], fileName: string) {
   const writeXlsxFile = await loadWriter();
   // The library's cell types are constructor-keyed generics that do not
   // survive being built in a loop; the shapes above are what it documents.
@@ -291,7 +249,7 @@ export async function exportInvoiceToExcel(
     .eq('id', invoiceId)
     .single();
   if (error) throw error;
-  const invoice = data as unknown as ExportRow;
+  const invoice = data as unknown as ExcelExportRow;
   await writeWorkbook(
     [headerRow(), ...invoiceRows(invoice)],
     invoiceFileName(invoice.invoice_number, invoice.clients?.name, 'xlsx')
@@ -301,7 +259,7 @@ export async function exportInvoiceToExcel(
 /** An empty sheet with the right headers and one example invoice, to fill in. */
 export async function downloadExcelTemplate(): Promise<void> {
   const year = new Date().getFullYear();
-  const example: ExportRow = {
+  const example: ExcelExportRow = {
     invoice_number: `FAT-${year}-001`,
     issue_date: `${year}-01-15`,
     due_date: `${year}-02-15`,
@@ -322,31 +280,6 @@ export async function downloadExcelTemplate(): Promise<void> {
 // ---------------------------------------------------------------------
 // Import
 // ---------------------------------------------------------------------
-
-export interface ParsedInvoice {
-  /** First sheet row (1-based, as Excel shows it) the invoice came from. */
-  row: number;
-  invoice_number: string;
-  client: { name: string; nipt: string | null; email: string | null; address: string | null };
-  issue_date: string;
-  due_date: string | null;
-  status: Exclude<InvoiceStatus, 'overdue'>;
-  paid_at: string | null;
-  vat_percent: number;
-  discount: number;
-  notes: string | null;
-  items: InvoiceItem[];
-}
-
-export interface RowProblem {
-  row: number;
-  message: string;
-}
-
-export interface ParseResult {
-  invoices: ParsedInvoice[];
-  problems: RowProblem[];
-}
 
 function toText(value: unknown): string {
   if (value == null) return '';
@@ -396,18 +329,9 @@ function toStatus(value: unknown): ParsedInvoice['status'] | null {
 // kind of file goes straight to the preview.
 // ---------------------------------------------------------------------
 
-/** Which sheet column (0-based) feeds each field; a field left out is not imported. */
-export type ColumnMapping = Partial<Record<ColumnKey, number>>;
-
-const REQUIRED: ColumnKey[] = ['number', 'client', 'issueDate'];
+const REQUIRED: ExcelColumnKey[] = ['number', 'client', 'issueDate'];
 /** A line needs at least one of these to be worth importing. */
-const ITEM_SOURCES: ColumnKey[] = ['description', 'price', 'amount'];
-
-export interface ImportField {
-  key: ColumnKey;
-  label: string;
-  required: boolean;
-}
+const ITEM_SOURCES: ExcelColumnKey[] = ['description', 'price', 'amount'];
 
 /** Everything the import can read. Subtotal and total are never read: they are recomputed. */
 export const IMPORT_FIELDS: ImportField[] = COLUMNS.filter(
@@ -424,7 +348,7 @@ function headerKey(value: string): string {
     .trim();
 }
 
-function rememberedHeaders(): Record<string, ColumnKey> {
+function rememberedHeaders(): Record<string, ExcelColumnKey> {
   try {
     return JSON.parse(localStorage.getItem(REMEMBERED_KEY) ?? '{}');
   } catch {
@@ -438,7 +362,7 @@ export function rememberMapping(headers: string[], mapping: ColumnMapping): void
     const remembered = rememberedHeaders();
     for (const [key, index] of Object.entries(mapping)) {
       const header = headerKey(headers[index as number] ?? '');
-      if (header) remembered[header] = key as ColumnKey;
+      if (header) remembered[header] = key as ExcelColumnKey;
     }
     localStorage.setItem(REMEMBERED_KEY, JSON.stringify(remembered));
   } catch {
@@ -448,7 +372,7 @@ export function rememberMapping(headers: string[], mapping: ColumnMapping): void
 
 /** Best guess from header names: the user's remembered choices first, then ours. */
 export function guessMapping(header: unknown[]): ColumnMapping {
-  const lookup = new Map<string, ColumnKey>();
+  const lookup = new Map<string, ExcelColumnKey>();
   for (const column of COLUMNS) {
     lookup.set(headerKey(column.header), column.key);
     for (const alias of column.aliases ?? []) lookup.set(headerKey(alias), column.key);
@@ -479,14 +403,6 @@ export function columnLetter(index: number): string {
     out = String.fromCharCode(65 + ((n - 1) % 26)) + out;
   }
   return out;
-}
-
-export interface WorkbookSheet {
-  rows: unknown[][];
-  /** Rows that could be the header — the first few with anything in them. */
-  headerCandidates: number[];
-  headerIndex: number;
-  mapping: ColumnMapping;
 }
 
 /** Read the first sheet and guess where its header is and what each column holds. */
@@ -549,7 +465,7 @@ export function parseInvoiceRows(
     };
   }
 
-  const get = (row: unknown[], key: ColumnKey) => {
+  const get = (row: unknown[], key: ExcelColumnKey) => {
     const index = mapping[key];
     return index === undefined ? null : row[index];
   };
@@ -685,15 +601,6 @@ export async function existingInvoiceNumbers(
     for (const row of data ?? []) numbers.add(row.invoice_number as string);
     if (!data || data.length < EXPORT_PAGE) return numbers;
   }
-}
-
-export interface ImportResult {
-  imported: number;
-  skipped: number;
-  failed: RowProblem[];
-  /** The plan's monthly cap was reached; everything after it was not attempted. */
-  quotaReached: boolean;
-  clientsCreated: number;
 }
 
 /**

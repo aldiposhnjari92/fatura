@@ -5,14 +5,11 @@ import { Button } from '@/components/ui/react/button';
 import { PasswordField } from '@/components/ui/react/password-field';
 import { useTranslations } from '@/lib/i18n';
 import { notify } from '@/lib/toast';
-
-interface Props {
-  email: string;
-}
+import type { ChangePasswordProps } from '@/models/account';
 
 const MIN_LENGTH = 8;
 
-export default function ChangePassword({ email }: Props) {
+export default function ChangePassword({ email }: ChangePasswordProps) {
   const t = useTranslations();
   const [next, setNext] = React.useState('');
   const [confirm, setConfirm] = React.useState('');

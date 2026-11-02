@@ -2,16 +2,11 @@
 import { useTranslations } from '@/lib/i18n';
 import BaseLayout from './BaseLayout.astro';
 import AppShell from '@/components/react/AppShell';
-import type { NavGroup, NavItem, NavKey } from '@/components/react/AppShell';
+import type { NavGroup, NavItem } from '@/models/navigation';
 import { normalizeQuery } from '@/lib/search';
 import { hasFeature } from '@/lib/features';
 import { DEFAULT_NAV_GROUP, isPageIcon } from '@/lib/page-builder';
-
-export interface Props {
-  title: string;
-  heading?: string;
-  active?: NavKey;
-}
+import type { AppLayoutProps as Props } from '@/models/layout';
 
 const { title, heading, active = 'dashboard' } = Astro.props;
 // All three come from the single app_bootstrap() call in the middleware —

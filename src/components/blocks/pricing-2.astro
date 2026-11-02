@@ -6,6 +6,7 @@ import { Price, PriceUnit, PriceValue } from '@/components/ui/price';
 import { formatPriceValue } from '@/components/ui/price/format-price-value';
 import { Section, SectionContainer } from '@/components/ui/section';
 import SectionHeading from '@/components/sections/SectionHeading.astro';
+import type { Pricing2Props as Props } from '@/models/marketing';
 
 /*
   Fulldev's stock pricing-2 renders every plan as a flat `border-none
@@ -21,52 +22,6 @@ import SectionHeading from '@/components/sections/SectionHeading.astro';
   Fulldev primitives read light, and that flip would also raise `--primary`
   back to #00ADB5, where white falls to 2.75:1.
 */
-
-type Props = {
-  class?: string;
-  /** BCP-47 tag for price formatting. sq-AL renders `currency: "ALL"` as "2000 Lekë". */
-  locale?: string;
-  title: string;
-  description: string;
-  plans: {
-    name: string;
-    description: string;
-    price: number;
-    compareAt?: number;
-    currency: string;
-    unit: string;
-    features: string[];
-    /** Renders the plan on ink with teal accents and lifts it above the rest. */
-    featured?: boolean;
-    /** Ribbon above the plan name, e.g. "Më i zgjedhuri". */
-    badge?: string;
-    /** Small reassurance under the button, e.g. "Pa kartë krediti". */
-    note?: string;
-    button: {
-      label: string;
-      href: string;
-      variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-    };
-    /**
-     * Shown instead of `button` to visitors who are already signed in. Without
-     * it an existing customer clicking "Fillo me Pro" hits /regjistrohu, which
-     * the middleware bounces away from — landing them on the dashboard with
-     * their plan choice discarded.
-     */
-    authedButton?: {
-      label: string;
-      href: string;
-      variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-    };
-  }[];
-  /**
-   * Billing terms on offer. With two or more, a switcher renders above the
-   * grid and every priced plan shows the total for the selected term instead
-   * of its monthly rate — so the number on the card is the amount actually
-   * transferred, not one the visitor has to multiply in their head.
-   */
-  terms?: { months: number; label: string; unit?: string }[];
-};
 
 const {
   class: className,

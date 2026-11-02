@@ -5,12 +5,8 @@ import { Button } from '@/components/ui/react/button';
 import { cn, formatDate } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import { notify } from '@/lib/toast';
-import {
-  STATUS_BADGE_BASE,
-  STATUS_META,
-  displayStatus,
-  type InvoiceStatus,
-} from '@/lib/types';
+import { STATUS_BADGE_BASE, STATUS_META, displayStatus } from '@/lib/invoices';
+import type { InvoiceStatus, PaidToggleProps } from '@/models/invoice';
 
 /**
  * Fired on `window` when the payment state changes on the server, for the
@@ -18,36 +14,6 @@ import {
  * React state with this one.
  */
 export const INVOICE_STATUS_EVENT = 'fatura:invoice-status';
-export type InvoiceStatusEvent = CustomEvent<{ invoiceId: string; status: InvoiceStatus }>;
-
-interface Props {
-  invoiceId: string;
-  status: InvoiceStatus;
-  paidAt?: string | null;
-  /** Needed to derive the overdue badge; lateness is never stored. */
-  dueDate?: string | null;
-  /** `row` is the compact control used in the invoice list. */
-  variant?: 'row' | 'panel';
-  /**
-   * Render the status badge too.
-   *
-   * The list used to draw the badge in Astro and the button in this island, so
-   * after a click the row showed "Unpaid" next to "Mark as unpaid" until the
-   * page was reloaded — two components describing the same fact from two
-   * different sources. Owning both here keeps them in step.
-   */
-  showBadge?: boolean;
-  /**
-   * Told when the payment state actually changes on the server.
-   *
-   * Without this the component was a state island: it flipped its own copy of
-   * `status` and the form around it never heard, so the status dropdown stayed
-   * on "unpaid" after a successful payment — and saving would then try to write
-   * that stale value back, which the database refuses.
-   */
-  onStatusChange?: (status: InvoiceStatus, paidAt: string | null) => void;
-}
-
 /**
  * One click to answer "has this been paid?".
  *
@@ -66,7 +32,7 @@ export default function PaidToggle({
   variant = 'row',
   showBadge = false,
   onStatusChange,
-}: Props) {
+}: PaidToggleProps) {
   const t = useTranslations();
   const [status, setStatus] = React.useState<InvoiceStatus>(initialStatus);
   const [paidAt, setPaidAt] = React.useState<string | null>(initialPaidAt);

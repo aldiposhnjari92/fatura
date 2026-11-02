@@ -17,7 +17,6 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
-import type { PageIcon } from '@/lib/page-builder';
 import {
   Sidebar,
   SidebarContent,
@@ -40,7 +39,7 @@ import UserMenu from '@/components/react/UserMenu';
 import LogoMark from '@/components/react/LogoMark';
 import { Toaster } from '@/components/ui/react/sonner';
 import { cn } from '@/lib/utils';
-import type { PlanId } from '@/lib/plans';
+import type { AppShellProps, IconKey } from '@/models/navigation';
 
 /*
   The signed-in shell: rail, top bar, page, phone nav.
@@ -56,25 +55,6 @@ import type { PlanId } from '@/lib/plans';
   so the islands inside a page (the invoice editor, the client table) hydrate
   normally and are never re-rendered by anything happening out here.
 */
-
-export type NavKey =
-  | 'dashboard'
-  | 'invoices'
-  | 'new'
-  | 'clients'
-  | 'suppliers'
-  | 'supplies'
-  | 'settings'
-  /** A page-builder page, keyed by its slug. */
-  | `page:${string}`;
-export type IconKey =
-  | 'layout-dashboard'
-  | 'file-text'
-  | 'square-pen'
-  | 'users'
-  | 'truck'
-  | 'package-open'
-  | PageIcon;
 
 const ICONS: Record<IconKey, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
@@ -92,38 +72,6 @@ const ICONS: Record<IconKey, LucideIcon> = {
   wallet: Wallet,
   star: Star,
 };
-
-export interface NavItem {
-  key: NavKey;
-  href: string;
-  label: string;
-  icon: IconKey;
-}
-
-export interface NavGroup {
-  group: string | null;
-  items: NavItem[];
-}
-
-interface Props {
-  heading?: string;
-  active: NavKey;
-  dashboardHref: string;
-  nav: NavGroup[];
-  mobileNav: NavItem[];
-  newInvoiceLabel: string;
-  /** The rail's state as the server read it from the sidebar_state cookie. */
-  defaultSidebarOpen: boolean;
-  searchQuery: string;
-  businessName: string | null;
-  email: string;
-  logoUrl: string | null;
-  plan: PlanId;
-  proEndsOn: string | null;
-  isAdmin: boolean;
-  invoicesThisMonth: number;
-  children?: React.ReactNode;
-}
 
 function Wordmark() {
   return (
@@ -150,7 +98,7 @@ export default function AppShell({
   isAdmin,
   invoicesThisMonth,
   children,
-}: Props) {
+}: AppShellProps) {
   const [stuck, setStuck] = React.useState(false);
 
   /*

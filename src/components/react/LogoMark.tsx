@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import type { LogoMarkProps } from '@/models/account';
 
 /*
   The brand mark, for the React shells.
@@ -11,13 +12,7 @@ import { cn } from '@/lib/utils';
   the rules go dark, so the mark still reads at the same weight.
 */
 
-interface Props {
-  size?: number;
-  invert?: boolean;
-  className?: string;
-}
-
-export default function LogoMark({ size = 30, invert = false, className }: Props) {
+export default function LogoMark({ size = 30, invert = false, className }: LogoMarkProps) {
   return (
     <svg
       width={size}

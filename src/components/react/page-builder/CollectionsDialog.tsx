@@ -15,16 +15,9 @@ import {
 } from '@/components/ui/react/dialog';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import {
-  FIELD_TYPES,
-  evaluateFormula,
-  formulaToIds,
-  formulaToLabels,
-  isNumericField,
-  newId,
-  type CollectionField,
-  type CustomCollection,
-} from '@/lib/page-builder';
+import { FIELD_TYPES, evaluateFormula, formulaToIds, formulaToLabels, isNumericField, newId } from '@/lib/page-builder';
+import type { CollectionField, CustomCollection } from '@/models/page-builder';
+import type { CollectionDraft, CollectionsDialogProps } from '@/models/page-builder-ui';
 
 /*
   Collections are the customer's own small tables: a name and a list of
@@ -37,24 +30,10 @@ import {
   so renaming Kosto later does not break the formula that uses it.
 */
 
-interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  ownerId: string;
-  collections: CustomCollection[];
-  onChange: (collections: CustomCollection[]) => void;
-}
-
-interface Draft {
-  id: string | null;
-  name: string;
-  fields: CollectionField[];
-}
-
 const newField = (): CollectionField => ({ id: newId(), label: '', type: 'text', required: false });
 
-export default function CollectionsDialog({ open, onOpenChange, ownerId, collections, onChange }: Props) {
-  const [draft, setDraft] = React.useState<Draft | null>(null);
+export default function CollectionsDialog({ open, onOpenChange, ownerId, collections, onChange }: CollectionsDialogProps) {
+  const [draft, setDraft] = React.useState<CollectionDraft | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 

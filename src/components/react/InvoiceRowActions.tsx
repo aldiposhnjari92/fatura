@@ -31,19 +31,13 @@ import { SuccessNote } from '@/components/ui/react/success-note';
 import { flashToast, notify } from '@/lib/toast';
 import { useTranslations } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
-import type { InvoiceStatus } from '@/lib/types';
-import { INVOICE_STATUS_EVENT, type InvoiceStatusEvent } from '@/components/react/PaidToggle';
+import { INVOICE_STATUS_EVENT } from '@/components/react/PaidToggle';
 import { useInvoiceFiles } from '@/components/react/use-invoice-files';
+import type { InvoiceRowActionsProps, InvoiceStatusEvent } from '@/models/invoice';
 
 /* The row's own actions, so the common ones stop costing a page load. */
 
-interface Props {
-  invoiceId: string;
-  invoiceNumber: string;
-  status: InvoiceStatus;
-}
-
-export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: initialStatus }: Props) {
+export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: initialStatus }: InvoiceRowActionsProps) {
   const t = useTranslations();
   const [status, setStatus] = React.useState(initialStatus);
 

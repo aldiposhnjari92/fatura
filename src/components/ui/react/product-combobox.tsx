@@ -3,7 +3,8 @@ import { History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/react/input';
 import { formatALL } from '@/lib/utils';
-import { productKey, type ProductSuggestion } from '@/lib/products';
+import { productKey } from '@/lib/products';
+import type { ProductSuggestion } from '@/models/invoice';
 
 interface Props {
   value: string;

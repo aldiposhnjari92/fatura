@@ -1,4 +1,6 @@
 ---
+import type { SectionHeadingProps as Props } from '@/models/marketing';
+
 /*
   One section header, used by every band on the marketing site.
 
@@ -14,14 +16,6 @@
 
   `align="start"` is for the alternating rows, `center` for full-width bands.
 */
-
-export interface Props {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  align?: 'start' | 'center';
-  class?: string;
-}
 
 const {
   eyebrow,

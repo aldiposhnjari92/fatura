@@ -1,25 +1,9 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import AdminShell from '@/components/react/AdminShell';
-import type { AdminNavGroup } from '@/components/react/AdminShell';
+import type { AdminNavGroup } from '@/models/navigation';
 import { useTranslations } from '@/lib/i18n';
-
-export interface Props {
-  title: string;
-  heading: string;
-  subheading?: string;
-  active:
-    | 'overview'
-    | 'invoices'
-    | 'activity'
-    | 'users'
-    | 'payments'
-    | 'waitlist'
-    | 'audit'
-    | 'builder';
-  /** Pending-payment count, rendered as a badge on the Payments item. */
-  pendingCount?: number;
-}
+import type { AdminLayoutProps as Props } from '@/models/layout';
 
 const { title, heading, subheading, active, pendingCount = 0 } = Astro.props;
 const { profile, user } = Astro.locals;

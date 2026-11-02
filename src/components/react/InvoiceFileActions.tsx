@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/react/dropdown-menu';
 import { useTranslations } from '@/lib/i18n';
 import { useInvoiceFiles } from '@/components/react/use-invoice-files';
+import type { InvoiceFileActionsProps } from '@/models/invoice';
 
 /*
   What is left to do with an invoice that can no longer be edited: send it, or
@@ -23,12 +24,7 @@ import { useInvoiceFiles } from '@/components/react/use-invoice-files';
   ("download"), not two competing calls to action.
 */
 
-interface Props {
-  invoiceId: string;
-  invoiceNumber: string;
-}
-
-export default function InvoiceFileActions({ invoiceId, invoiceNumber }: Props) {
+export default function InvoiceFileActions({ invoiceId, invoiceNumber }: InvoiceFileActionsProps) {
   const t = useTranslations();
   const { busy, download, print, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
   const downloading = busy === 'download' || busy === 'print' || busy === 'excel';

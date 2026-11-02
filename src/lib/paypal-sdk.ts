@@ -12,37 +12,7 @@
  * caller waits on the same load.
  */
 
-export interface PayPalSdkOptions {
-  clientId: string;
-  /** Must match the `currency_code` the server puts on the order. */
-  currency: string;
-  /** Ask for the hosted card fields as well as the buttons. */
-  cardFields: boolean;
-}
-
-/* The SDK's own surface is far wider than this; typed to what is actually called. */
-export interface PayPalNamespace {
-  Buttons?: (options: Record<string, unknown>) => {
-    render: (target: HTMLElement) => Promise<void>;
-    close: () => void;
-    isEligible?: () => boolean;
-  };
-  CardFields?: (options: Record<string, unknown>) => PayPalCardFields;
-}
-
-export interface PayPalCardFields {
-  isEligible: () => boolean;
-  submit: () => Promise<void>;
-  NameField: (options?: Record<string, unknown>) => PayPalCardField;
-  NumberField: (options?: Record<string, unknown>) => PayPalCardField;
-  ExpiryField: (options?: Record<string, unknown>) => PayPalCardField;
-  CVVField: (options?: Record<string, unknown>) => PayPalCardField;
-}
-
-export interface PayPalCardField {
-  render: (target: HTMLElement | string) => Promise<void>;
-  close?: () => Promise<void>;
-}
+import type { PayPalNamespace, PayPalSdkOptions } from '@/models/billing';
 
 declare global {
   interface Window {

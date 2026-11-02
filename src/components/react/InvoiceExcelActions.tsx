@@ -33,29 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/react/select';
-import {
-  IMPORT_FIELDS,
-  columnLetter,
-  columnSample,
-  downloadExcelTemplate,
-  existingInvoiceNumbers,
-  exportInvoicesToExcel,
-  guessMapping,
-  importInvoices,
-  missingFields,
-  parseInvoiceRows,
-  readInvoicesWorkbook,
-  rememberMapping,
-  sheetHeaders,
-  type ColumnMapping,
-  type ImportResult,
-  type ParsedInvoice,
-  type RowProblem,
-  type WorkbookSheet,
-} from '@/lib/excel';
+import { IMPORT_FIELDS, columnLetter, columnSample, downloadExcelTemplate, existingInvoiceNumbers, exportInvoicesToExcel, guessMapping, importInvoices, missingFields, parseInvoiceRows, readInvoicesWorkbook, rememberMapping, sheetHeaders } from '@/lib/excel';
 import { flashToast, notify } from '@/lib/toast';
-import { translate, useTranslations, type TranslationKey } from '@/lib/i18n';
+import { translate, useTranslations } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
+import type { ExcelImportMapping, ExcelImportPhase, ExcelImportPreview, ImportResult, RowProblem } from '@/models/excel';
+import type { TranslationKey } from '@/models/i18n';
 
 /*
   Export and import of the whole invoice list as .xlsx.
@@ -70,32 +53,6 @@ import { startNavProgress } from '@/lib/nav-progress';
   kept for years before they found us — gets a step before that: the user
   points each field at one of their columns.
 */
-
-/** The file as read, kept so the user can go back and remap it without choosing it again. */
-type Source = {
-  fileName: string;
-  sheet: WorkbookSheet;
-  existing: Set<string>;
-};
-
-type Mapping = {
-  source: Source;
-  headerIndex: number;
-  mapping: ColumnMapping;
-};
-
-type Preview = Mapping & {
-  ready: ParsedInvoice[];
-  duplicates: number;
-  problems: RowProblem[];
-};
-
-type Phase =
-  | { kind: 'closed' }
-  | ({ kind: 'mapping' } & Mapping)
-  | { kind: 'preview'; preview: Preview }
-  | { kind: 'importing'; total: number; done: number }
-  | { kind: 'result'; result: ImportResult };
 
 /** Albanian has one form for 1 and one for everything else, 0 included. */
 function counted(count: number, one: TranslationKey, many: TranslationKey): string {
@@ -148,7 +105,7 @@ function ProblemList({ problems }: { problems: RowProblem[] }) {
   );
 }
 
-function buildPreview({ source, headerIndex, mapping }: Mapping): Preview {
+function buildPreview({ source, headerIndex, mapping }: ExcelImportMapping): ExcelImportPreview {
   const parsed = parseInvoiceRows(source.sheet, headerIndex, mapping);
   const ready = parsed.invoices.filter((inv) => !source.existing.has(inv.invoice_number));
   return {
@@ -168,8 +125,8 @@ function ColumnMapper({
   value,
   onChange,
 }: {
-  value: Mapping;
-  onChange: (next: Mapping) => void;
+  value: ExcelImportMapping;
+  onChange: (next: ExcelImportMapping) => void;
 }) {
   const t = useTranslations();
   const { source, headerIndex, mapping } = value;
@@ -264,7 +221,7 @@ function ColumnMapper({
 export default function InvoiceExcelActions() {
   const t = useTranslations();
   const [busy, setBusy] = React.useState<'export' | 'template' | 'read' | null>(null);
-  const [phase, setPhase] = React.useState<Phase>({ kind: 'closed' });
+  const [phase, setPhase] = React.useState<ExcelImportPhase>({ kind: 'closed' });
   const fileInput = React.useRef<HTMLInputElement>(null);
 
   async function handleExport() {
@@ -303,7 +260,7 @@ export default function InvoiceExcelActions() {
         readInvoicesWorkbook(file),
         currentUserId().then((id) => existingInvoiceNumbers(supabase, id)),
       ]);
-      const start: Mapping = {
+      const start: ExcelImportMapping = {
         source: { fileName: file.name, sheet, existing },
         headerIndex: sheet.headerIndex,
         mapping: sheet.mapping,
@@ -327,7 +284,7 @@ export default function InvoiceExcelActions() {
     window.location.reload();
   }
 
-  async function handleImport(preview: Preview) {
+  async function handleImport(preview: ExcelImportPreview) {
     setPhase({ kind: 'importing', total: preview.ready.length, done: 0 });
     try {
       const result = await importInvoices(
@@ -356,7 +313,7 @@ export default function InvoiceExcelActions() {
     }
   }
 
-  function applyMapping(value: Mapping) {
+  function applyMapping(value: ExcelImportMapping) {
     rememberMapping(sheetHeaders(value.source.sheet, value.headerIndex), value.mapping);
     setPhase({ kind: 'preview', preview: buildPreview(value) });
   }

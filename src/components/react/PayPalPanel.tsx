@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/react/button';
 import { Label } from '@/components/ui/react/label';
-import { loadPayPalSdk, type PayPalCardFields } from '@/lib/paypal-sdk';
-import type { PaidPlanId } from '@/lib/plans';
+import { loadPayPalSdk } from '@/lib/paypal-sdk';
+import type { PayPalCardFields, PayPalOrderRequest, PayPalPanelProps } from '@/models/billing';
 
 /*
   The PayPal half of the checkout.
@@ -18,26 +18,6 @@ import type { PaidPlanId } from '@/lib/plans';
   against that row, so a tampered client can pick what it buys but not what it
   pays.
 */
-
-type Mode = 'paypal' | 'card';
-
-interface Props {
-  clientId: string;
-  /** Must match PAYPAL_CURRENCY — the currency the server puts on the order. */
-  currency: string;
-  /** Whether Advanced Card Payments is approved on the merchant account. */
-  cardFieldsEnabled: boolean;
-  mode: Mode;
-  months: number;
-  plan: PaidPlanId;
-  /** Called after a capture completes, before the page reloads its state. */
-  onPaid: () => void;
-}
-
-interface OrderRequest {
-  months: number;
-  plan: PaidPlanId;
-}
 
 async function postAction(body: Record<string, unknown>) {
   const response = await fetch('/api/payments/paypal', {
@@ -82,7 +62,7 @@ export default function PayPalPanel({
   months,
   plan,
   onPaid,
-}: Props) {
+}: PayPalPanelProps) {
   const buttonsRef = React.useRef<HTMLDivElement>(null);
   const nameRef = React.useRef<HTMLDivElement>(null);
   const numberRef = React.useRef<HTMLDivElement>(null);
@@ -102,7 +82,7 @@ export default function PayPalPanel({
     the visitor is looking at — a closure over the props would keep buying
     whatever was selected when the buttons first mounted.
   */
-  const request = React.useRef<OrderRequest>({ months, plan });
+  const request = React.useRef<PayPalOrderRequest>({ months, plan });
   request.current = { months, plan };
 
   const handlers = React.useMemo(

@@ -2,9 +2,9 @@
 /// <reference types="astro/client" />
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Profile } from './lib/types';
-import type { PlanId } from './lib/plans';
-import type { CustomPageNav } from './lib/page-builder';
+import type { Profile } from './models/account';
+import type { PlanId } from './models/billing';
+import type { CustomPageNav } from './models/page-builder';
 
 declare global {
   namespace App {

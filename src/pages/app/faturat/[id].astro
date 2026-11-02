@@ -7,11 +7,12 @@ import InvoiceFileActions from '@/components/react/InvoiceFileActions';
 import InvoiceDetail from '@/components/InvoiceDetail.astro';
 import StatusBadge from '@/components/StatusBadge.astro';
 import { Icon } from '@/components/ui/icon';
-import { displayStatus } from '@/lib/types';
+import { displayStatus } from '@/lib/invoices';
 import { formatALL, formatDate } from '@/lib/utils';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
 import { suggestProducts } from '@/lib/products';
-import type { Client, Invoice, InvoiceWithClient } from '@/lib/types';
+import type { Client } from '@/models/client';
+import type { Invoice, InvoiceWithClient } from '@/models/invoice';
 
 export const prerender = false;
 

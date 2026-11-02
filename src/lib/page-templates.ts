@@ -1,17 +1,6 @@
 import { supabase } from './supabase';
-import {
-  cloneBlock,
-  flattenBlocks,
-  knownBlocks,
-  newId,
-  slugify,
-  type Block,
-  type CollectionField,
-  type CustomCollection,
-  type CustomPage,
-  type LeafBlock,
-  type PageIcon,
-} from './page-builder';
+import { cloneBlock, flattenBlocks, knownBlocks, newId, slugify } from './page-builder';
+import type { Block, CustomCollection, CustomPage, LeafBlock, PageIcon, PageTemplate, Snapshot } from '@/models/page-builder';
 
 /*
   Page builder, phase 3: templates, and copying a page to another customer.
@@ -22,27 +11,6 @@ import {
   owner, gives every block a fresh id and points it at the new collection, and
   inserts the page as a draft. A customer's data never leaves their account.
 */
-
-export interface CollectionDef {
-  /** The id the snapshot's blocks refer to; replaced on instantiate. */
-  id: string;
-  name: string;
-  fields: CollectionField[];
-}
-
-export interface Snapshot {
-  blocks: Block[];
-  collections: CollectionDef[];
-}
-
-export interface PageTemplate extends Snapshot {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: PageIcon;
-  /** Built-in starters live in code and cannot be deleted. */
-  builtin?: boolean;
-}
 
 /** The page as it stands — unsaved edits included — and the shape of its collections. */
 export function snapshotOf(blocks: Block[], collections: CustomCollection[]): Snapshot {

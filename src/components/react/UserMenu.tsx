@@ -20,21 +20,10 @@ import {
 } from '@/components/ui/react/dropdown-menu';
 import { Button } from '@/components/ui/react/button';
 import { formatDate, initials } from '@/lib/utils';
-import { invoiceLimitOf, planOf, usageRatio, type PlanId } from '@/lib/plans';
+import { invoiceLimitOf, planOf, usageRatio } from '@/lib/plans';
 import { useTranslations } from '@/lib/i18n';
 import { startNavProgress } from '@/lib/nav-progress';
-
-interface Props {
-  businessName: string | null;
-  email: string;
-  logoUrl: string | null;
-  /** The tier in force — 'free' once a paid plan has lapsed. */
-  plan: PlanId;
-  /** ISO date the paid period ends, when the customer has cancelled. */
-  proEndsOn?: string | null;
-  isAdmin?: boolean;
-  invoicesThisMonth: number;
-}
+import type { UserMenuProps } from '@/models/account';
 
 export default function UserMenu({
   businessName,
@@ -44,7 +33,7 @@ export default function UserMenu({
   proEndsOn = null,
   isAdmin = false,
   invoicesThisMonth,
-}: Props) {
+}: UserMenuProps) {
   const t = useTranslations();
   const signOutRef = React.useRef<HTMLFormElement>(null);
   const [open, setOpen] = React.useState(false);

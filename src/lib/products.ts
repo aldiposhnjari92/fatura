@@ -1,23 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { InvoiceItem } from '@/lib/types';
-
-/**
- * A product this business has invoiced before.
- *
- * There is no products table: a line item is whatever was typed into an
- * invoice, and the invoices already are the record of what this business
- * sells. Deriving the catalogue from them means it is never empty on the
- * first run and never drifts out of date — the cost is that a product is
- * forgotten only by editing the invoices it appears on.
- */
-export interface ProductSuggestion {
-  /** As last typed — the casing and accents of the most recent use. */
-  description: string;
-  /** The price on the most recent line, offered as the default. */
-  price: number;
-  /** How many invoice lines it has appeared on; the most-used come first. */
-  uses: number;
-}
+import type { InvoiceItem, ProductSuggestion } from '@/models/invoice';
 
 /*
   How far back to look and how much to hand the browser. A business on the

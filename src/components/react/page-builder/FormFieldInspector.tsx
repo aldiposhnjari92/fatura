@@ -4,24 +4,10 @@ import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { notify } from '@/lib/toast';
-import {
-  DEFAULT_FORM,
-  FIELD_PALETTE,
-  FIELD_TYPES,
-  evaluateFormula,
-  flattenBlocks,
-  formKey,
-  formulaToIds,
-  isNumericField,
-  newId,
-  type Block,
-  type CollectionField,
-  type CustomCollection,
-  type FieldBlock,
-  type SubmitBlock,
-} from '@/lib/page-builder';
+import { DEFAULT_FORM, FIELD_PALETTE, FIELD_TYPES, evaluateFormula, flattenBlocks, formKey, formMembers, formulaToIds, isNumericField, newId } from '@/lib/page-builder';
 import { Field, SourcePicker } from './BlockInspector';
-import { formMembers } from './PageBlocks';
+import type { Block, CollectionField, CustomCollection, FieldBlock, SubmitBlock } from '@/models/page-builder';
+import type { FormFieldInspectorProps } from '@/models/page-builder-ui';
 
 /*
   Settings for a form built element by element (FieldBlock, SubmitBlock).
@@ -31,15 +17,6 @@ import { formMembers } from './PageBlocks';
   with a summary of what the form currently holds and what it is missing.
 */
 
-interface Props {
-  block: FieldBlock | SubmitBlock;
-  set: (patch: Partial<Omit<FieldBlock, 'type'>> & Partial<Omit<SubmitBlock, 'type'>>) => void;
-  collections: CustomCollection[];
-  pageBlocks: Block[];
-  onManageCollections: () => void;
-  onAddField: (collectionId: string, field: CollectionField) => Promise<boolean>;
-}
-
 export default function FormFieldInspector({
   block,
   set,
@@ -47,7 +24,7 @@ export default function FormFieldInspector({
   pageBlocks,
   onManageCollections,
   onAddField,
-}: Props) {
+}: FormFieldInspectorProps) {
   const collection = collections.find((c) => c.id === block.source.collectionId);
   const key = formKey(block.source.collectionId, block.form);
 
@@ -130,9 +107,9 @@ function FieldSettings({
   onAddField,
 }: {
   block: FieldBlock;
-  set: Props['set'];
+  set: FormFieldInspectorProps['set'];
   collection: CustomCollection | undefined;
-  onAddField: Props['onAddField'];
+  onAddField: FormFieldInspectorProps['onAddField'];
 }) {
   const kindLabel = FIELD_PALETTE.find((f) => f.kind === block.kind)?.label ?? 'Fushë';
   const connected = collection?.fields.find((f) => f.id === block.fieldId);
@@ -312,7 +289,7 @@ function NewFieldForm({
   );
 }
 
-function SubmitSettings({ block, set }: { block: SubmitBlock; set: Props['set'] }) {
+function SubmitSettings({ block, set }: { block: SubmitBlock; set: FormFieldInspectorProps['set'] }) {
   return (
     <>
       <Field label="Teksti i butonit">

@@ -1,5 +1,6 @@
 ---
 import { cn } from '@/lib/utils';
+import type { StatCellProps as Props } from '@/models/ui';
 
 /*
   One figure in a hairline-split row.
@@ -14,15 +15,6 @@ import { cn } from '@/lib/utils';
   in the other — and flattening that into flags would be a worse trade than
   letting each page write its own `dd`.
 */
-
-export interface Props {
-  label: string;
-  /** No rule to the left of the first cell in the row. */
-  first?: boolean;
-  /** The dashboard runs the label at `text-sm`, the list a step down. */
-  labelClass?: string;
-  class?: string;
-}
 
 const { label, first = false, labelClass, class: className } = Astro.props;
 ---

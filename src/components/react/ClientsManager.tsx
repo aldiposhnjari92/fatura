@@ -22,36 +22,17 @@ import {
 import { SuccessNote } from '@/components/ui/react/success-note';
 import { notify } from '@/lib/toast';
 import { formatALL, isValidNipt } from '@/lib/utils';
-import type { Client } from '@/lib/types';
+import type { Client, ClientDraft, ClientsManagerProps } from '@/models/client';
 
-interface ClientUsage {
-  count: number;
-  total: number;
-}
-
-interface Props {
-  clients: Client[];
-  /** Per-client invoice count and billed total, aggregated server-side. */
-  stats?: Record<string, ClientUsage>;
-}
-
-interface Draft {
-  id: string | null;
-  name: string;
-  nipt: string;
-  email: string;
-  address: string;
-}
-
-const emptyDraft = (): Draft => ({ id: null, name: '', nipt: '', email: '', address: '' });
+const emptyDraft = (): ClientDraft => ({ id: null, name: '', nipt: '', email: '', address: '' });
 
 /* How long the confirmation is held before the dialog closes itself. */
 const CONFIRM_MS = 1000;
 
-export default function ClientsManager({ clients: initial, stats = {} }: Props) {
+export default function ClientsManager({ clients: initial, stats = {} }: ClientsManagerProps) {
   const [clients, setClients] = React.useState<Client[]>(initial);
   const [search, setSearch] = React.useState('');
-  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [draft, setDraft] = React.useState<ClientDraft | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Client | null>(null);

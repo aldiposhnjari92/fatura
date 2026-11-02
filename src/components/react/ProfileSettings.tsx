@@ -8,15 +8,8 @@ import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import LogoCropper from '@/components/react/LogoCropper';
 import { isValidNipt } from '@/lib/utils';
 import { flashToast, notify } from '@/lib/toast';
-import type { Profile } from '@/lib/types';
 import { startNavProgress } from '@/lib/nav-progress';
-
-interface Props {
-  profile: Profile | null;
-  userId: string;
-  email: string;
-  welcome?: boolean;
-}
+import type { ProfileSettingsProps } from '@/models/account';
 
 const CITIES = [
   'Fier',
@@ -60,7 +53,7 @@ function translateStorageError(message: string): string {
   return message;
 }
 
-export default function ProfileSettings({ profile, userId, email, welcome }: Props) {
+export default function ProfileSettings({ profile, userId, email, welcome }: ProfileSettingsProps) {
   const [businessName, setBusinessName] = React.useState(profile?.business_name ?? '');
   const [nipt, setNipt] = React.useState(profile?.nipt ?? '');
   const [address, setAddress] = React.useState(profile?.address ?? '');

@@ -2,13 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import { Toaster } from '@/components/ui/react/sonner';
-
-export interface Props {
-  title: string;
-  description?: string;
-  heading: string;
-  subheading: string;
-}
+import type { AuthLayoutProps as Props } from '@/models/layout';
 
 const { title, description, heading, subheading } = Astro.props;
 

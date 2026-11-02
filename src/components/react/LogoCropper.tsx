@@ -13,16 +13,8 @@ import {
 } from '@/components/ui/react/dialog';
 import { Slider } from '@/components/ui/react/slider';
 import { notify } from '@/lib/toast';
-import { getCroppedImageBlob, type CropArea } from '@/lib/crop-image';
-
-interface Props {
-  /** Object URL of the picked file. Null closes the dialog. */
-  imageSrc: string | null;
-  open: boolean;
-  saving?: boolean;
-  onCancel: () => void;
-  onCropped: (blob: Blob) => void | Promise<void>;
-}
+import { getCroppedImageBlob } from '@/lib/crop-image';
+import type { CropArea, LogoCropperProps } from '@/models/account';
 
 const ASPECTS = [
   { label: 'Katror', value: 1, hint: '1:1' },
@@ -36,7 +28,7 @@ export default function LogoCropper({
   saving = false,
   onCancel,
   onCropped,
-}: Props) {
+}: LogoCropperProps) {
   const [crop, setCrop] = React.useState({ x: 0, y: 0 });
   const [zoom, setZoom] = React.useState(1);
   const [rotation, setRotation] = React.useState(0);

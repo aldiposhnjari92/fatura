@@ -33,7 +33,7 @@ import ActivityStream from '@/components/react/ActivityStream';
 import LogoMark from '@/components/react/LogoMark';
 import { initials } from '@/lib/utils';
 import { Toaster } from '@/components/ui/react/sonner';
-
+import type { AdminIconKey, AdminShellProps } from '@/models/navigation';
 
 /*
   The operator console's shell — the same chrome as /app, built on the same
@@ -52,26 +52,6 @@ import { Toaster } from '@/components/ui/react/sonner';
   people's data" is not a thing to hide behind a toggle.
 */
 
-export type AdminNavKey =
-  | 'overview'
-  | 'invoices'
-  | 'activity'
-  | 'users'
-  | 'payments'
-  | 'waitlist'
-  | 'audit'
-  | 'builder';
-
-export type AdminIconKey =
-  | 'layout-dashboard'
-  | 'activity'
-  | 'file-text'
-  | 'users'
-  | 'credit-card'
-  | 'clipboard-list'
-  | 'scroll-text'
-  | 'layout-template';
-
 const ICONS: Record<AdminIconKey, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
   activity: Activity,
@@ -82,43 +62,6 @@ const ICONS: Record<AdminIconKey, LucideIcon> = {
   'scroll-text': ScrollText,
   'layout-template': LayoutTemplate,
 };
-
-export interface AdminNavItem {
-  key: AdminNavKey;
-  href: string;
-  label: string;
-  icon: AdminIconKey;
-}
-
-export interface AdminNavGroup {
-  group: string | null;
-  items: AdminNavItem[];
-}
-
-interface Props {
-  heading: string;
-  subheading?: string;
-  active: AdminNavKey;
-  nav: AdminNavGroup[];
-  /** Pending-payment count, badged on the Payments item. */
-  pendingCount: number;
-  isAdmin: boolean;
-  businessName: string | null;
-  email: string;
-  backToAppHref: string;
-  labels: {
-    console: string;
-    backToApp: string;
-    signOut: string;
-    /** Read out with the count on the phone bar's pending-payments badge. */
-    pendingPayments: string;
-  };
-  /** The rail's state as the server read it from the sidebar_state cookie. */
-  defaultSidebarOpen: boolean;
-  /** Page-level controls, slotted in beside the bell. */
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
-}
 
 export default function AdminShell({
   heading,
@@ -134,7 +77,7 @@ export default function AdminShell({
   defaultSidebarOpen,
   actions,
   children,
-}: Props) {
+}: AdminShellProps) {
   const [stuck, setStuck] = React.useState(false);
   const badge = isAdmin ? 'ADMIN' : 'MENAXHER';
 

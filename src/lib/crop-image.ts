@@ -3,12 +3,7 @@
  * PDF — the browser produces the final bytes and only those get uploaded.
  */
 
-export interface CropArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { CropArea } from '@/models/account';
 
 /** Longest edge of the stored logo. Plenty for a 38mm-wide PDF header. */
 const MAX_OUTPUT_EDGE = 800;

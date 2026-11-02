@@ -9,32 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/react/popover';
-
-export interface ActivityRow {
-  id: number;
-  type: string;
-  ref: string | null;
-  amount: number | null;
-  created_at: string;
-  business_name: string | null;
-  city: string | null;
-}
-
-interface Props {
-  /** Server-rendered first page, so the list is never empty on load. */
-  initial?: ActivityRow[];
-  /**
-   * `bell`  — header button with an unread count and a dropdown panel
-   * `list`  — the history table body
-   * `toast` — floating notifications
-   */
-  variant?: 'bell' | 'toast' | 'list';
-  /**
-   * Which feed to read. `platform` is every business (managers and admins);
-   * `own` is only the signed-in customer's own events, scoped by RLS.
-   */
-  scope?: 'platform' | 'own';
-}
+import type { ActivityRow, ActivityStreamProps } from '@/models/admin';
 
 /** Colour and label per event type. Unknown types still render, greyed. */
 const META: Record<string, { label: string; tone: string }> = {
@@ -75,7 +50,7 @@ export default function ActivityStream({
   initial = [],
   variant = 'toast',
   scope = 'platform',
-}: Props) {
+}: ActivityStreamProps) {
   const t = useTranslations();
   const [rows, setRows] = React.useState<ActivityRow[]>(initial);
   const [toasts, setToasts] = React.useState<ActivityRow[]>([]);

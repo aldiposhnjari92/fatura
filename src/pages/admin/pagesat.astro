@@ -2,6 +2,7 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import TableSort from '@/components/TableSort.astro';
 import PaymentQueue from '@/components/react/PaymentQueue';
+import type { PaymentStatusFilter } from '@/models/admin';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -19,10 +20,9 @@ export const prerender = false;
 const { supabase } = Astro.locals;
 const params = Astro.url.searchParams;
 
-const STATUSES = ['all', 'pending', 'confirmed', 'rejected'] as const;
-type Status = (typeof STATUSES)[number];
+const STATUSES: readonly PaymentStatusFilter[] = ['all', 'pending', 'confirmed', 'rejected'];
 const raw = params.get('statusi');
-const status: Status = STATUSES.includes(raw as Status) ? (raw as Status) : 'all';
+const status: PaymentStatusFilter = STATUSES.includes(raw as PaymentStatusFilter) ? (raw as PaymentStatusFilter) : 'all';
 
 const [allResult, pendingResult, statsResult] = await Promise.all([
   supabase.rpc('admin_payments', { p_status: status, p_limit: 100, p_offset: 0 }),
@@ -35,7 +35,7 @@ const rows = payload.rows ?? [];
 const pending = (pendingResult.data ?? []) as any[];
 const s = (statsResult.data ?? {}) as Record<string, number>;
 
-const LABELS: Record<Status, string> = {
+const LABELS: Record<PaymentStatusFilter, string> = {
   all: 'Të gjitha',
   pending: 'Në pritje',
   confirmed: 'Konfirmuar',
@@ -160,7 +160,7 @@ const kpis: { label: string; value: string; hint?: string }[] = [
                 </TableCell>
                 <TableCell class="text-right">
                   <span class={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[r.status] ?? ''}`}>
-                    {LABELS[r.status as Status] ?? r.status}
+                    {LABELS[r.status as PaymentStatusFilter] ?? r.status}
                   </span>
                 </TableCell>
                 <TableCell class="text-muted-foreground hidden text-right md:table-cell">

@@ -1,6 +1,4 @@
 ---
-import type { ImageMetadata } from "astro"
-
 import { cn } from "@/lib/utils"
 import {
   Avatar,
@@ -11,28 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Rating } from "@/components/ui/rating"
 import { Section, SectionContainer } from "@/components/ui/section"
-
-type Props = {
-  class?: string
-  title: string
-  description: string
-  buttons?: {
-    label: string
-    href: string
-    variant?: "default" | "outline" | "secondary" | "ghost"
-    /** Show this button only to signed-out ('anon') or signed-in ('user') visitors. */
-    'data-auth-show'?: 'anon' | 'user'
-  }[]
-  socialProof?: {
-    avatars: {
-      image?: ImageMetadata
-      initials: string
-      name?: string
-    }[]
-    rating: number
-    text: string
-  }
-}
+import type { Cta1Props as Props } from '@/models/marketing';
 
 const {
   class: className,

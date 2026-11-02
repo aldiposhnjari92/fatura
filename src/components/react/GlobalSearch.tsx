@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { FileText, Search, Users, CornerDownLeft, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { STATUS_BADGE_BASE, STATUS_META, type InvoiceStatus } from '@/lib/types';
+import { STATUS_BADGE_BASE, STATUS_META } from '@/lib/invoices';
 import { useTranslations } from '@/lib/i18n';
 import { SEARCH_MAX_LENGTH } from '@/lib/search';
 import { startNavProgress } from '@/lib/nav-progress';
 import { Button } from '@/components/ui/react/button';
 import { Input } from '@/components/ui/react/input';
+import type { GlobalSearchProps, SearchResultRow, SearchResults } from '@/models/search';
 
 /*
   The app's global filter, as an instant-search combobox — on every viewport.
@@ -41,24 +42,7 @@ import { Input } from '@/components/ui/react/input';
 
 const DEBOUNCE_MS = 160;
 
-interface ResultRow {
-  id: string;
-  href: string;
-  title: string;
-  subtitle: string;
-  meta?: string;
-  status?: InvoiceStatus;
-}
-
-interface Results {
-  q: string;
-  invoices: ResultRow[];
-  clients: ResultRow[];
-  invoiceCount: number;
-  clientCount: number;
-}
-
-const EMPTY: Results = { q: '', invoices: [], clients: [], invoiceCount: 0, clientCount: 0 };
+const EMPTY: SearchResults = { q: '', invoices: [], clients: [], invoiceCount: 0, clientCount: 0 };
 
 /** Marks every occurrence of the term in a label, without regex escaping games. */
 function Highlight({ text, term }: { text: string; term: string }) {
@@ -83,19 +67,11 @@ function Highlight({ text, term }: { text: string; term: string }) {
   return <>{parts}</>;
 }
 
-interface Props {
-  /**
-   * The term the current page is already showing results for. Keeps the field
-   * in step with the page instead of going blank the moment a search lands.
-   */
-  initialQuery?: string;
-}
-
-export default function GlobalSearch({ initialQuery = '' }: Props) {
+export default function GlobalSearch({ initialQuery = '' }: GlobalSearchProps) {
   const t = useTranslations();
 
   const [term, setTerm] = React.useState(initialQuery);
-  const [results, setResults] = React.useState<Results>(EMPTY);
+  const [results, setResults] = React.useState<SearchResults>(EMPTY);
   const [open, setOpen] = React.useState(false);
   /* Phone only: the field lives off-screen until the magnifier is tapped. */
   const [sheet, setSheet] = React.useState(false);
@@ -122,8 +98,8 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
     walk this, so they cross category boundaries the way a reader expects
     rather than stopping at each heading.
   */
-  const options = React.useMemo<(ResultRow & { kind: 'invoice' | 'client' | 'all' })[]>(() => {
-    const rows: (ResultRow & { kind: 'invoice' | 'client' | 'all' })[] = [
+  const options = React.useMemo<(SearchResultRow & { kind: 'invoice' | 'client' | 'all' })[]>(() => {
+    const rows: (SearchResultRow & { kind: 'invoice' | 'client' | 'all' })[] = [
       ...results.invoices.map((row) => ({ ...row, kind: 'invoice' as const })),
       ...results.clients.map((row) => ({ ...row, kind: 'client' as const })),
     ];
@@ -171,7 +147,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
           }
           return response.ok ? response.json() : Promise.reject(response.status);
         })
-        .then((data: Results) => {
+        .then((data: SearchResults) => {
           // Stale response for a term the user has already moved past.
           if (data.q !== trimmed) return;
           setResults(data);
@@ -291,7 +267,7 @@ export default function GlobalSearch({ initialQuery = '' }: Props) {
     label: string,
     icon: React.ReactNode,
     count: number,
-    rows: ResultRow[],
+    rows: SearchResultRow[],
     offset: number
   ) =>
     rows.length === 0 ? null : (

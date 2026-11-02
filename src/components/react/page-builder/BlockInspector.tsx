@@ -4,20 +4,11 @@ import { Label } from '@/components/ui/react/label';
 import { Textarea } from '@/components/ui/react/textarea';
 import { SearchableSelect } from '@/components/ui/react/searchable-select';
 import { cn } from '@/lib/utils';
-import {
-  isNumericField,
-  safeHref,
-  setColumnsLayout,
-  type Block,
-  type BlockStyle,
-  type CollectionSource,
-  type ColumnsLayout,
-  type CustomCollection,
-  type Size,
-} from '@/lib/page-builder';
+import { isNumericField, safeHref, setColumnsLayout } from '@/lib/page-builder';
 import WidgetInspector, { WIDGET_TYPES } from './WidgetInspector';
 import FormFieldInspector from './FormFieldInspector';
-import type { CollectionField } from '@/lib/page-builder';
+import type { Block, BlockStyle, CollectionSource, ColumnsLayout, CustomCollection, Size } from '@/models/page-builder';
+import type { BlockInspectorProps } from '@/models/page-builder-ui';
 
 /*
   The editor panel for the selected block, in Elementor's three tabs:
@@ -25,19 +16,6 @@ import type { CollectionField } from '@/lib/page-builder';
   Të avancuara (where it shows). Every change is applied to the page at once,
   so the canvas is always what the customer gets once the page is saved.
 */
-
-export type InspectorTab = 'content' | 'style' | 'advanced';
-
-interface Props {
-  block: Block;
-  tab: InspectorTab;
-  collections: CustomCollection[];
-  onChange: (block: Block) => void;
-  onManageCollections: () => void;
-  /** The whole page — a form element needs to see its siblings. */
-  pageBlocks: Block[];
-  onAddField: (collectionId: string, field: CollectionField) => Promise<boolean>;
-}
 
 export default function BlockInspector({
   block,
@@ -47,7 +25,7 @@ export default function BlockInspector({
   onManageCollections,
   pageBlocks,
   onAddField,
-}: Props) {
+}: BlockInspectorProps) {
   // The cast is safe: every caller passes a patch for the block it holds.
   const set = (patch: Partial<Block>) => onChange({ ...block, ...patch } as Block);
   const setStyle = (patch: Partial<BlockStyle>) =>

@@ -35,24 +35,11 @@ import {
 } from '@/components/ui/react/dialog';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import {
-  flattenBlocks,
-  type Block,
-  type CustomCollection,
-  type CustomPage,
-  type CustomRecord,
-  type PageIcon,
-} from '@/lib/page-builder';
-import {
-  BUILTIN_TEMPLATES,
-  deleteTemplate,
-  instantiate,
-  listTemplates,
-  saveTemplate,
-  snapshotOf,
-  type PageTemplate,
-} from '@/lib/page-templates';
+import { flattenBlocks } from '@/lib/page-builder';
+import { BUILTIN_TEMPLATES, deleteTemplate, instantiate, listTemplates, saveTemplate, snapshotOf } from '@/lib/page-templates';
 import PageBlocks from './PageBlocks';
+import type { Block, CustomCollection, CustomPage, CustomRecord, PageIcon, PageTemplate } from '@/models/page-builder';
+import type { DeletePageDialogProps, PageBusiness, PreviewDevice } from '@/models/page-builder-ui';
 
 /* Phase 3 of the page builder: preview, templates, and copying a page. */
 
@@ -71,8 +58,7 @@ export const PAGE_ICON_COMPONENTS: Record<PageIcon, LucideIcon> = {
 
 // ---- Parapamje ----------------------------------------------------------------
 
-type Device = 'desktop' | 'tablet' | 'mobile';
-const WIDTH: Record<Device, string> = {
+const WIDTH: Record<PreviewDevice, string> = {
   desktop: 'max-w-none',
   tablet: 'max-w-[768px]',
   mobile: 'max-w-[390px]',
@@ -96,7 +82,7 @@ export function PreviewDialog({
   collections: CustomCollection[];
   ownerName: string;
 }) {
-  const [device, setDevice] = React.useState<Device>('desktop');
+  const [device, setDevice] = React.useState<PreviewDevice>('desktop');
   const [records, setRecords] = React.useState<CustomRecord[] | null>(null);
 
   React.useEffect(() => {
@@ -451,13 +437,6 @@ export function SaveTemplateDialog({
 
 // ---- Kopjo te një klient tjetër ----------------------------------------------------
 
-interface Business {
-  id: string;
-  email: string;
-  business_name: string | null;
-  city: string | null;
-}
-
 export function CopyPageDialog({
   open,
   onOpenChange,
@@ -474,10 +453,10 @@ export function CopyPageDialog({
   currentOwnerId: string;
 }) {
   const [query, setQuery] = React.useState('');
-  const [results, setResults] = React.useState<Business[]>([]);
+  const [results, setResults] = React.useState<PageBusiness[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [copying, setCopying] = React.useState<string | null>(null);
-  const [done, setDone] = React.useState<{ owner: Business; pageTitle: string } | null>(null);
+  const [done, setDone] = React.useState<{ owner: PageBusiness; pageTitle: string } | null>(null);
 
   React.useEffect(() => {
     if (!open) {
@@ -498,14 +477,14 @@ export function CopyPageDialog({
         p_offset: 0,
       });
       if (error) notify.error('Kërkimi dështoi', error.message);
-      const rows = ((data as { rows?: Business[] })?.rows ?? []).filter((r) => r.id !== currentOwnerId);
+      const rows = ((data as { rows?: PageBusiness[] })?.rows ?? []).filter((r) => r.id !== currentOwnerId);
       setResults(rows);
       setLoading(false);
     }, 250);
     return () => window.clearTimeout(timer);
   }, [open, query, currentOwnerId]);
 
-  async function copyTo(owner: Business) {
+  async function copyTo(owner: PageBusiness) {
     setCopying(owner.id);
     try {
       const result = await instantiate(snapshotOf(blocks, collections), owner.id, {
@@ -596,6 +575,32 @@ export function CopyPageDialog({
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---- Delete a page -------------------------------------------------------------------
+
+export function DeletePageDialog({ open, onOpenChange, title, busy, onConfirm }: DeletePageDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Fshi faqen “{title}”?</DialogTitle>
+          <DialogDescription>
+            Faqja hiqet nga menuja e klientit. Koleksionet dhe të dhënat e tyre nuk preken.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            Anulo
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={busy}>
+            {busy && <Loader2 className="animate-spin" />}
+            Po, fshije
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

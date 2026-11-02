@@ -13,34 +13,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/react/button';
 import { cn, groupThousands } from '@/lib/utils';
-import {
-  flattenBlocks,
-  headingAnchor,
-  numericValue,
-  safeHref,
-  safeImageSrc,
-  type AccordionBlock,
-  type AlertBlock,
-  type Block,
-  type CardsBlock,
-  type CollectionField,
-  type CountdownBlock,
-  type CtaBlock,
-  type CustomCollection,
-  type CustomRecord,
-  type FlipBoxBlock,
-  type IconBoxBlock,
-  type IconListBlock,
-  type ImageBlock,
-  type PriceListBlock,
-  type PriceTableBlock,
-  type ProgressBlock,
-  type RatingBlock,
-  type TabsBlock,
-  type TestimonialBlock,
-  type TocBlock,
-} from '@/lib/page-builder';
+import { flattenBlocks, headingAnchor, numericValue, safeHref, safeImageSrc } from '@/lib/page-builder';
 import { widgetIcon } from './icons';
+import type { AccordionBlock, AlertBlock, Block, CardsBlock, CollectionField, CountdownBlock, CtaBlock, CustomCollection, CustomRecord, FlipBoxBlock, IconBoxBlock, IconListBlock, ImageBlock, PriceListBlock, PriceTableBlock, ProgressBlock, RatingBlock, TabsBlock, TestimonialBlock, TocBlock } from '@/models/page-builder';
 
 /*
   The page builder's richer widgets — this app's own versions of what page
