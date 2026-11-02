@@ -301,12 +301,13 @@ export default function AppShell({
                    these dim while the next page is on its way. */
                 data-nav-feedback="plain"
                 className={cn(
-                  'flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+                  'flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2.5 text-[11px] font-medium transition-colors',
                   active === item.key ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
-                <Icon className="size-5" />
-                {item.label}
+                <Icon className="size-5 shrink-0" />
+                {/* Five fit on a phone; on the narrowest a long label ends in … instead of crowding the next. */}
+                <span className="max-w-full truncate">{item.label}</span>
               </a>
             );
           })}

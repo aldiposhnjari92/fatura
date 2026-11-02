@@ -110,13 +110,20 @@ for (const page of customPages) {
 }
 for (const [group, items] of pageGroups) nav.push({ group, items });
 
-// The three destinations the phone's bottom bar carries — compose has its own
-// floating button down there, so it is left out.
+// The destinations the phone's bottom bar carries — compose has its own
+// floating button down there, so it is left out. The purchasing screens join
+// it on the accounts that have them, so a phone reaches them in one tap too.
 const mobileNav: NavItem[] = [
   { key: 'dashboard', href: dashboardHref, label: t('nav.dashboard'), icon: 'layout-dashboard' },
   { key: 'invoices', href: '/app/faturat', label: t('nav.invoices'), icon: 'file-text' },
   { key: 'clients', href: '/app/klientet', label: t('nav.clients'), icon: 'users' },
 ];
+if (hasFeature(profile, 'suppliers')) {
+  mobileNav.push(
+    { key: 'suppliers', href: '/app/furnitoret', label: 'Furnitorët', icon: 'truck' },
+    { key: 'supplies', href: '/app/furnizimet', label: 'Furnizimet', icon: 'package-open' }
+  );
+}
 ---
 
 <BaseLayout title={title} noindex={true}>
