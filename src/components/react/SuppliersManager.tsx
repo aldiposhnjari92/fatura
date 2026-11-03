@@ -325,7 +325,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
                   id="s-name"
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Agro Fier sh.p.k."
+                  placeholder="Emri i kompanisë"
                   required
                   autoFocus
                 />
@@ -337,7 +337,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
                   id="s-description"
                   value={draft.description}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  placeholder="p.sh. Furnizim me miell dhe sheqer"
+                  placeholder="Çfarë furnizon, kontakti ose kushtet e pagesës"
                   rows={2}
                 />
               </div>

@@ -52,7 +52,7 @@ export default function SupplyFormDialog({
                   id="sp-product"
                   value={draft.product_name}
                   onChange={(e) => onChange({ ...draft, product_name: e.target.value })}
-                  placeholder="p.sh. Miell tip 00, thes 25 kg"
+                  placeholder="Emri, modeli ose madhësia e produktit"
                   required
                   autoFocus
                 />
