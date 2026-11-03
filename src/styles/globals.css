@@ -63,6 +63,8 @@
   --destructive-foreground: hsl(0 0% 100%);
 
   --success: hsl(168 84% 24%);
+  /* Chart bars: the brand teal, stepped to pass the chart palette checks on this surface. */
+  --chart-1: #009099;
   --warning: hsl(32 80% 34%);
 
   --border: hsl(216 16% 91%);
@@ -149,6 +151,7 @@
   --destructive-foreground: hsl(0 0% 100%);
 
   --success: hsl(168 60% 45%);
+  --chart-1: #00a0aa;
   --warning: hsl(32 85% 60%);
 
   --border: hsl(217 10% 30%);
@@ -176,6 +179,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-chart-1: var(--chart-1);
   --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);

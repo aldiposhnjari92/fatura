@@ -50,6 +50,11 @@ export interface AdminUserRow {
   invoice_count: number;
   client_count: number;
   invoiced_total: number;
+  /** Total of the invoices it issued (drafts left out) — 0030. Absent before that migration runs. */
+  revenue_total?: number;
+  /** Total of its invoices marked paid — 0030. */
+  earned_total?: number;
+  /** What the business paid us for its plan. */
   paid_total: number;
   last_invoice_at: string | null;
 }

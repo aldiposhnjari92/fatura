@@ -126,12 +126,16 @@ export interface InvoiceEditorProps {
 export interface InvoiceFileActionsProps {
   invoiceId: string;
   invoiceNumber: string;
+  /** False when the admin switched Excel off for this business. */
+  allowExcel?: boolean;
 }
 
 export interface InvoiceRowActionsProps {
   invoiceId: string;
   invoiceNumber: string;
   status: InvoiceStatus;
+  /** False when the admin switched Excel off for this business. */
+  allowExcel?: boolean;
 }
 
 export interface InvoiceDetailProps {

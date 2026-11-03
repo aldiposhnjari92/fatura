@@ -1,0 +1,104 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+import { FEATURES, isFeatureOn } from '@/lib/features';
+import { planOf } from '@/lib/plans';
+import type { AdminFeatureRow } from '@/models/account';
+
+export const prerender = false;
+
+/*
+  Admin → Veçoritë: pick a business to change what parts of the app it has.
+  Each row says how far it is from the defaults, so the businesses with
+  something switched on or off for them are easy to spot.
+*/
+
+const { supabase } = Astro.locals;
+const search = (Astro.url.searchParams.get('kerko') ?? '').trim().slice(0, 80);
+
+// admin_features() re-checks is_admin(); the middleware keeps managers out of this route.
+const { data, error } = await supabase.rpc('admin_features', { p_search: search || null });
+const rows = (Array.isArray(data) ? data : []) as AdminFeatureRow[];
+
+/** What differs from the defaults: "+ Furnitorët", "− Excel". */
+function changes(row: AdminFeatureRow): { label: string; on: boolean }[] {
+  return FEATURES.filter((f) => isFeatureOn(row, f.key) !== f.defaultOn).map((f) => ({
+    label: f.label,
+    on: isFeatureOn(row, f.key),
+  }));
+}
+---
+
+<AdminLayout
+  title="Veçoritë — Admin Fatura.co"
+  heading="Veçoritë"
+  subheading="Zgjidh një biznes për të aktivizuar ose çaktivizuar pjesë të aplikacionit vetëm për të."
+  active="features"
+>
+  {
+    error && (
+      <p class="border-destructive/30 bg-destructive/10 text-destructive mb-4 rounded-lg border px-4 py-3 text-sm">
+        {error.message.includes('admin_features')
+          ? 'Ekzekuto migrimin 0031_feature_settings.sql në Supabase për ta përdorur këtë faqe.'
+          : error.message}
+      </p>
+    )
+  }
+
+  <form method="GET" action="/admin/vecorite" class="bg-card shadow-card mb-4 flex gap-2 rounded-2xl p-3">
+    <div class="relative flex-1 sm:max-w-sm">
+      <Icon name="search" class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+      <Input type="search" name="kerko" value={search} placeholder="Emër biznesi, email ose NIPT…" class="pl-8" />
+    </div>
+    <Button type="submit" variant="outline" class="h-10 shrink-0">Kërko</Button>
+  </form>
+
+  <div class="bg-card shadow-card divide-y overflow-hidden rounded-2xl">
+    {
+      rows.length === 0 ? (
+        <p class="text-muted-foreground px-6 py-12 text-center text-sm">Asnjë biznes nuk u gjet.</p>
+      ) : (
+        rows.map((row) => {
+          const diff = changes(row);
+          const onCount = FEATURES.filter((f) => isFeatureOn(row, f.key)).length;
+          return (
+            <a href={`/admin/vecorite/${row.id}`} class="hover:bg-muted/60 flex items-center gap-4 px-5 py-3.5 transition-colors">
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium">
+                  {row.business_name ?? 'Pa emër biznesi'}
+                  <span class="text-muted-foreground ml-1.5 text-[11px] font-bold">{planOf(row.plan).badge}</span>
+                </p>
+                <p class="text-muted-foreground truncate text-xs">
+                  {row.email}
+                  {row.city ? ` · ${row.city}` : ''}
+                </p>
+              </div>
+              <div class="hidden max-w-[45%] flex-wrap justify-end gap-1 sm:flex">
+                {diff.length === 0 ? (
+                  <span class="text-muted-foreground text-xs">Parazgjedhjet</span>
+                ) : (
+                  diff.map((d) => (
+                    <span
+                      class:list={[
+                        'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        d.on ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground line-through',
+                      ]}
+                    >
+                      {d.label}
+                    </span>
+                  ))
+                )}
+              </div>
+              <span class="text-muted-foreground shrink-0 text-xs tabular-nums sm:hidden">
+                {onCount}/{FEATURES.length}
+              </span>
+              <Icon name="chevron-right" class="text-muted-foreground size-4 shrink-0" />
+            </a>
+          );
+        })
+      )
+    }
+  </div>
+</AdminLayout>

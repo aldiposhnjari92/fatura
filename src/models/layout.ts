@@ -1,11 +1,10 @@
-import type { NavKey } from '@/models/navigation';
+import type { AdminNavKey, NavKey } from '@/models/navigation';
 
 export interface AdminLayoutProps {
   title: string;
   heading: string;
   subheading?: string;
-  active:
-    'overview' | 'invoices' | 'activity' | 'users' | 'payments' | 'waitlist' | 'audit' | 'builder';
+  active: AdminNavKey;
   /** Pending-payment count, rendered as a badge on the Payments item. */
   pendingCount?: number;
 }

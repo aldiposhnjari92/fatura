@@ -24,7 +24,7 @@ import type { InvoiceFileActionsProps } from '@/models/invoice';
   ("download"), not two competing calls to action.
 */
 
-export default function InvoiceFileActions({ invoiceId, invoiceNumber }: InvoiceFileActionsProps) {
+export default function InvoiceFileActions({ invoiceId, invoiceNumber, allowExcel = true }: InvoiceFileActionsProps) {
   const t = useTranslations();
   const { busy, download, print, excel, share } = useInvoiceFiles(invoiceId, invoiceNumber);
   const downloading = busy === 'download' || busy === 'print' || busy === 'excel';
@@ -64,13 +64,15 @@ export default function InvoiceFileActions({ invoiceId, invoiceNumber }: Invoice
               <span className="text-muted-foreground text-xs">{t('inv.printDesc')}</span>
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void excel()} className="items-start">
-            <FileSpreadsheet className="mt-0.5" />
-            <span className="flex flex-col">
-              Excel
-              <span className="text-muted-foreground text-xs">{t('inv.downloadExcelDesc')}</span>
-            </span>
-          </DropdownMenuItem>
+          {allowExcel && (
+            <DropdownMenuItem onSelect={() => void excel()} className="items-start">
+              <FileSpreadsheet className="mt-0.5" />
+              <span className="flex flex-col">
+                Excel
+                <span className="text-muted-foreground text-xs">{t('inv.downloadExcelDesc')}</span>
+              </span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -18,6 +18,8 @@ interface Props {
   placeholder?: string;
   clearable?: boolean;
   disabled?: boolean;
+  /** yyyy-mm-dd: days before it cannot be picked — an end date never lands before its start. */
+  min?: string;
   className?: string;
   'aria-label'?: string;
 }
@@ -38,11 +40,13 @@ export function DatePicker({
   placeholder = 'Zgjidh datën',
   clearable = false,
   disabled = false,
+  min,
   className,
   'aria-label': ariaLabel,
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const selected = parseLocal(value);
+  const minDate = min ? parseLocal(min) : undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -95,7 +99,8 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
-          defaultMonth={selected}
+          defaultMonth={selected ?? minDate}
+          disabled={minDate ? { before: minDate } : undefined}
           onSelect={(date) => {
             onChange(date ? toDateInput(date) : '');
             setOpen(false);

@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   ShieldOff,
   Sparkles,
-  ToggleLeft,
   ToggleRight,
   Trash2,
   TriangleAlert,
@@ -40,10 +39,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/react/table';
-import { formatALL, formatDate } from '@/lib/utils';
+import { cn, formatALL, formatDate } from '@/lib/utils';
 import { PAID_PLANS, planOf } from '@/lib/plans';
-import { FEATURES } from '@/lib/features';
-import type { FeatureDef } from '@/models/account';
 import type { AdminUserRow, AdminUserTableProps, UserDeletePreview } from '@/models/admin';
 import type { PaidPlanId, PlanId } from '@/models/billing';
 
@@ -138,16 +135,6 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: AdminU
         : `${row.business_name ?? row.email} nuk ka më akses në panel.`
     );
 
-  const setFeature = (row: AdminUserRow, feature: FeatureDef, enabled: boolean) =>
-    run(
-      row.id,
-      'admin_set_feature',
-      { p_user: row.id, p_feature: feature.key, p_enabled: enabled },
-      (r, d) => ({ ...r, features: (d?.features as string[]) ?? r.features }),
-      enabled ? `${feature.label} u aktivizua.` : `${feature.label} u çaktivizua.`,
-      `Për ${row.business_name ?? row.email}.`
-    );
-
   async function openDelete(row: AdminUserRow) {
     setPreviewing(row.id);
     setError(null);
@@ -229,7 +216,15 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: AdminU
             <TableHead className="hidden lg:table-cell">Kontakt</TableHead>
             <TableHead>Plani</TableHead>
             <TableHead className="text-right">Fatura</TableHead>
-            <TableHead className="hidden text-right md:table-cell">Paguar</TableHead>
+            <TableHead className="hidden text-right sm:table-cell" title="Totali i faturave të lëshuara, pa draftet">
+              Të ardhurat
+            </TableHead>
+            <TableHead className="hidden text-right md:table-cell" title="Totali i faturave të paguara">
+              Arkëtuar
+            </TableHead>
+            <TableHead className="hidden text-right lg:table-cell" title="Sa ka paguar biznesi për planin">
+              Abonimi
+            </TableHead>
             <TableHead className="hidden text-right xl:table-cell">Regjistruar</TableHead>
             <TableHead className="w-14" />
           </TableRow>
@@ -287,7 +282,21 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: AdminU
                   <span className="text-muted-foreground"> / {row.client_count} kl.</span>
                 </TableCell>
 
-                <TableCell className="hidden text-right font-medium tabular-nums md:table-cell">
+                {/* Absent until migration 0030 has run — a dash, not a misleading 0. */}
+                <TableCell className="hidden text-right font-medium tabular-nums sm:table-cell">
+                  {row.revenue_total == null ? '—' : formatALL(Number(row.revenue_total))}
+                </TableCell>
+
+                <TableCell
+                  className={cn(
+                    'hidden text-right font-medium tabular-nums md:table-cell',
+                    Number(row.earned_total) > 0 && 'text-success'
+                  )}
+                >
+                  {row.earned_total == null ? '—' : formatALL(Number(row.earned_total))}
+                </TableCell>
+
+                <TableCell className="text-muted-foreground hidden text-right tabular-nums lg:table-cell">
                   {formatALL(row.paid_total)}
                 </TableCell>
 
@@ -307,7 +316,7 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: AdminU
                       </Button>
                     </DropdownMenuTrigger>
 
-                    <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuContent align="end" className="w-72">
                       <DropdownMenuLabel className="truncate text-xs">
                         {row.business_name ?? row.email}
                       </DropdownMenuLabel>
@@ -349,32 +358,12 @@ export default function AdminUserTable({ rows: initial, currentAdminId }: AdminU
                         </a>
                       </DropdownMenuItem>
 
-                      {/* Screens only some businesses asked for. */}
-                      <DropdownMenuLabel className="text-muted-foreground text-[11px]">
-                        Veçoritë
-                      </DropdownMenuLabel>
-                      {FEATURES.map((feature) => {
-                        const on = row.features?.includes(feature.key) ?? false;
-                        return (
-                          <DropdownMenuItem
-                            key={feature.key}
-                            onSelect={() => setFeature(row, feature, !on)}
-                            className="items-start"
-                          >
-                            {on ? (
-                              <ToggleRight className="text-primary mt-0.5" />
-                            ) : (
-                              <ToggleLeft className="mt-0.5" />
-                            )}
-                            <span className="flex flex-col">
-                              {feature.label}
-                              <span className="text-muted-foreground text-xs">
-                                {on ? 'Aktive — kliko për ta çaktivizuar' : feature.description}
-                              </span>
-                            </span>
-                          </DropdownMenuItem>
-                        );
-                      })}
+                      {/* Every on/off switch for this business, on its own settings page. */}
+                      <DropdownMenuItem asChild>
+                        <a href={`/admin/vecorite/${row.id}`}>
+                          <ToggleRight /> Veçoritë
+                        </a>
+                      </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
 

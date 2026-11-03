@@ -4,6 +4,7 @@ import StatCell from '@/components/StatCell.astro';
 import PaidToggle from '@/components/react/PaidToggle';
 import InvoiceRowActions from '@/components/react/InvoiceRowActions';
 import InvoiceExcelActions from '@/components/react/InvoiceExcelActions';
+import { hasFeature } from '@/lib/features';
 import AppLayout from '@/layouts/AppLayout.astro';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -21,7 +22,9 @@ import { applyInvoiceSearch, matchingClientIds, normalizeQuery } from '@/lib/sea
 
 export const prerender = false;
 
-const { supabase, user, invoicesThisMonth } = Astro.locals;
+const { supabase, user, profile, invoicesThisMonth } = Astro.locals;
+// Switched per business in Admin → Veçoritë.
+const allowExcel = hasFeature(profile, 'excel');
 const params = Astro.url.searchParams;
 
 const VALID_STATUSES: InvoiceStatus[] = ['draft', 'unpaid', 'paid', 'overdue'];
@@ -226,7 +229,7 @@ const activeFilter = filters.find((f) => f.value === status);
     </div>
 
     <div class="flex items-center gap-2">
-      <InvoiceExcelActions client:idle />
+      {allowExcel && <InvoiceExcelActions client:idle />}
       {/* Hidden below `lg`: the floating + in the shell is the phone's compose
           action, and the bottom bar leaves compose out precisely because of it. */}
       <Button
@@ -394,6 +397,7 @@ const activeFilter = filters.find((f) => f.value === status);
                   invoiceId={invoice.id}
                   invoiceNumber={invoice.invoice_number}
                   status={invoice.status}
+                  allowExcel={allowExcel}
                 />
               </div>
             </li>
@@ -463,6 +467,7 @@ const activeFilter = filters.find((f) => f.value === status);
                     invoiceId={invoice.id}
                     invoiceNumber={invoice.invoice_number}
                     status={invoice.status}
+                    allowExcel={allowExcel}
                   />
                 </TableCell>
               </TableRow>

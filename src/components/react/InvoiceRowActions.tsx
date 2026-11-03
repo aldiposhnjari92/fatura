@@ -37,7 +37,12 @@ import type { InvoiceRowActionsProps, InvoiceStatusEvent } from '@/models/invoic
 
 /* The row's own actions, so the common ones stop costing a page load. */
 
-export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: initialStatus }: InvoiceRowActionsProps) {
+export default function InvoiceRowActions({
+  invoiceId,
+  invoiceNumber,
+  status: initialStatus,
+  allowExcel = true,
+}: InvoiceRowActionsProps) {
   const t = useTranslations();
   const [status, setStatus] = React.useState(initialStatus);
 
@@ -123,9 +128,11 @@ export default function InvoiceRowActions({ invoiceId, invoiceNumber, status: in
           <DropdownMenuItem onSelect={() => void print()} disabled={busy !== null}>
             <Printer /> {t('inv.print')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => void excel()} disabled={busy !== null}>
-            <FileSpreadsheet /> {t('inv.downloadExcel')}
-          </DropdownMenuItem>
+          {allowExcel && (
+            <DropdownMenuItem onSelect={() => void excel()} disabled={busy !== null}>
+              <FileSpreadsheet /> {t('inv.downloadExcel')}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => void share()} disabled={busy !== null}>
             <Share2 /> {t('inv.share')}
           </DropdownMenuItem>

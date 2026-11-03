@@ -1,0 +1,44 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import FeatureSettings from '@/components/react/FeatureSettings';
+import { Icon } from '@/components/ui/icon';
+import type { AdminFeatureRow } from '@/models/account';
+
+export const prerender = false;
+
+const { supabase } = Astro.locals;
+const { id } = Astro.params;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!id || !UUID_RE.test(id)) {
+  return Astro.redirect('/admin/vecorite', 302);
+}
+
+// admin_features() re-checks is_admin(); with p_user it returns that one business.
+const { data } = await supabase.rpc('admin_features', { p_user: id });
+const business = (Array.isArray(data) ? data[0] : null) as AdminFeatureRow | null;
+if (!business) {
+  return Astro.redirect('/admin/vecorite', 302);
+}
+
+const name = business.business_name ?? business.email;
+---
+
+<AdminLayout
+  title={`Veçoritë e ${name} — Admin Fatura.co`}
+  heading="Veçoritë"
+  subheading="Çfarë sheh ky biznes në aplikacion. Ndryshimet vlejnë menjëherë."
+  active="features"
+>
+  <a
+    href="/admin/vecorite"
+    class="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+  >
+    <Icon name="arrow-left" class="size-4" />
+    Të gjitha bizneset
+  </a>
+
+  <div class="max-w-3xl">
+    <FeatureSettings business={business} client:load />
+  </div>
+</AdminLayout>

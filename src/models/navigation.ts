@@ -3,7 +3,7 @@ import type { PlanId } from '@/models/billing';
 import type { PageIcon } from '@/models/page-builder';
 
 export type AdminNavKey =
-  'overview' | 'invoices' | 'activity' | 'users' | 'payments' | 'waitlist' | 'audit' | 'builder';
+  'overview' | 'invoices' | 'activity' | 'users' | 'features' | 'payments' | 'waitlist' | 'audit' | 'builder';
 
 export type AdminIconKey =
   | 'layout-dashboard'
@@ -13,7 +13,8 @@ export type AdminIconKey =
   | 'credit-card'
   | 'clipboard-list'
   | 'scroll-text'
-  | 'layout-template';
+  | 'layout-template'
+  | 'toggle-right';
 
 export interface AdminNavItem {
   key: AdminNavKey;
@@ -56,6 +57,7 @@ export type NavKey =
   | 'dashboard'
   | 'invoices'
   | 'new'
+  | 'earnings'
   | 'clients'
   | 'suppliers'
   | 'supplies'

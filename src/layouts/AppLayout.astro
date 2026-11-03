@@ -76,6 +76,9 @@ const nav: NavGroup[] = [
         label: t('nav.newInvoice'),
         icon: 'square-pen',
       },
+      ...(hasFeature(profile, 'earnings')
+        ? [{ key: 'earnings', href: '/app/te-ardhurat', label: 'Të ardhurat', icon: 'wallet' } as const]
+        : []),
     ],
   },
   {
@@ -84,21 +87,21 @@ const nav: NavGroup[] = [
   },
 ];
 
-// Screens only some accounts have — switched on per account from the console.
-if (hasFeature(profile, 'suppliers')) {
-  nav.push({
-    group: 'Blerjet',
-    items: [
-      { key: 'suppliers', href: '/app/furnitoret', label: 'Furnitorët', icon: 'truck' },
-      { key: 'supplies', href: '/app/furnizimet', label: 'Furnizimet', icon: 'package-open' },
-    ],
-  });
-}
+// Screens only some accounts have — switched per account in Admin → Veçoritë.
+const purchasing: NavItem[] = [
+  ...(hasFeature(profile, 'suppliers')
+    ? [{ key: 'suppliers', href: '/app/furnitoret', label: 'Furnitorët', icon: 'truck' } as const]
+    : []),
+  ...(hasFeature(profile, 'supplies')
+    ? [{ key: 'supplies', href: '/app/furnizimet', label: 'Furnizimet', icon: 'package-open' } as const]
+    : []),
+];
+if (purchasing.length > 0) nav.push({ group: 'Blerjet', items: purchasing });
 
 // Pages the admin built for this account, under the heading each was given.
 // Already in sidebar order; groups appear in the order their first page does.
 const pageGroups = new Map<string, NavItem[]>();
-for (const page of customPages) {
+for (const page of hasFeature(profile, 'custom_pages') ? customPages : []) {
   const group = page.nav_group?.trim() || DEFAULT_NAV_GROUP;
   if (!pageGroups.has(group)) pageGroups.set(group, []);
   pageGroups.get(group)!.push({
@@ -118,12 +121,7 @@ const mobileNav: NavItem[] = [
   { key: 'invoices', href: '/app/faturat', label: t('nav.invoices'), icon: 'file-text' },
   { key: 'clients', href: '/app/klientet', label: t('nav.clients'), icon: 'users' },
 ];
-if (hasFeature(profile, 'suppliers')) {
-  mobileNav.push(
-    { key: 'suppliers', href: '/app/furnitoret', label: 'Furnitorët', icon: 'truck' },
-    { key: 'supplies', href: '/app/furnizimet', label: 'Furnizimet', icon: 'package-open' }
-  );
-}
+mobileNav.push(...purchasing);
 ---
 
 <BaseLayout title={title} noindex={true}>

@@ -23,8 +23,10 @@ export interface Profile {
   pro_until?: string | null;
   /** Set when the customer asked not to renew; access still runs to pro_until. */
   cancelled_at?: string | null;
-  /** Per-account screens the admin switched on — see lib/features.ts. */
+  /** Optional screens the admin switched on — see lib/features.ts. */
   features?: string[];
+  /** Default-on screens the admin switched off — see lib/features.ts. */
+  disabled_features?: string[];
   created_at: string;
 }
 
@@ -35,13 +37,50 @@ export interface CropArea {
   height: number;
 }
 
-export type FeatureKey = 'suppliers';
+export type FeatureKey = 'earnings' | 'excel' | 'suppliers' | 'supplies' | 'custom_pages';
+
+export type FeatureGroup = 'Faturimi' | 'Blerjet' | 'Faqet';
 
 export interface FeatureDef {
   key: FeatureKey;
+  group: FeatureGroup;
   /** What the admin sees on the switch. */
   label: string;
   description: string;
+  /** Where the business sees it, so the admin knows what the switch changes. */
+  where: string;
+  /** On for every business unless the admin switches it off. */
+  defaultOn: boolean;
+  /** A feature this one cannot work without; switched on together, off together. */
+  requires?: FeatureKey;
+}
+
+/** The two lists a feature's state is stored in (profiles.features / disabled_features). */
+export interface FeatureState {
+  features: string[];
+  disabled_features: string[];
+}
+
+export interface AdminFeatureRow extends FeatureState {
+  id: string;
+  business_name: string | null;
+  city: string | null;
+  email: string;
+  plan: string;
+  created_at: string;
+}
+
+export interface FeatureSettingsProps {
+  business: AdminFeatureRow;
+}
+
+export interface FeatureSwitchProps {
+  id: string;
+  checked: boolean;
+  /** This switch's change is being saved. */
+  busy: boolean;
+  disabled: boolean;
+  onChange: () => void;
 }
 
 export interface LogoMarkProps {

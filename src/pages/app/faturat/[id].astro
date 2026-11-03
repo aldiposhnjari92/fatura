@@ -8,6 +8,7 @@ import InvoiceDetail from '@/components/InvoiceDetail.astro';
 import StatusBadge from '@/components/StatusBadge.astro';
 import { Icon } from '@/components/ui/icon';
 import { displayStatus } from '@/lib/invoices';
+import { hasFeature } from '@/lib/features';
 import { formatALL, formatDate } from '@/lib/utils';
 import { suggestInvoiceNumber } from '@/lib/invoice-number';
 import { suggestProducts } from '@/lib/products';
@@ -115,6 +116,7 @@ const t = useTranslations();
             <InvoiceFileActions
               invoiceId={invoice.id}
               invoiceNumber={invoice.invoice_number}
+              allowExcel={hasFeature(profile, 'excel')}
               client:idle
             />
           </div>

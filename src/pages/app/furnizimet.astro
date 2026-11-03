@@ -9,7 +9,7 @@ export const prerender = false;
 const { supabase, user, profile } = Astro.locals;
 
 // Only for accounts with the feature on; RLS refuses the rows otherwise anyway.
-if (!hasFeature(profile, 'suppliers')) {
+if (!hasFeature(profile, 'supplies')) {
   return Astro.redirect('/app', 302);
 }
 

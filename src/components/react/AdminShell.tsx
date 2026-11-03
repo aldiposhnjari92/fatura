@@ -9,6 +9,7 @@ import {
   LayoutTemplate,
   LogOut,
   ScrollText,
+  ToggleRight,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -61,6 +62,7 @@ const ICONS: Record<AdminIconKey, LucideIcon> = {
   'clipboard-list': ClipboardList,
   'scroll-text': ScrollText,
   'layout-template': LayoutTemplate,
+  'toggle-right': ToggleRight,
 };
 
 export default function AdminShell({

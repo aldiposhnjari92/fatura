@@ -1,0 +1,325 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import EarningsPeriodPicker from '@/components/react/EarningsPeriodPicker';
+import StatCell from '@/components/StatCell.astro';
+import { Icon } from '@/components/ui/icon';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatALL, formatDate } from '@/lib/utils';
+import {
+  albanianDate,
+  fetchWindow,
+  matchingPreset,
+  neighbours,
+  niceMax,
+  percentChange,
+  resolvePeriod,
+  summarize,
+} from '@/lib/earnings';
+import { hasFeature } from '@/lib/features';
+import type { EarningsInvoice } from '@/models/earnings';
+
+export const prerender = false;
+
+const { supabase, user, profile } = Astro.locals;
+
+// Switched off for this business in Admin → Veçoritë.
+if (!hasFeature(profile, 'earnings')) {
+  return Astro.redirect('/app', 302);
+}
+
+/*
+  Të ardhurat: how much came in over a period the user picks. The period
+  lives in the URL (?periudha=…, ?periudha=…&data=… after the arrows, or
+  ?periudha=tjeter&nga=…&deri=…), so the page is rendered here from it and a
+  period can be bookmarked or shared. The counting is in lib/earnings.ts;
+  this file fetches and draws.
+
+  Laid out like the dashboard: one row of numbers, then the chart, then the
+  invoices behind them.
+*/
+
+const today = albanianDate();
+const period = resolvePeriod(Astro.url.searchParams, today);
+const steps = neighbours(period, today);
+const { paidFrom, paidUntil } = fetchWindow(period);
+
+const COLUMNS = 'id, invoice_number, status, issue_date, due_date, paid_at, subtotal, discount, total, clients(name)';
+/** PostgREST returns at most 1000 rows a request, so both lists are read in pages. */
+const PAGE = 1000;
+
+async function readAll(build: (from: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>) {
+  const rows: EarningsInvoice[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build(from);
+    if (error) throw error;
+    rows.push(...((data ?? []) as EarningsInvoice[]));
+    if (!data || data.length < PAGE) return rows;
+  }
+}
+
+let failed = false;
+let paidRows: EarningsInvoice[] = [];
+let issuedRows: EarningsInvoice[] = [];
+try {
+  [paidRows, issuedRows] = await Promise.all([
+    readAll((from) =>
+      supabase
+        .from('invoices')
+        .select(COLUMNS)
+        .eq('owner_id', user!.id)
+        .eq('status', 'paid')
+        .gte('paid_at', paidFrom)
+        .lt('paid_at', paidUntil)
+        .order('paid_at', { ascending: false })
+        .range(from, from + PAGE - 1)
+    ),
+    readAll((from) =>
+      supabase
+        .from('invoices')
+        .select(COLUMNS)
+        .eq('owner_id', user!.id)
+        .neq('status', 'draft')
+        .gte('issue_date', period.from)
+        .lte('issue_date', period.to)
+        .order('issue_date', { ascending: false })
+        .range(from, from + PAGE - 1)
+    ),
+  ]);
+} catch (error) {
+  console.error('te-ardhurat: invoices query failed', error);
+  failed = true;
+}
+
+const s = summarize(period, paidRows, issuedRows, today);
+const change = percentChange(s.earned, s.previousEarned);
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+const stats = [
+  {
+    label: 'Arkëtuar',
+    value: formatALL(s.earned),
+    tone: 'text-success',
+    delta: change,
+    note: `${plural(s.paidCount, 'faturë e paguar', 'fatura të paguara')} · ${formatALL(s.previousEarned)} në ${period.previous.label}`,
+  },
+  {
+    label: 'Faturuar',
+    value: formatALL(s.invoiced),
+    note: plural(s.invoicedCount, 'faturë e lëshuar', 'fatura të lëshuara'),
+  },
+  {
+    label: 'Pa arkëtuar ende',
+    value: formatALL(s.outstanding),
+    tone: s.outstanding > 0 ? 'text-warning' : '',
+    note: s.overdueCount > 0 ? `${s.overdueCount} me vonesë` : plural(s.outstandingCount, 'faturë', 'fatura'),
+  },
+];
+
+// ---- Chart geometry ----
+const top = niceMax(Math.max(0, ...s.buckets.map((b) => b.amount)));
+const pct = (amount: number) => (top > 0 ? (amount / top) * 100 : 0);
+/** Axis labels short enough to sit beside the plot: "250 mijë", "1,5 mln". */
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${String(Math.round(n / 100_000) / 10).replace('.', ',')} mln`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)} mijë`;
+  return String(Math.round(n));
+}
+const gridlines = top > 0 ? [top, top / 2, 0] : [];
+/** A label under every bar would collide on a 31-day month; every nth keeps them legible. */
+const labelEvery = Math.max(1, Math.ceil(s.buckets.length / (s.bucketSize === 'day' ? 8 : 12)));
+const chartTitle = { day: 'Arkëtimet sipas ditës', month: 'Arkëtimet sipas muajit', year: 'Arkëtimet sipas vitit' }[s.bucketSize];
+
+const SHOWN = 50;
+const shownPaid = s.paid.slice(0, SHOWN);
+
+const arrow = 'border-input bg-background inline-flex size-9 items-center justify-center rounded-full border transition-colors';
+---
+
+<AppLayout title="Të ardhurat — Fatura.co" active="earnings">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold tracking-[-0.03em] sm:text-3xl">Të ardhurat</h1>
+    <p class="text-muted-foreground mt-1 text-sm">
+      Sa ke arkëtuar në një periudhë: faturat e paguara, sipas ditës kur u paguan.
+    </p>
+  </div>
+
+  {/*
+    One toolbar: which period, and a step to the one before or after. It
+    stays in reach while the page scrolls, just under the 4rem top bar (z-40).
+  */}
+  <section class="bg-card shadow-card sticky top-[4.75rem] z-30 mb-5 flex flex-col gap-3 rounded-2xl p-3 sm:p-4 lg:flex-row lg:items-start lg:justify-between">
+    <EarningsPeriodPicker client:load preset={matchingPreset(period, today)} from={period.from} to={period.to} />
+
+    <div class="flex shrink-0 items-center gap-2 self-start">
+      <a href={steps.previous} class={`${arrow} hover:bg-muted`} aria-label={`Periudha e mëparshme: ${period.previous.label}`}>
+        <Icon name="chevron-left" class="size-4" />
+      </a>
+      <p class="min-w-36 text-center text-sm font-semibold first-letter:uppercase">{period.label}</p>
+      {
+        steps.next ? (
+          <a href={steps.next} class={`${arrow} hover:bg-muted`} aria-label="Periudha tjetër">
+            <Icon name="chevron-right" class="size-4" />
+          </a>
+        ) : (
+          <span class={`${arrow} text-muted-foreground/40`} aria-hidden="true">
+            <Icon name="chevron-right" class="size-4" />
+          </span>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    failed && (
+      <p role="alert" class="border-destructive/30 bg-destructive/10 text-destructive mb-5 rounded-xl border px-4 py-3 text-sm">
+        Të dhënat nuk u ngarkuan. Rifresko faqen për të provuar sërish.
+      </p>
+    )
+  }
+
+  {/* The same card the dashboard uses for its headline numbers. */}
+  <section class="bg-card shadow-card rounded-2xl p-6">
+    <dl class="grid gap-6 sm:grid-cols-3 sm:gap-0">
+      {
+        stats.map((stat, index) => (
+          <StatCell label={stat.label} first={index === 0}>
+            <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span class={`text-2xl font-bold tracking-[-0.03em] tabular-nums ${stat.tone ?? ''}`}>{stat.value}</span>
+              {stat.delta != null && (
+                <span
+                  class:list={[
+                    'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
+                    stat.delta >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive',
+                  ]}
+                  title={`krahasuar me ${period.previous.label}`}
+                >
+                  {stat.delta >= 0 ? '↑' : '↓'} {Math.abs(stat.delta)}%
+                </span>
+              )}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs">{stat.note}</p>
+          </StatCell>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section class="bg-card shadow-card mt-5 rounded-2xl p-6">
+    <h2 class="font-semibold tracking-tight">{chartTitle}</h2>
+    {
+      top === 0 ? (
+        <p class="text-muted-foreground py-14 text-center text-sm">Asnjë pagesë e arkëtuar në këtë periudhë.</p>
+      ) : (
+        <div class="mt-6 flex gap-3">
+          <div class="text-muted-foreground relative h-52 w-14 shrink-0 text-right text-[11px] tabular-nums" aria-hidden="true">
+            {gridlines.map((value) => (
+              <span class="absolute right-0 -translate-y-1/2" style={`top:${100 - pct(value)}%`}>{compact(value)}</span>
+            ))}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="relative h-52">
+              {gridlines.map((value) => (
+                <div class="border-border absolute inset-x-0 border-t" style={`top:${100 - pct(value)}%`} aria-hidden="true" />
+              ))}
+              <div class="absolute inset-0 flex items-end gap-0.5" role="list" aria-label={chartTitle}>
+                {s.buckets.map((bucket, i) => (
+                  <div
+                    role="listitem"
+                    tabindex="0"
+                    class="group relative flex h-full min-w-0 flex-1 items-end justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`${bucket.long}: ${formatALL(bucket.amount)}`}
+                  >
+                    <span
+                      class="bg-chart-1 w-full max-w-6 rounded-t-[4px] transition-opacity group-hover:opacity-80 group-focus-visible:opacity-80"
+                      style={`height:${bucket.amount > 0 ? Math.max(pct(bucket.amount), 1) : 0}%`}
+                    />
+                    {/* The whole column is the hover target, so a small day is still easy to reach. */}
+                    <span
+                      class:list={[
+                        'bg-popover text-popover-foreground pointer-events-none absolute z-10 hidden rounded-lg border px-3 py-2 text-xs whitespace-nowrap shadow-md group-hover:block group-focus-visible:block',
+                        i < s.buckets.length / 3 ? 'left-0' : i > (s.buckets.length * 2) / 3 ? 'right-0' : 'left-1/2 -translate-x-1/2',
+                      ]}
+                      style={`bottom:calc(${pct(bucket.amount)}% + 8px)`}
+                      aria-hidden="true"
+                    >
+                      <span class="text-muted-foreground block first-letter:uppercase">{bucket.long}</span>
+                      <span class="block font-semibold tabular-nums">{formatALL(bucket.amount)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div class="text-muted-foreground mt-2 flex gap-0.5 text-[11px]" aria-hidden="true">
+              {s.buckets.map((bucket, i) => (
+                <span class="min-w-0 flex-1 truncate text-center">{i % labelEvery === 0 ? bucket.short : ''}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+  </section>
+
+  {/* The invoices behind the number, in the dashboard's table. */}
+  <section class="bg-card shadow-card mt-5 overflow-hidden rounded-2xl">
+    <div class="flex items-center justify-between gap-3 px-6 py-5">
+      <h2 class="font-semibold tracking-tight">Faturat e paguara</h2>
+      <span class="text-muted-foreground text-sm">{plural(s.paidCount, 'faturë', 'fatura')}</span>
+    </div>
+
+    {
+      s.paidCount === 0 ? (
+        <p class="text-muted-foreground border-t px-6 py-12 text-center text-sm">Asnjë faturë e paguar në këtë periudhë.</p>
+      ) : (
+        <>
+          <ul class="divide-y border-t sm:hidden">
+            {shownPaid.map((invoice) => (
+              <a href={`/app/faturat/${invoice.id}`} class="hover:bg-muted/40 flex items-center justify-between gap-3 px-4 py-3 transition-colors">
+                <span class="min-w-0 flex-1">
+                  <span class="text-primary block truncate font-medium">{invoice.invoice_number}</span>
+                  <span class="text-muted-foreground block truncate text-xs">
+                    {invoice.clients?.name ?? '—'} · {formatDate(invoice.paidOn)}
+                  </span>
+                </span>
+                <span class="shrink-0 font-medium whitespace-nowrap tabular-nums">{formatALL(Number(invoice.total))}</span>
+              </a>
+            ))}
+          </ul>
+
+          <Table containerClass="hidden border-t sm:block">
+            <TableHeader class="bg-transparent">
+              <TableRow class="hover:bg-transparent">
+                <TableHead class="py-2.5 pl-6">Numri</TableHead>
+                <TableHead class="py-2.5">Klienti</TableHead>
+                <TableHead class="py-2.5">Paguar më</TableHead>
+                <TableHead class="py-2.5 pr-6 text-right">Totali</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {shownPaid.map((invoice) => (
+                <TableRow>
+                  <TableCell class="py-3 pl-6">
+                    <a href={`/app/faturat/${invoice.id}`} class="text-primary font-medium whitespace-nowrap hover:underline">
+                      {invoice.invoice_number}
+                    </a>
+                  </TableCell>
+                  <TableCell class="max-w-[16rem] truncate py-3">{invoice.clients?.name ?? '—'}</TableCell>
+                  <TableCell class="text-muted-foreground py-3">{formatDate(invoice.paidOn)}</TableCell>
+                  <TableCell class="py-3 pr-6 text-right font-medium whitespace-nowrap tabular-nums">
+                    {formatALL(Number(invoice.total))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {s.paidCount > SHOWN && (
+            <p class="text-muted-foreground border-t px-6 py-3 text-center text-sm">
+              Dhe {s.paidCount - SHOWN} të tjera. <a href="/app/faturat" class="text-primary font-medium hover:underline">Shiko te Faturat</a>
+            </p>
+          )}
+        </>
+      )
+    }
+  </section>
+</AppLayout>
