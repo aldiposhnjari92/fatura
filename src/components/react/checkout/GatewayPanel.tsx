@@ -3,6 +3,7 @@ import { Landmark, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/react/button';
 import { PLANS } from '@/lib/plans';
 import { formatALL } from '@/lib/utils';
+import DodoPanel from './DodoPanel';
 import type { GatewayPanelProps } from '@/models/billing';
 
 /*
@@ -11,13 +12,14 @@ import type { GatewayPanelProps } from '@/models/billing';
 */
 const PayPalPanel = React.lazy(() => import('@/components/react/PayPalPanel'));
 
-/** Card or PayPal: the SDK when the gateway is live, otherwise why it is not. */
+/** Card or PayPal: Dodo's checkout or the PayPal SDK when live, otherwise why not. */
 export default function GatewayPanel({
   method,
   mode,
   paypalClientId,
   paypalCurrency,
   cardFieldsEnabled,
+  dodoEnabled,
   months,
   plan,
   term,
@@ -28,7 +30,14 @@ export default function GatewayPanel({
     <section className="bg-card shadow-card rounded-2xl p-6">
       <h2 className="font-semibold">{method?.label}</h2>
 
-      {method?.available && paypalClientId ? (
+      {mode === 'card' && dodoEnabled ? (
+        <>
+          <p className="text-muted-foreground mt-2 text-sm">
+            Do të paguash {formatALL(term.total)} për {term.periodLabel} · {PLANS[plan].name}.
+          </p>
+          <DodoPanel months={months} plan={plan} term={term} />
+        </>
+      ) : method?.available && paypalClientId ? (
         <>
           <p className="text-muted-foreground mt-2 text-sm">
             Do të paguash {formatALL(term.total)} për {term.periodLabel} · {PLANS[plan].name}.

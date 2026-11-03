@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatLongDate } from '@/lib/utils';
 import { PLANS, invoiceLimitOf, planOf, quotaReached, usageRatio as quotaRatio } from '@/lib/plans';
@@ -10,6 +11,7 @@ import GatewayPanel from './checkout/GatewayPanel';
 import MembershipCard from './checkout/MembershipCard';
 import SubscriptionDetails from './checkout/SubscriptionDetails';
 import { MethodPicker, PlanPicker, TermPicker } from './checkout/PurchasePickers';
+import { useDodoReturn } from './checkout/use-dodo-return';
 import type { CheckoutPayment, CheckoutProps, PaidPlanId, PaymentMethod } from '@/models/billing';
 
 /*
@@ -30,6 +32,7 @@ export default function Checkout({
   paypalClientId,
   paypalCurrency = 'EUR',
   cardFieldsEnabled = false,
+  dodoEnabled = false,
   pending,
   activePlan,
   proActive,
@@ -53,6 +56,7 @@ export default function Checkout({
   const [cancelled, setCancelled] = React.useState<string | null>(cancelledAt);
   const [showCancel, setShowCancel] = React.useState(false);
   const [cancelBusy, setCancelBusy] = React.useState(false);
+  const dodoReturn = useDodoReturn();
 
   /*
     A Pro customer lands on the status card, not on a checkout form — being
@@ -230,6 +234,7 @@ export default function Checkout({
           paypalClientId={paypalClientId}
           paypalCurrency={paypalCurrency}
           cardFieldsEnabled={cardFieldsEnabled}
+          dodoEnabled={dodoEnabled}
           months={months}
           plan={plan}
           term={selected}
@@ -242,6 +247,25 @@ export default function Checkout({
 
   return (
     <div className="flex flex-col gap-6">
+      {dodoReturn !== 'idle' && (
+        <p
+          role="status"
+          className="border-primary/25 bg-accent/40 animate-rise flex items-start gap-2 rounded-xl border px-4 py-3 text-sm"
+        >
+          {dodoReturn === 'waiting' ? (
+            <>
+              <Loader2 className="text-primary mt-0.5 size-4 shrink-0 animate-spin" />
+              Po presim konfirmimin e pagesës nga Dodo Payments — zakonisht disa sekonda.
+            </>
+          ) : (
+            <>
+              Konfirmimi po vonon. Nëse e përfundove pagesën, plani aktivizohet vetë sapo të vijë
+              konfirmimi — rifresko faqen pas pak. Nëse e anulove, mund të provosh sërish më poshtë.
+            </>
+          )}
+        </p>
+      )}
+
       <MembershipCard
         proActive={proActive}
         activePlan={activePlan}

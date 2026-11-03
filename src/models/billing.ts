@@ -155,6 +155,8 @@ export interface CheckoutProps {
   paypalCurrency?: string;
   /** True once Advanced Card Payments is approved, enabling hosted card fields. */
   cardFieldsEnabled?: boolean;
+  /** True when Dodo Payments is set up; card payments then go through its hosted checkout. */
+  dodoEnabled?: boolean;
   pending: CheckoutPayment | null;
   /** The tier in force right now — 'free' once a subscription has lapsed. */
   activePlan: PlanId;
@@ -264,11 +266,18 @@ export interface GatewayPanelProps {
   paypalClientId: string | null | undefined;
   paypalCurrency: string;
   cardFieldsEnabled: boolean;
+  dodoEnabled: boolean;
   months: number;
   plan: PaidPlanId;
   term: TermOption;
   onPaid: () => void;
   onUseBankTransfer: () => void;
+}
+
+export interface DodoPanelProps {
+  months: number;
+  plan: PaidPlanId;
+  term: TermOption;
 }
 
 export interface SubscriptionDetailsProps {

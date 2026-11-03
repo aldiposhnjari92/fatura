@@ -92,9 +92,14 @@ export function isCardConfigured(env: Record<string, unknown>): boolean {
   return isPaypalConfigured(env) && String(env.PAYPAL_CARD_FIELDS ?? '') === 'true';
 }
 
-export function getMethods(env: Record<string, unknown>): MethodInfo[] {
+/**
+ * `dodo` is whether Dodo Payments is set up (lib/dodo.ts, read on the server).
+ * When it is, card goes through Dodo — card, Apple Pay and Google Pay on its
+ * hosted page — and PayPal's card fields are no longer needed for it.
+ */
+export function getMethods(env: Record<string, unknown>, { dodo = false }: { dodo?: boolean } = {}): MethodInfo[] {
   const paypal = isPaypalConfigured(env);
-  const card = isCardConfigured(env);
+  const card = dodo || isCardConfigured(env);
 
   return [
     {
@@ -108,7 +113,9 @@ export function getMethods(env: Record<string, unknown>): MethodInfo[] {
     {
       id: 'card',
       label: 'Kartë krediti / debiti',
-      description: card
+      description: dodo
+        ? 'Visa, Mastercard, Apple Pay ose Google Pay, në faqen e sigurt të Dodo Payments. Aktivizohet menjëherë pas pagesës.'
+        : card
         ? 'Visa ose Mastercard. Aktivizohet menjëherë pas pagesës.'
         : 'Pagesa me kartë aktivizohet sapo të lidhet llogaria tregtare.',
       icon: 'credit-card',

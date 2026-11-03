@@ -12,6 +12,7 @@ import {
   isPaypalConfigured,
 } from '@/lib/payments';
 import { PLANS, isPaidPlanId, isPlanId, planOf } from '@/lib/plans';
+import { dodoConfig } from '@/lib/dodo';
 import type { PaidPlanId } from '@/models/billing';
 
 export const prerender = false;
@@ -45,7 +46,9 @@ const env: Record<string, unknown> = {
   PAYPAL_CARD_FIELDS: process.env.PAYPAL_CARD_FIELDS ?? import.meta.env.PAYPAL_CARD_FIELDS,
   PAYPAL_CURRENCY: process.env.PAYPAL_CURRENCY ?? import.meta.env.PAYPAL_CURRENCY,
 };
-const methods = getMethods(env);
+// Only whether Dodo is set up reaches the island — its keys stay here.
+const dodoEnabled = dodoConfig() !== null;
+const methods = getMethods(env, { dodo: dodoEnabled });
 const bank = getBankDetails(env);
 const bankConfigured = isBankConfigured(env);
 const paypalClientId = isPaypalConfigured(env)
@@ -194,6 +197,7 @@ const railFeatures = PLAN_FEATURES[railPlan];
     paypalClientId={paypalClientId}
     paypalCurrency={paypalCurrency}
     cardFieldsEnabled={cardFieldsEnabled}
+    dodoEnabled={dodoEnabled}
     pending={pending}
     activePlan={activePlan}
     proActive={proActive}
