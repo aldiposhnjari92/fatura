@@ -33,7 +33,7 @@ export const FEATURES: FeatureDef[] = [
     key: 'suppliers',
     group: 'Blerjet',
     label: 'Furnitorët',
-    description: 'Regjistri i furnitorëve: vlera, pagesat dhe teprica me secilin.',
+    description: 'Regjistri i furnitorëve: vlera, pagesat dhe diferenca me secilin.',
     where: 'Menuja anësore dhe shiriti i telefonit',
     defaultOn: false,
   },

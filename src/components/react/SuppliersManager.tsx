@@ -28,7 +28,7 @@ import type { Supplier, SupplierDraft, SuppliersManagerProps } from '@/models/su
 
 /*
   Furnitorët: each supplier is an account — what the goods are worth (vlera),
-  what has been paid (pagesa), and what is left (teprica). Teprica is never
+  what has been paid (pagesa), and what is left (diferenca). Diferenca is never
   typed: the database generates it as vlera − pagesa, and the form shows the
   same subtraction live so the number is known before saving.
 */
@@ -44,7 +44,7 @@ const emptyDraft = (): SupplierDraft => ({
 /* How long the confirmation is held before the dialog closes itself. */
 const CONFIRM_MS = 1000;
 
-/** Teprica that is still owed reads as a warning; settled or over-paid does not. */
+/** Diferenca that is still owed reads as a warning; settled or over-paid does not. */
 function balanceTone(balance: number) {
   return balance > 0 ? 'text-warning' : 'text-muted-foreground';
 }
@@ -132,7 +132,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
 
       notify.success(
         draft.id ? 'Furnitori u ruajt.' : 'Furnitori u shtua.',
-        `${payload.name} — teprica ${formatALL(payload.value - payload.payment)}.`
+        `${payload.name} — diferenca ${formatALL(payload.value - payload.payment)}.`
       );
       setDraft(null);
     } catch (err) {
@@ -177,7 +177,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
         {[
           { label: 'Vlera gjithsej', amount: totals.value, tone: '' },
           { label: 'Paguar gjithsej', amount: totals.payment, tone: '' },
-          { label: 'Teprica gjithsej', amount: totals.balance, tone: balanceTone(totals.balance) },
+          { label: 'Diferenca gjithsej', amount: totals.balance, tone: balanceTone(totals.balance) },
         ].map((stat) => (
           <div key={stat.label} className="bg-card shadow-card rounded-2xl px-5 py-4">
             <p className="text-muted-foreground text-xs font-medium">{stat.label}</p>
@@ -241,7 +241,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
                 <TableHead>Furnitori</TableHead>
                 <TableHead className="hidden text-right sm:table-cell">Vlera</TableHead>
                 <TableHead className="hidden text-right sm:table-cell">Pagesa</TableHead>
-                <TableHead className="text-right">Teprica</TableHead>
+                <TableHead className="text-right">Diferenca</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
@@ -366,7 +366,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
                 {/* Not an input: it is the subtraction, and the database
                     stores the same one. */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-balance">Teprica</Label>
+                  <Label htmlFor="s-balance">Diferenca</Label>
                   <output
                     id="s-balance"
                     aria-live="polite"
@@ -380,7 +380,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
                 </div>
               </div>
               <p className="text-muted-foreground -mt-2 text-xs">
-                Teprica llogaritet vetë: Vlera − Pagesa.
+                Diferenca llogaritet vetë: Vlera − Pagesa.
               </p>
 
               <DialogFooter>
@@ -421,7 +421,7 @@ export default function SuppliersManager({ suppliers: initial }: SuppliersManage
               </DialogHeader>
               <p className="text-muted-foreground text-sm">
                 {pendingDelete && pendingDelete.balance > 0
-                  ? `Ky furnitor ka ende një tepricë prej ${formatALL(pendingDelete.balance)}. `
+                  ? `Ky furnitor ka ende një diferencë prej ${formatALL(pendingDelete.balance)}. `
                   : ''}
                 Furnitori fshihet përgjithmonë. Furnizimet e lidhura ruhen, por mbeten pa
                 furnitor.
