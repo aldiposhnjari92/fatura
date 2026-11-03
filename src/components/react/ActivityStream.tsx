@@ -43,8 +43,19 @@ function meta(type: string) {
   development — the second run then calls .on() on a channel that is already
   subscribed, which throws "cannot add postgres_changes callbacks ... after
   subscribe()". A per-mount name sidesteps the cache entirely.
+
+  The name is random, not a module counter: in development Vite can evaluate
+  this module more than once (HMR, separate island chunks) while the Supabase
+  client — and its channel cache — lives on, so a counter restarts at 1 and
+  collides with a channel that is still subscribed.
 */
-let channelSeq = 0;
+function channelName(): string {
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `activity-stream-${id}`;
+}
 
 export default function ActivityStream({
   initial = [],
@@ -90,9 +101,8 @@ export default function ActivityStream({
   }
 
   React.useEffect(() => {
-    const name = `activity-stream-${(channelSeq += 1)}`;
     const channel = supabase
-      .channel(name)
+      .channel(channelName())
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'activity_events' },
