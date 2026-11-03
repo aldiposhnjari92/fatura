@@ -25,14 +25,25 @@
     var collator = new Intl.Collator('sq', { numeric: true, sensitivity: 'base' });
 
     /*
-      The idle glyph packs two arrowheads into the same em box as ↑/↓, so at a
-      shared font size it reads noticeably smaller. It gets a step up to look
-      the same weight instead. `leading-none` on both keeps the header height
-      identical across the swap, so clicking never nudges the row.
+      Lucide icons (arrow-up-down, arrow-up, arrow-down), inlined as SVG because
+      this script runs without a framework. They are sized in em, so they follow
+      the header's font size, and every state uses the same box — swapping one
+      for another never nudges the row.
     */
-    var ARROW_IDLE = '↕';
-    var ARROW_IDLE_CLASS = 'text-md leading-none opacity-40';
-    var ARROW_ACTIVE_CLASS = 'text-xs leading-none opacity-80';
+    function lucide(paths) {
+      return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" ' +
+        'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+        'stroke-linejoin="round" class="size-3.5">' + paths + '</svg>'
+      );
+    }
+    var ICON_IDLE = lucide(
+      '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>'
+    );
+    var ICON_ASC = lucide('<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>');
+    var ICON_DESC = lucide('<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>');
+    var ARROW_IDLE_CLASS = 'inline-flex shrink-0 opacity-40';
+    var ARROW_ACTIVE_CLASS = 'inline-flex shrink-0 opacity-80';
 
     function cellValue(row, index, type) {
       var cell = row.children[index];
@@ -70,7 +81,7 @@
         var arrow = document.createElement('span');
         arrow.setAttribute('aria-hidden', 'true');
         arrow.className = ARROW_IDLE_CLASS;
-        arrow.textContent = ARROW_IDLE;
+        arrow.innerHTML = ICON_IDLE;
         button.appendChild(arrow);
         th.appendChild(button);
 
@@ -84,7 +95,7 @@
             other.setAttribute('aria-sort', 'none');
             var a = other.querySelector('button > span[aria-hidden]');
             if (a) {
-              a.textContent = ARROW_IDLE;
+              a.innerHTML = ICON_IDLE;
               a.className = ARROW_IDLE_CLASS;
             }
             var b = other.querySelector('button');
@@ -92,7 +103,7 @@
           });
 
           th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
-          arrow.textContent = asc ? '↑' : '↓';
+          arrow.innerHTML = asc ? ICON_ASC : ICON_DESC;
           arrow.className = ARROW_ACTIVE_CLASS;
           button.classList.add('text-foreground', 'font-semibold');
 
